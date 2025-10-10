@@ -1,0 +1,39 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Confirmar Pedido - Restaurante QR</title>
+    <link rel="stylesheet" href="{% static 'css/cliente/confirmacion.css' %}">
+</head>
+<body>
+    <div class="container">
+        <!-- CSRF Token para Django -->
+        {% csrf_token %}<div class="header">
+            <h1>🔍 Confirmar Pedido</h1>
+            <p>Revisa tu pedido antes de enviarlo</p>
+        </div>
+
+        <div class="confirmation-card" id="confirmationCard">
+            <div id="orderContent">
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <p>Cargando resumen del pedido...</p>
+                </div>
+            </div>
+
+            <div class="action-buttons" id="actionButtons" style="display: none;">
+                <button type="button" class="btn btn-cancel" onclick="editOrder()">
+                    ✏️ Editar Pedido
+                </button>
+                <button type="button" class="btn btn-confirm" id="confirmBtn" onclick="confirmOrder()">
+                    ✅ Confirmar Pedido
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="{% static 'js/cliente/confirmacion.js' %}"></script>
+</body>
+</html>

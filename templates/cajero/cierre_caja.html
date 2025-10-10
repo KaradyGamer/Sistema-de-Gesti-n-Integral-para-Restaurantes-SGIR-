@@ -1,0 +1,190 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cierre de Caja - Sistema de Caja</title>
+    <link rel="stylesheet" href="{% static 'css/cajero/cierre_caja.css' %}">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📊 Cierre de Caja</h1>
+            <div class="user-info">
+                <span>Cajero: <strong>{{ request.user.get_full_name }}</strong></span>
+                <a href="/caja/" class="btn btn-secondary">← Volver</a>
+                <a href="/usuarios/logout/" class="btn btn-danger">Cerrar Sesión</a>
+            </div>
+        </div>
+
+        {% if error %}
+        <div class="alert alert-danger">
+            ⚠️ {{ error }}
+        </div>
+        {% endif %}
+
+        {% if not cierre %}
+        <div class="card">
+            <div class="no-cierre">
+                <div class="icon">📭</div>
+                <h3>No hay caja abierta para cerrar</h3>
+                <p style="color: #666; margin-bottom: 20px;">
+                    Debes abrir una caja antes de poder realizar el cierre
+                </p>
+                <a href="/caja/abrir/" class="btn btn-primary">💰 Abrir Caja</a>
+            </div>
+        </div>
+        {% else %}
+
+        <!-- Información de la Caja -->
+        <div class="card">
+            <h2>📋 Información del Turno</h2>
+            <div class="info-grid">
+                <div class="info-box">
+                    <label>Turno</label>
+                    <div class="value">{{ cierre.get_turno_display }}</div>
+                </div>
+                <div class="info-box">
+                    <label>Fecha</label>
+                    <div class="value">{{ cierre.fecha|date:"d/m/Y" }}</div>
+                </div>
+                <div class="info-box">
+                    <label>Cajero</label>
+                    <div class="value">{{ cierre.cajero.get_full_name }}</div>
+                </div>
+                <div class="info-box">
+                    <label>Estado</label>
+                    <div class="value">{{ cierre.get_estado_display }}</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Resumen de Ventas -->
+        <div class="card">
+            <h2>💰 Resumen de Ventas</h2>
+
+            <div class="totales-section">
+                <div class="total-row">
+                    <span class="label">💵 Efectivo:</span>
+                    <span class="amount">Bs/ {{ cierre.total_efectivo|floatformat:2 }}</span>
+                </div>
+                <div class="total-row">
+                    <span class="label">💳 Tarjeta:</span>
+                    <span class="amount">Bs/ {{ cierre.total_tarjeta|floatformat:2 }}</span>
+                </div>
+                <div class="total-row">
+                    <span class="label">📱 QR:</span>
+                    <span class="amount">Bs/ {{ cierre.total_qr|floatformat:2 }}</span>
+                </div>
+                <div class="total-row">
+                    <span class="label">📲 Pago Móvil:</span>
+                    <span class="amount">Bs/ {{ cierre.total_movil|floatformat:2 }}</span>
+                </div>
+                <div class="total-row highlight">
+                    <span class="label">💼 TOTAL VENTAS:</span>
+                    <span class="amount">Bs/ {{ cierre.total_ventas|floatformat:2 }}</span>
+                </div>
+            </div>
+
+            <div class="info-grid">
+                <div class="info-box" style="border-color: #28a745;">
+                    <label>Transacciones</label>
+                    <div class="value" style="color: #28a745;">{{ total_transacciones }}</div>
+                </div>
+                <div class="info-box" style="border-color: #17a2b8;">
+                    <label>Ticket Promedio</label>
+                    <div class="value" style="color: #17a2b8;">Bs/ {{ ticket_promedio|floatformat:2 }}</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Conteo de Efectivo -->
+        <div class="card">
+            <h2>💵 Conteo de Efectivo</h2>
+
+            <div class="alert alert-info">
+                ℹ️ Cuenta el efectivo en caja y registra el monto real para calcular la diferencia
+            </div>
+
+            <div class="totales-section">
+                <div class="total-row">
+                    <span class="label">Efectivo Inicial:</span>
+                    <span class="amount">Bs/ {{ cierre.efectivo_inicial|floatformat:2 }}</span>
+                </div>
+                <div class="total-row">
+                    <span class="label">+ Ventas en Efectivo:</span>
+                    <span class="amount">Bs/ {{ cierre.total_efectivo|floatformat:2 }}</span>
+                </div>
+                <div class="total-row highlight">
+                    <span class="label">= Efectivo Esperado:</span>
+                    <span class="amount">Bs/ {{ cierre.efectivo_esperado|floatformat:2 }}</span>
+                </div>
+            </div>
+
+            <form method="post" id="cierre-form">
+                {% csrf_token %}
+
+                <div class="form-group">
+                    <label for="efectivo_real">Efectivo Real en Caja:</label>
+                    <div class="hint">
+                        💡 Cuenta todo el efectivo físico presente en la caja
+                    </div>
+                    <input
+                        type="number"
+                        id="efectivo_real"
+                        name="efectivo_real"
+                        step="0.01"
+                        min="0"
+                        value="{{ cierre.efectivo_real }}"
+                        required
+                        placeholder="0.00"
+                    >
+                </div>
+
+                <div id="diferencia-container" style="display: none;">
+                    <div class="difference-box" id="diferencia-box">
+                        <div id="diferencia-texto"></div>
+                    </div>
+                </div>
+
+                <div class="buttons">
+                    <button type="button" class="btn btn-secondary" onclick="window.print()">
+                        🖨️ Imprimir Reporte
+                    </button>
+                    <button type="submit" class="btn btn-success">
+                        ✓ Confirmar Cierre
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Últimas Transacciones -->
+        {% if ultimas_transacciones %}
+        <div class="card">
+            <h2>📜 Últimas Transacciones</h2>
+            <div class="detalles-transacciones">
+                {% for trans in ultimas_transacciones %}
+                <div class="transaction-item">
+                    <div>
+                        <strong>{{ trans.numero_factura }}</strong>
+                        <br>
+                        <small style="color: #666;">Mesa {{ trans.pedido.mesa.numero }} - {{ trans.fecha_hora|date:"H:i" }}</small>
+                    </div>
+                    <div style="text-align: right;">
+                        <strong>Bs/ {{ trans.monto_total }}</strong>
+                        <br>
+                        <small style="color: #666;">{{ trans.get_metodo_pago_display }}</small>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        {% endif %}
+    </div>
+
+    <script src="{% static 'js/cajero/cierre_caja.js' %}"></script>
+</body>
+</html>

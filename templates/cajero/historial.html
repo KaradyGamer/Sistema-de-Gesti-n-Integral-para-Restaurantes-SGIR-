@@ -1,0 +1,180 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Historial de Transacciones - Sistema de Caja</title>
+    <link rel="stylesheet" href="{% static 'css/cajero/historial.css' %}">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📊 Historial de Transacciones</h1>
+            <div class="user-info">
+                <span>Cajero: <strong>{{ request.user.get_full_name }}</strong></span>
+                <a href="/caja/" class="btn btn-secondary">← Volver</a>
+                <a href="/usuarios/logout/" class="btn btn-danger">Cerrar Sesión</a>
+            </div>
+        </div>
+
+        <!-- Filtros -->
+        <div class="filters">
+            <h3>🔍 Filtros de Búsqueda</h3>
+            <form method="get" id="filter-form">
+                <div class="filter-grid">
+                    <div class="filter-group">
+                        <label>Fecha Inicio:</label>
+                        <input type="date" name="fecha_inicio" value="{{ fecha_inicio }}">
+                    </div>
+                    <div class="filter-group">
+                        <label>Fecha Fin:</label>
+                        <input type="date" name="fecha_fin" value="{{ fecha_fin }}">
+                    </div>
+                    <div class="filter-group">
+                        <label>Método de Pago:</label>
+                        <select name="metodo_pago">
+                            <option value="">Todos</option>
+                            <option value="efectivo" {% if metodo_pago == 'efectivo' %}selected{% endif %}>Efectivo</option>
+                            <option value="tarjeta" {% if metodo_pago == 'tarjeta' %}selected{% endif %}>Tarjeta</option>
+                            <option value="qr" {% if metodo_pago == 'qr' %}selected{% endif %}>QR</option>
+                            <option value="movil" {% if metodo_pago == 'movil' %}selected{% endif %}>Pago Móvil</option>
+                            <option value="mixto" {% if metodo_pago == 'mixto' %}selected{% endif %}>Mixto</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label>Mesa:</label>
+                        <input type="number" name="mesa" placeholder="Número de mesa" value="{{ mesa }}">
+                    </div>
+                </div>
+                <div class="filter-actions">
+                    <button type="submit" class="btn btn-primary">🔍 Buscar</button>
+                    <a href="/caja/historial/" class="btn btn-secondary">🔄 Limpiar Filtros</a>
+                    <button type="button" onclick="window.print()" class="btn btn-secondary">🖨️ Imprimir</button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Estadísticas -->
+        <div class="stats">
+            <div class="stat-box">
+                <div class="icon">💰</div>
+                <div class="number">Bs/ {{ total_ventas|floatformat:2 }}</div>
+                <div class="label">Total en Ventas</div>
+            </div>
+            <div class="stat-box">
+                <div class="icon">📝</div>
+                <div class="number">{{ total_transacciones }}</div>
+                <div class="label">Total de Transacciones</div>
+            </div>
+            <div class="stat-box">
+                <div class="icon">💵</div>
+                <div class="number">Bs/ {{ total_efectivo|floatformat:2 }}</div>
+                <div class="label">Total en Efectivo</div>
+            </div>
+            <div class="stat-box">
+                <div class="icon">💳</div>
+                <div class="number">Bs/ {{ total_tarjeta|floatformat:2 }}</div>
+                <div class="label">Total en Tarjeta</div>
+            </div>
+            <div class="stat-box">
+                <div class="icon">📱</div>
+                <div class="number">Bs/ {{ total_digital|floatformat:2 }}</div>
+                <div class="label">Total Digital (QR + Móvil)</div>
+            </div>
+            <div class="stat-box">
+                <div class="icon">📊</div>
+                <div class="number">Bs/ {{ promedio_venta|floatformat:2 }}</div>
+                <div class="label">Promedio por Venta</div>
+            </div>
+        </div>
+
+        <!-- Tabla de Transacciones -->
+        <div class="transactions-card">
+            <h2>💳 Registro de Transacciones</h2>
+
+            {% if transacciones %}
+            <div style="overflow-x: auto;">
+                <table class="transactions-table">
+                    <thead>
+                        <tr>
+                            <th>Factura</th>
+                            <th>Fecha/Hora</th>
+                            <th>Mesa</th>
+                            <th>Pedido</th>
+                            <th>Cajero</th>
+                            <th>Método</th>
+                            <th>Monto</th>
+                            <th>Estado</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for transaccion in transacciones %}
+                        <tr>
+                            <td>
+                                <strong>{{ transaccion.numero_factura }}</strong>
+                                {% if transaccion.referencia %}
+                                <div class="transaction-detail">
+                                    Ref: {{ transaccion.referencia }}
+                                </div>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {{ transaccion.fecha_hora|date:"d/m/Y" }}
+                                <div class="transaction-detail">
+                                    {{ transaccion.fecha_hora|date:"H:i" }}
+                                </div>
+                            </td>
+                            <td>
+                                <strong>Mesa {{ transaccion.pedido.mesa.numero }}</strong>
+                            </td>
+                            <td>
+                                <strong>#{{ transaccion.pedido.id }}</strong>
+                                <div class="transaction-detail">
+                                    {{ transaccion.pedido.items.count }} items
+                                </div>
+                            </td>
+                            <td>
+                                {{ transaccion.cajero.get_full_name }}
+                            </td>
+                            <td>
+                                <span class="method-badge method-{{ transaccion.metodo_pago }}">
+                                    {% if transaccion.metodo_pago == 'efectivo' %}💵
+                                    {% elif transaccion.metodo_pago == 'tarjeta' %}💳
+                                    {% elif transaccion.metodo_pago == 'qr' %}📱
+                                    {% elif transaccion.metodo_pago == 'movil' %}📲
+                                    {% else %}💰{% endif %}
+                                    {{ transaccion.get_metodo_pago_display }}
+                                </span>
+                            </td>
+                            <td>
+                                <strong>Bs/ {{ transaccion.monto_total }}</strong>
+                            </td>
+                            <td>
+                                <span class="status-badge status-{{ transaccion.estado }}">
+                                    {{ transaccion.get_estado_display }}
+                                </span>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Paginación (si se implementa) -->
+            <div class="pagination">
+                <button disabled>← Anterior</button>
+                <span>Mostrando {{ transacciones|length }} transacciones</span>
+                <button disabled>Siguiente →</button>
+            </div>
+            {% else %}
+            <div class="no-transactions">
+                📋 No se encontraron transacciones con los filtros seleccionados
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <script src="{% static 'js/cajero/historial.js' %}"></script>
+</body>
+</html>

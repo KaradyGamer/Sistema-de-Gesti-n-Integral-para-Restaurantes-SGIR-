@@ -1,0 +1,100 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reporte Semanal - Paprika</title>
+    <link rel="stylesheet" href="{% static 'css/admin/reportes/pdf_report.css' %}">
+</head>
+<body>
+    <div class="no-print">
+        <button onclick="window.print()" class="print-button">🖨️ Imprimir Reporte</button>
+        <button onclick="window.history.back()" class="print-button" style="background: #6c757d;">← Volver</button>
+    </div>
+
+    <div class="header">
+        <h1>📊 REPORTE SEMANAL DE VENTAS</h1>
+        <p>🍽️ Restaurante Paprika</p>
+        <p>📅 Del {{ inicio_semana|date:"d/m/Y" }} al {{ hoy|date:"d/m/Y" }}</p>
+    </div>
+
+    <div class="summary">
+        <h2>📈 Resumen Ejecutivo</h2>
+        <div class="metrics">
+            <div class="metric">
+                <h3>Total Recaudado</h3>
+                <div class="value">S/. {{ total_general|floatformat:2 }}</div>
+            </div>
+            <div class="metric">
+                <h3>Total de Pedidos</h3>
+                <div class="value">{{ total_pedidos }}</div>
+            </div>
+            <div class="metric">
+                <h3>Promedio por Pedido</h3>
+                <div class="value">S/. {{ promedio|floatformat:2 }}</div>
+            </div>
+            <div class="metric">
+                <h3>Producto Estrella</h3>
+                <div class="value" style="font-size: 16px;">{{ reporte.producto_mas_vendido|default:"N/A" }}</div>
+            </div>
+        </div>
+    </div>
+
+    <div style="background: white; padding: 20px; border-radius: 8px; margin-bottom: 30px;">
+        <h2>🏆 Productos Más Vendidos</h2>
+        <table class="products-table">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Producto</th>
+                    <th>Cantidad Vendida</th>
+                    <th>Ingresos Generados</th>
+                    <th>% del Total</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for producto in resumen %}
+                <tr>
+                    <td>{{ forloop.counter }}</td>
+                    <td>{{ producto.producto__nombre }}</td>
+                    <td style="text-align: center;">{{ producto.cantidad }}</td>
+                    <td style="text-align: right;">S/. {{ producto.total|floatformat:2 }}</td>
+                    <td style="text-align: center;">
+                        {% widthratio producto.total total_general 100 %}%
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="5" style="text-align: center; color: #666;">
+                        No hay datos de ventas en este período
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    {% if reporte.observaciones %}
+    <div class="analysis">
+        <h2>🤖 Análisis Inteligente</h2>
+        <p>{{ reporte.observaciones }}</p>
+    </div>
+    {% endif %}
+
+    <div style="background: white; padding: 20px; border-radius: 8px; margin-bottom: 30px;">
+        <h2>📊 Métricas Adicionales</h2>
+        <ul style="list-style-type: none; padding: 0;">
+            <li style="margin-bottom: 10px;">🎯 <strong>Día con más ventas:</strong> {{ reporte.dia_mas_ventas|default:"N/A" }}</li>
+            <li style="margin-bottom: 10px;">📅 <strong>Período analizado:</strong> 7 días</li>
+            <li style="margin-bottom: 10px;">🕐 <strong>Reporte generado:</strong> {{ reporte.fecha_generacion|date:"d/m/Y H:i" }}</li>
+            <li style="margin-bottom: 10px;">📈 <strong>Productos analizados:</strong> {{ resumen|length }}</li>
+        </ul>
+    </div>
+
+    <div class="footer">
+        <p><strong>Restaurante Paprika</strong> - Sistema de Gestión y Reportes</p>
+        <p>Reporte generado automáticamente el {{ reporte.fecha_generacion|date:"d/m/Y" }} a las {{ reporte.fecha_generacion|time:"H:i" }}</p>
+    </div>
+</body>
+</html>

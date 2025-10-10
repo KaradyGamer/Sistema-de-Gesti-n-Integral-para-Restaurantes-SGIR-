@@ -1,0 +1,71 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>¡Pedido Exitoso! - Restaurante QR</title>
+    <link rel="stylesheet" href="{% static 'css/cliente/exito.css' %}">
+</head>
+<body>
+    <div class="exito-container">
+        <div class="success-icon">🎉</div>
+        
+        <h1>¡Pedido Exitoso!</h1>
+        
+        <p class="success-message">¡Gracias por tu pedido!</p>
+        <p class="success-description">
+            Tu solicitud ha sido registrada correctamente y está siendo procesada por nuestro equipo.
+        </p>
+
+        <div class="estimated-time">
+            ⏱️ Tiempo estimado: <span class="time-number">15-20</span> minutos
+        </div>
+
+        <div class="order-status">
+            <h3>📋 Estado del Pedido</h3>
+            <p>Tu pedido está siendo preparado con ingredientes frescos</p>
+        </div>
+
+        <div class="order-steps">
+            <h4>🔄 Proceso de tu Pedido</h4>
+            
+            <div class="step completed">
+                <div class="step-icon">✓</div>
+                <div class="step-text">Pedido recibido</div>
+            </div>
+            
+            <div class="step active">
+                <div class="step-icon">2</div>
+                <div class="step-text">En preparación por el chef</div>
+            </div>
+            
+            <div class="step">
+                <div class="step-icon">3</div>
+                <div class="step-text">Listo para servir</div>
+            </div>
+            
+            <div class="step">
+                <div class="step-icon">4</div>
+                <div class="step-text">Entregado en tu mesa</div>
+            </div>
+        </div>
+
+        <div class="action-buttons">
+            <a href="/" class="btn btn-primary">
+                🍽️ Hacer otro pedido
+            </a>
+            <a href="/menu/" class="btn btn-secondary">
+                📋 Ver menú
+            </a>
+        </div>
+
+        <div class="footer-note">
+            <p>Si tienes alguna consulta, no dudes en contactar a nuestro personal.</p>
+            <p><strong>¡Esperamos que disfrutes tu comida!</strong></p>
+        </div>
+    </div>
+
+    <script src="{% static 'js/cliente/exito.js' %}"></script>
+</body>
+</html>

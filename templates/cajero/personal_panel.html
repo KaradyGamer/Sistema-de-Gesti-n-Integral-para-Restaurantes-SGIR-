@@ -1,0 +1,186 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestión de Personal - Sistema de Caja</title>
+    <link rel="stylesheet" href="{% static 'css/cajero/personal_panel.css' %}">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>👥 Gestión de Personal</h1>
+            <div class="user-info">
+                <span>Cajero: <strong>{{ request.user.get_full_name }}</strong></span>
+                <a href="/caja/" class="btn btn-secondary">← Volver al Panel</a>
+                <a href="/usuarios/logout/" class="btn btn-danger">Cerrar Sesión</a>
+            </div>
+        </div>
+
+        <!-- Estadísticas -->
+        <div class="stats">
+            <div class="stat-box">
+                <div class="icon">👥</div>
+                <div class="number">{{ total_empleados }}</div>
+                <div class="label">Total Empleados Activos</div>
+            </div>
+            <div class="stat-box">
+                <div class="icon">🍽️</div>
+                <div class="number">{{ meseros.count }}</div>
+                <div class="label">Meseros</div>
+            </div>
+            <div class="stat-box">
+                <div class="icon">👨‍🍳</div>
+                <div class="number">{{ cocineros.count }}</div>
+                <div class="label">Cocineros</div>
+            </div>
+        </div>
+
+        <!-- Meseros -->
+        {% if meseros %}
+        <div class="card">
+            <h2>🍽️ Meseros</h2>
+            <div class="empleados-grid">
+                {% for empleado in meseros %}
+                <div class="empleado-card">
+                    <div class="empleado-header">
+                        <div class="empleado-avatar">
+                            {{ empleado.first_name.0|upper }}{{ empleado.last_name.0|upper }}
+                        </div>
+                        <div class="empleado-info">
+                            <div class="empleado-nombre">{{ empleado.get_full_name }}</div>
+                            <div class="empleado-rol">🍽️ {{ empleado.get_rol_display }}</div>
+                        </div>
+                    </div>
+
+                    <div class="empleado-detalles">
+                        <div class="detalle-item">
+                            <span class="detalle-label">Usuario:</span>
+                            <span class="detalle-value">{{ empleado.username }}</span>
+                        </div>
+                        <div class="detalle-item">
+                            <span class="detalle-label">PIN:</span>
+                            <span class="detalle-value">
+                                {% if empleado.pin %}
+                                    <span class="badge badge-success">✓ Configurado</span>
+                                {% else %}
+                                    <span class="badge badge-warning">Sin PIN</span>
+                                {% endif %}
+                            </span>
+                        </div>
+                        <div class="detalle-item">
+                            <span class="detalle-label">Áreas:</span>
+                            <span class="detalle-value">
+                                {% for area in empleado.get_areas_activas %}
+                                    {{ area }}{% if not forloop.last %}, {% endif %}
+                                {% endfor %}
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="empleado-actions">
+                        <button class="btn btn-success" onclick="generarQR({{ empleado.id }}, '{{ empleado.get_full_name }}', '{{ empleado.get_rol_display }}')">
+                            📱 Generar Código QR
+                        </button>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Cocineros -->
+        {% if cocineros %}
+        <div class="card">
+            <h2>👨‍🍳 Cocineros</h2>
+            <div class="empleados-grid">
+                {% for empleado in cocineros %}
+                <div class="empleado-card">
+                    <div class="empleado-header">
+                        <div class="empleado-avatar">
+                            {{ empleado.first_name.0|upper }}{{ empleado.last_name.0|upper }}
+                        </div>
+                        <div class="empleado-info">
+                            <div class="empleado-nombre">{{ empleado.get_full_name }}</div>
+                            <div class="empleado-rol">👨‍🍳 {{ empleado.get_rol_display }}</div>
+                        </div>
+                    </div>
+
+                    <div class="empleado-detalles">
+                        <div class="detalle-item">
+                            <span class="detalle-label">Usuario:</span>
+                            <span class="detalle-value">{{ empleado.username }}</span>
+                        </div>
+                        <div class="detalle-item">
+                            <span class="detalle-label">PIN:</span>
+                            <span class="detalle-value">
+                                {% if empleado.pin %}
+                                    <span class="badge badge-success">✓ Configurado</span>
+                                {% else %}
+                                    <span class="badge badge-warning">Sin PIN</span>
+                                {% endif %}
+                            </span>
+                        </div>
+                        <div class="detalle-item">
+                            <span class="detalle-label">Áreas:</span>
+                            <span class="detalle-value">
+                                {% for area in empleado.get_areas_activas %}
+                                    {{ area }}{% if not forloop.last %}, {% endif %}
+                                {% endfor %}
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="empleado-actions">
+                        <button class="btn btn-success" onclick="generarQR({{ empleado.id }}, '{{ empleado.get_full_name }}', '{{ empleado.get_rol_display }}')">
+                            📱 Generar Código QR
+                        </button>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Sin empleados -->
+        {% if not meseros and not cocineros %}
+        <div class="card">
+            <div class="no-empleados">
+                <div class="icon">👥</div>
+                <h3>No hay empleados registrados</h3>
+                <p>Contacta al administrador para crear cuentas de empleados</p>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Modal de QR -->
+    <div class="modal" id="qrModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>📱 Código QR de Acceso</h3>
+                <p id="empleado-nombre"></p>
+            </div>
+
+            <div class="qr-container" id="qr-container">
+                <img id="qr-image" src="" alt="Código QR">
+            </div>
+
+            <div class="qr-info">
+                <p><strong>Instrucciones:</strong></p>
+                <p>1. El empleado debe escanear este código QR con su celular</p>
+                <p>2. Será redirigido automáticamente a su área de trabajo</p>
+                <p>3. El código QR es único y permanente para este empleado</p>
+            </div>
+
+            <div class="modal-actions">
+                <button class="btn btn-secondary" onclick="cerrarModal()">Cerrar</button>
+                <button class="btn btn-primary" onclick="window.print()">🖨️ Imprimir</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="{% static 'js/cajero/personal_panel.js' %}"></script>
+</body>
+</html>

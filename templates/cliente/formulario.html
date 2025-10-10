@@ -1,0 +1,64 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Realiza tu Pedido - Restaurante QR</title>
+    <link rel="stylesheet" href="{% static 'css/cliente/formulario.css' %}">
+</head>
+<body>
+    <div class="container">
+        <!-- CSRF Token para Django -->
+        {% csrf_token %}<div class="header">
+            <h1>🍽️ Realiza tu Pedido</h1>
+            <p>Explora nuestro menú por categorías</p>
+        </div>
+
+        <form id="orderForm" class="form-section">
+            <div class="form-group">
+                <label for="tableNumber">Número de Mesa:</label>
+                <input type="number" id="tableNumber" name="tableNumber" min="1" max="50" required>
+            </div>
+
+            <!-- ✅ NUEVA SECCIÓN DE PESTAÑAS -->
+            <div class="tabs-container" id="tabsContainer">
+                <div class="tabs-header" id="tabsHeader">
+                    <div class="loading">
+                        <div class="spinner"></div>
+                        <p>Cargando categorías...</p>
+                    </div>
+                </div>
+                
+                <div id="tabsContent">
+                    <div class="loading">
+                        <div class="spinner"></div>
+                        <p>Cargando productos...</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="total-section">
+                <div class="total-amount">Total: Bs/ <span id="totalAmount">0.00</span></div>
+                <div class="total-items">Productos seleccionados: <span id="totalItems">0</span></div>
+            </div>
+
+            <div class="form-group">
+                <label for="paymentMethod">Forma de pago:</label>
+                <select id="paymentMethod" name="paymentMethod" required>
+                    <option value="">Seleccionar método</option>
+                    <option value="efectivo">💵 Efectivo</option>
+                    <option value="qr">📱 Código QR</option>
+                    <option value="tarjeta">💳 Tarjeta</option>
+                </select>
+            </div>
+
+            <button type="submit" class="submit-btn" id="submitBtn" disabled>
+                📋 Revisar Pedido
+            </button>
+        </form>
+    </div>
+
+    <script src="{% static 'js/cliente/formulario.js' %}"></script>
+</body>
+</html>

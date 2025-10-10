@@ -1,0 +1,170 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Procesar Pago - Sistema de Caja</title>
+    <link rel="stylesheet" href="{% static 'css/cajero/procesar_pago.css' %}">
+</head>
+<body>
+    {% csrf_token %}
+    <div class="container">
+        <div class="header">
+            <h1>💰 Procesar Pago - Pedido #{{ pedido.id }}</h1>
+            <div class="user-info">
+                <span>Cajero: <strong>{{ request.user.get_full_name }}</strong></span>
+                <a href="/caja/" class="btn btn-secondary">← Volver</a>
+                <a href="/usuarios/logout/" class="btn btn-danger">Cerrar Sesión</a>
+            </div>
+        </div>
+
+        {% if error %}
+        <div class="alert alert-danger">
+            ⚠️ {{ error }}
+        </div>
+        {% endif %}
+
+        {% if alertas_stock %}
+        <div class="alert alert-warning">
+            ⚠️ <strong>Advertencia de Stock:</strong>
+            <ul style="margin-top: 10px; margin-left: 20px;">
+                {% for alerta in alertas_stock %}
+                <li>{{ alerta }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+
+        <div class="content">
+            <!-- Resumen del Pedido -->
+            <div class="card">
+                <h2>📋 Resumen del Pedido</h2>
+
+                <div class="order-info">
+                    <div class="info-item">
+                        <label>Mesa:</label>
+                        <span>{{ pedido.mesa.numero }}</span>
+                    </div>
+                    <div class="info-item">
+                        <label>Mesero:</label>
+                        <span>{{ pedido.mesero.get_full_name }}</span>
+                    </div>
+                    <div class="info-item">
+                        <label>Hora:</label>
+                        <span>{{ pedido.fecha_hora|date:"H:i" }}</span>
+                    </div>
+                    <div class="info-item">
+                        <label>Estado:</label>
+                        <span>{{ pedido.get_estado_display }}</span>
+                    </div>
+                </div>
+
+                <div class="items-list">
+                    <h3 style="margin-bottom: 15px; color: #666;">Productos:</h3>
+                    {% for item in items %}
+                    <div class="item">
+                        <div>
+                            <strong>{{ item.producto.nombre }}</strong>
+                            <br>
+                            <small style="color: #666;">{{ item.cantidad }} x Bs/ {{ item.precio_unitario }}</small>
+                        </div>
+                        <div style="text-align: right;">
+                            <strong>Bs/ {{ item.subtotal }}</strong>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+
+                <div class="total-section">
+                    <div class="total-row">
+                        <span>Subtotal:</span>
+                        <span>Bs/ {{ pedido.total }}</span>
+                    </div>
+                    <div class="total-row">
+                        <span>Descuento:</span>
+                        <span id="descuento-display">Bs/ 0.00</span>
+                    </div>
+                    <div class="total-row">
+                        <span>Propina:</span>
+                        <span id="propina-display">Bs/ 0.00</span>
+                    </div>
+                    <div class="total-row final">
+                        <span>TOTAL A PAGAR:</span>
+                        <span id="total-final">Bs/ {{ pedido.total }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Formulario de Pago -->
+            <div class="card">
+                <h2>💳 Información de Pago</h2>
+
+                <form id="payment-form" class="payment-form">
+                    {% csrf_token %}
+
+                    <div class="form-group">
+                        <label>Método de Pago:</label>
+                        <div class="payment-methods">
+                            <label class="payment-method active">
+                                <input type="radio" name="metodo_pago" value="efectivo" checked>
+                                <div>💵 Efectivo</div>
+                            </label>
+                            <label class="payment-method">
+                                <input type="radio" name="metodo_pago" value="tarjeta">
+                                <div>💳 Tarjeta</div>
+                            </label>
+                            <label class="payment-method">
+                                <input type="radio" name="metodo_pago" value="qr">
+                                <div>📱 QR</div>
+                            </label>
+                            <label class="payment-method">
+                                <input type="radio" name="metodo_pago" value="movil">
+                                <div>📲 Pago Móvil</div>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="discount-section">
+                        <div class="form-group">
+                            <label>Descuento (%):</label>
+                            <input type="number" id="descuento" name="descuento" min="0" max="100" step="0.01" value="0">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Propina (Bs/):</label>
+                        <input type="number" id="propina" name="propina" min="0" step="0.01" value="0">
+                    </div>
+
+                    <div class="form-group" id="monto-recibido-group">
+                        <label>Monto Recibido (Bs/):</label>
+                        <input type="number" id="monto_recibido" name="monto_recibido" min="0" step="0.01" required>
+                    </div>
+
+                    <div class="change-display" id="cambio-display">
+                        Cambio: Bs/ <span id="cambio-amount">0.00</span>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Referencia (Opcional):</label>
+                        <input type="text" name="referencia" placeholder="Número de transacción, voucher, etc.">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Observaciones:</label>
+                        <textarea name="observaciones" rows="3" placeholder="Notas adicionales sobre el pago..."></textarea>
+                    </div>
+
+                    <div class="buttons">
+                        <button type="button" class="btn btn-secondary" onclick="window.location.href='/caja/'">Cancelar</button>
+                        <button type="submit" class="btn btn-success">✓ Confirmar Pago</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="{% static 'js/cajero/procesar_pago.js' %}"></script>
+</body>
+</html>

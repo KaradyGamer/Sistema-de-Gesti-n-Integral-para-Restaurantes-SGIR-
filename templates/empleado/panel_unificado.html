@@ -1,0 +1,102 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel de Empleado - Restaurante QR</title>
+    <link rel="stylesheet" href="{% static 'css/empleado/panel_unificado.css' %}">
+</head>
+<body>
+    <div class="container">
+        <div class="header" style="position: relative;">
+            <h1>🍽️ Panel de Empleado</h1>
+
+            <div class="user-badge">
+                <div class="user-avatar">
+                    {{ usuario.first_name.0|upper }}{{ usuario.last_name.0|upper }}
+                </div>
+                <div>
+                    <div>{{ usuario.get_full_name }}</div>
+                    <div style="font-size: 14px; opacity: 0.9;">{{ usuario.get_rol_display }}</div>
+                </div>
+            </div>
+
+            <p class="subtitle">Selecciona el área de trabajo a la que deseas acceder</p>
+        </div>
+
+        <!-- Estadísticas Rápidas -->
+        <div class="info-section">
+            <h2>📊 Tu Información</h2>
+            <div class="info-item">
+                <span class="info-icon">👤</span>
+                <span class="info-text">Usuario: <strong>{{ usuario.username }}</strong></span>
+            </div>
+            <div class="info-item">
+                <span class="info-icon">🎯</span>
+                <span class="info-text">Rol Principal: <strong>{{ usuario.get_rol_display }}</strong></span>
+            </div>
+            <div class="info-item">
+                <span class="info-icon">🔓</span>
+                <span class="info-text">Áreas Activas: <strong>{{ total_areas_activas }}</strong></span>
+            </div>
+        </div>
+
+        <!-- Grid de Áreas -->
+        <div class="areas-grid">
+            {% for area in areas_disponibles %}
+            <div class="area-card {% if not area.activa %}bloqueada{% else %}activa{% endif %}"
+                 {% if area.activa %}onclick="window.location.href='{{ area.url }}'"{% endif %}
+                 style="--area-color: {{ area.color }}">
+
+                <div class="area-icon">{{ area.icono }}</div>
+                <div class="area-nombre">{{ area.nombre }}</div>
+                <div class="area-descripcion">{{ area.descripcion }}</div>
+
+                {% if area.activa %}
+                <span class="area-badge badge-activa">✓ Acceso Permitido</span>
+                {% else %}
+                <span class="area-badge badge-bloqueada">🔒 Sin Acceso</span>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- Información Adicional -->
+        <div class="info-section">
+            <h2>ℹ️ Información</h2>
+            <div class="info-item">
+                <span class="info-icon">✨</span>
+                <span class="info-text">
+                    <strong>¿Cómo funciona?</strong><br>
+                    Haz clic en cualquier área activa para acceder a sus funcionalidades.
+                    Las áreas bloqueadas requieren permisos especiales del administrador.
+                </span>
+            </div>
+            <div class="info-item">
+                <span class="info-icon">🔐</span>
+                <span class="info-text">
+                    <strong>Seguridad:</strong><br>
+                    Tu sesión finalizará automáticamente al cerrar la jornada laboral.
+                    Nunca compartas tu código QR de acceso.
+                </span>
+            </div>
+        </div>
+
+        <!-- Acciones Rápidas -->
+        <div class="stats-grid">
+            {% for area in areas_disponibles %}
+                {% if area.activa %}
+                <div class="stat-box" style="background: {{ area.color }}; cursor: pointer;"
+                     onclick="window.location.href='{{ area.url }}'">
+                    <div class="stat-number">{{ area.icono }}</div>
+                    <div class="stat-label">Ir a {{ area.nombre }}</div>
+                </div>
+                {% endif %}
+            {% endfor %}
+        </div>
+    </div>
+
+    <script src="{% static 'js/empleado/panel_unificado.js' %}"></script>
+</body>
+</html>

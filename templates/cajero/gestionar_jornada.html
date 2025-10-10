@@ -1,0 +1,89 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestión de Jornada Laboral</title>
+    <link rel="stylesheet" href="{% static 'css/cajero/gestionar_jornada.css' %}">
+</head>
+<body>
+    {% csrf_token %}
+    <div class="container">
+        <div class="header">
+            <h1>📅 Gestión de Jornada Laboral</h1>
+            <div class="user-info">
+                <span>Cajero: <strong>{{ request.user.get_full_name }}</strong></span>
+                <a href="/caja/" class="btn btn-secondary">← Volver al Panel</a>
+            </div>
+        </div>
+
+        <div class="content">
+            <!-- Estado de Jornada -->
+            {% if jornada_activa %}
+            <div class="jornada-status jornada-activa">
+                <h2><span style="font-size: 40px;">✅</span> Jornada Activa</h2>
+                <p>La jornada laboral está en curso. Los empleados pueden trabajar.</p>
+            </div>
+
+            <div class="jornada-info">
+                <p><strong>Iniciada por:</strong> {{ jornada_activa.cajero.get_full_name }}</p>
+                <p><strong>Fecha:</strong> {{ jornada_activa.fecha|date:"d/m/Y" }}</p>
+                <p><strong>Hora de inicio:</strong> {{ jornada_activa.hora_inicio|date:"H:i" }}</p>
+                {% if jornada_activa.observaciones_apertura %}
+                <p><strong>Observaciones:</strong> {{ jornada_activa.observaciones_apertura }}</p>
+                {% endif %}
+            </div>
+
+            <div class="alert alert-warning">
+                <strong>⚠️ Importante:</strong> Al finalizar la jornada, todos los empleados perderán acceso al sistema automáticamente.
+            </div>
+
+            <form method="POST">
+                {% csrf_token %}
+                <input type="hidden" name="accion" value="finalizar">
+
+                <div class="form-group">
+                    <label for="observaciones_cierre">Observaciones de Cierre (Opcional):</label>
+                    <textarea name="observaciones_cierre" id="observaciones_cierre" placeholder="Ej: Turno normal, sin novedades..."></textarea>
+                </div>
+
+                <div class="button-group">
+                    <button type="submit" class="btn btn-danger" onclick="return confirm('¿Estás seguro de finalizar la jornada laboral? Los empleados ya no podrán trabajar.')">
+                        🔒 Finalizar Jornada
+                    </button>
+                    <a href="/caja/" class="btn btn-secondary">Cancelar</a>
+                </div>
+            </form>
+
+            {% else %}
+            <div class="jornada-status jornada-inactiva">
+                <h2><span style="font-size: 40px;">❌</span> Jornada Inactiva</h2>
+                <p>No hay jornada laboral activa. Los empleados NO pueden trabajar.</p>
+            </div>
+
+            <div class="alert alert-info">
+                <strong>ℹ️ Información:</strong> Al iniciar la jornada, los empleados podrán autenticarse con QR y trabajar normalmente.
+            </div>
+
+            <form method="POST">
+                {% csrf_token %}
+                <input type="hidden" name="accion" value="iniciar">
+
+                <div class="form-group">
+                    <label for="observaciones_apertura">Observaciones de Apertura (Opcional):</label>
+                    <textarea name="observaciones_apertura" id="observaciones_apertura" placeholder="Ej: Inicio de turno mañana..."></textarea>
+                </div>
+
+                <div class="button-group">
+                    <button type="submit" class="btn btn-success">
+                        ✅ Iniciar Jornada
+                    </button>
+                    <a href="/caja/" class="btn btn-secondary">Cancelar</a>
+                </div>
+            </form>
+            {% endif %}
+        </div>
+    </div>
+</body>
+</html>
