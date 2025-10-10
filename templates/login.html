@@ -11,10 +11,41 @@
 <body>
     {% csrf_token %}
 
+    <!-- Pantalla de Selección (Botones Iniciales) -->
+    <div class="selection-screen" id="selectionScreen">
+        <div class="button-container">
+            <!-- Botón Cajero -->
+            <button class="brutalist-button button-cajero" onclick="showCajeroPanel()">
+                <div class="button-icon">
+                    <i class='bx bx-calculator'></i>
+                </div>
+                <div class="button-text">
+                    <span class="small-text">Acceso</span>
+                    <span class="main-text">CAJERO</span>
+                </div>
+            </button>
+
+            <!-- Botón Admin -->
+            <button class="brutalist-button button-admin" onclick="showAdminPanel()">
+                <div class="button-icon">
+                    <i class='bx bxs-user-circle'></i>
+                </div>
+                <div class="button-text">
+                    <span class="small-text">Acceso</span>
+                    <span class="main-text">ADMIN</span>
+                </div>
+            </button>
+        </div>
+    </div>
+
     <!-- Panel de Acceso Cajero (PIN) -->
-    <div class="welcome-panel">
+    <div class="welcome-panel" id="cajeroPanel">
+        <button class="back-button" onclick="backToSelection()">
+            <i class='bx bx-arrow-back'></i> Volver
+        </button>
+
         <div class="welcome-content">
-            <h1> Acceso Cajero</h1>
+            <h1>Acceso Cajero</h1>
 
             <!-- Display de PIN -->
             <div class="pin-display" id="pin-display">••••</div>
@@ -39,12 +70,15 @@
                     <i class='bx bx-check'></i> Entrar
                 </button>
             </div>
-
         </div>
     </div>
 
     <!-- Formulario de Login Tradicional (Admin) -->
-    <div class="wrapper">
+    <div class="wrapper" id="adminPanel">
+        <button class="back-button" onclick="backToSelection()">
+            <i class='bx bx-arrow-back'></i> Volver
+        </button>
+
         <form id="form-admin" onsubmit="loginWithPassword(event)">
             {% csrf_token %}
             <h1>Administración</h1>

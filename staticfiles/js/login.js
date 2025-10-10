@@ -1,8 +1,71 @@
 let currentPin = '';
 
-// Función switchMode ya no es necesaria en el nuevo diseño
-// Ambos paneles están siempre visibles
+// ========== FUNCIONES DE NAVEGACIÓN ==========
+function showCajeroPanel() {
+    const button = event.target.closest('.button-cajero');
+    const selectionScreen = document.getElementById('selectionScreen');
+    const cajeroPanel = document.getElementById('cajeroPanel');
 
+    // Animación de zoom del botón
+    button.classList.add('zoom-in');
+
+    // Después de la animación, ocultar selección y mostrar panel
+    setTimeout(() => {
+        selectionScreen.classList.add('hidden');
+        cajeroPanel.classList.add('show');
+        clearPin(); // Limpiar PIN al entrar
+    }, 800); // Duración del zoom
+}
+
+function showAdminPanel() {
+    const button = event.target.closest('.button-admin');
+    const selectionScreen = document.getElementById('selectionScreen');
+    const adminPanel = document.getElementById('adminPanel');
+
+    // Animación de zoom del botón
+    button.classList.add('zoom-in');
+
+    // Después de la animación, ocultar selección y mostrar panel
+    setTimeout(() => {
+        selectionScreen.classList.add('hidden');
+        adminPanel.classList.add('show');
+    }, 800);
+}
+
+function backToSelection() {
+    const selectionScreen = document.getElementById('selectionScreen');
+    const cajeroPanel = document.getElementById('cajeroPanel');
+    const adminPanel = document.getElementById('adminPanel');
+
+    // Ocultar paneles con animación
+    cajeroPanel.classList.remove('show');
+    cajeroPanel.classList.add('hide');
+    adminPanel.classList.remove('show');
+    adminPanel.classList.add('hide');
+
+    // Después de la animación, mostrar selección y resetear
+    setTimeout(() => {
+        // Quitar clases de animación
+        cajeroPanel.classList.remove('hide');
+        adminPanel.classList.remove('hide');
+
+        // Resetear zoom de botones
+        document.querySelectorAll('.brutalist-button').forEach(btn => {
+            btn.classList.remove('zoom-in');
+        });
+
+        // Mostrar pantalla de selección
+        selectionScreen.classList.remove('hidden');
+
+        // Limpiar campos
+        clearPin();
+        document.getElementById('username').value = '';
+        document.getElementById('password').value = '';
+        hideMessages();
+    }, 800);
+}
+
+// ========== FUNCIONES DE PIN ==========
 function addDigit(digit) {
     if (currentPin.length < 6) {
         currentPin += digit;
@@ -65,6 +128,7 @@ async function loginWithPin() {
     }
 }
 
+// ========== FUNCIONES DE LOGIN ADMIN ==========
 async function loginWithPassword(e) {
     e.preventDefault();
 
@@ -109,6 +173,7 @@ async function loginWithPassword(e) {
     }
 }
 
+// ========== FUNCIONES DE MENSAJES ==========
 function showError(message) {
     const errorMessage = document.getElementById('errorMessage');
     errorMessage.textContent = message;
@@ -128,19 +193,15 @@ function hideMessages() {
     document.getElementById('successMessage').classList.remove('show');
 }
 
-function showEmployeeInfo(e) {
-    e.preventDefault();
-    showError('Los empleados (meseros y cocineros) deben escanear su código QR para acceder al sistema. Solicita tu código QR al cajero.');
-}
-
-// Soporte para teclado físico en modo PIN
-// Solo funciona si el foco NO está en los inputs de admin
+// ========== SOPORTE PARA TECLADO FÍSICO ==========
 document.addEventListener('keydown', (e) => {
     const activeElement = document.activeElement;
     const isInputFocused = activeElement.tagName === 'INPUT';
+    const cajeroPanel = document.getElementById('cajeroPanel');
+    const isCajeroVisible = cajeroPanel.classList.contains('show');
 
-    // Si el usuario no está escribiendo en los campos de admin, permitir entrada de PIN
-    if (!isInputFocused) {
+    // Solo funciona si el panel de cajero está visible y no hay input enfocado
+    if (isCajeroVisible && !isInputFocused) {
         if (e.key >= '0' && e.key <= '9') {
             addDigit(e.key);
         } else if (e.key === 'Backspace') {
@@ -150,6 +211,16 @@ document.addEventListener('keydown', (e) => {
             loginWithPin();
         } else if (e.key === 'Escape') {
             clearPin();
+        }
+    }
+});
+
+// Soporte para tecla ESC en cualquier panel (volver)
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+        const selectionScreen = document.getElementById('selectionScreen');
+        if (selectionScreen.classList.contains('hidden')) {
+            backToSelection();
         }
     }
 });
