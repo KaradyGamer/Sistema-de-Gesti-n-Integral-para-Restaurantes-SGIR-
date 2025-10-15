@@ -82,6 +82,8 @@
                         </div>
                         <div class="pedido-body">
                             <p><strong>Hora:</strong> {{ pedido.fecha|date:"H:i" }}</p>
+                            <p><strong>👥 Personas:</strong> {{ pedido.numero_personas|default:"1" }}</p>
+                            <p><strong>👨‍🍳 Mesero:</strong> {% if pedido.mesero_comanda %}{{ pedido.mesero_comanda.first_name }} {{ pedido.mesero_comanda.last_name }}{% else %}Cliente directo{% endif %}</p>
                             <p><strong>Productos:</strong></p>
                             <ul class="productos-list">
                                 {% for detalle in pedido.detalles.all %}

@@ -166,7 +166,34 @@
             background: #d4edda;
             color: #155724;
         }
-        
+
+        /* ✅ NUEVO: Información del pedido (mesero y personas) */
+        .pedido-info {
+            margin-bottom: 15px;
+            padding: 10px;
+            background: white;
+            border-radius: 8px;
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .info-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 14px;
+            color: #495057;
+        }
+
+        .info-icon {
+            font-size: 18px;
+        }
+
+        .info-text {
+            font-weight: 500;
+        }
+
         .productos-lista {
             margin-bottom: 15px;
         }

@@ -17,7 +17,8 @@
       "Bash(python manage.py makemigrations:*)",
       "Bash(envScriptspython.exe manage.py makemigrations)",
       "Bash(\"env/Scripts/python.exe\" manage.py makemigrations)",
-      "Bash(\"env/Scripts/python.exe\" manage.py migrate)"
+      "Bash(\"env/Scripts/python.exe\" manage.py migrate)",
+      "Bash(git push:*)"
     ],
     "deny": [],
     "ask": []

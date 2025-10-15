@@ -98,17 +98,28 @@
                             <div class="mesa-numero">Mesa ${pedido.mesa}</div>
                             <div class="pedido-tiempo">${new Date(pedido.fecha).toLocaleTimeString()}</div>
                         </div>
-                        
+
                         <div class="estado-badge ${estadoClass}">${estadoTexto}</div>
-                        
+
+                        <div class="pedido-info">
+                            <div class="info-item">
+                                <span class="info-icon">👥</span>
+                                <span class="info-text">${pedido.numero_personas || 1} persona${pedido.numero_personas > 1 ? 's' : ''}</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-icon">👨‍🍳</span>
+                                <span class="info-text">${pedido.mesero || 'Cliente directo'}</span>
+                            </div>
+                        </div>
+
                         <div class="productos-lista">
                             ${productosHTML}
                         </div>
-                        
+
                         <div class="pedido-total">
                             Total: Bs. ${pedido.total}
                         </div>
-                        
+
                         <div class="pedido-actions">
                             ${botonesHTML}
                         </div>
