@@ -11,20 +11,53 @@ from rest_framework import status
 from .models import Reserva
 from .forms import ReservaForm
 from app.mesas.models import Mesa
+from app.mesas.utils import asignar_mesa_automatica, combinar_mesas
 from datetime import datetime, date, timedelta
 import json
+import logging
+
+logger = logging.getLogger('app.reservas')
 
 def reservar_mesa(request):
-    """Formulario principal para hacer reservas"""
+    """Formulario principal para hacer reservas con asignación automática de mesa"""
     if request.method == 'POST':
         form = ReservaForm(request.POST)
         if form.is_valid():
-            reserva = form.save()
-            messages.success(request, f'¡Reserva confirmada para {reserva.nombre_completo}!')
-            return redirect('confirmacion_reserva', reserva_id=reserva.id)
+            reserva = form.save(commit=False)  # No guardar todavía
+
+            # ✅ NUEVO: Asignación automática de mesa según número de personas
+            numero_personas = reserva.numero_personas
+            resultado_asignacion = asignar_mesa_automatica(
+                numero_personas=numero_personas,
+                fecha_reserva=reserva.fecha_reserva,
+                hora_reserva=reserva.hora_reserva
+            )
+
+            if resultado_asignacion['success']:
+                # Asignar mesa principal
+                reserva.mesa = resultado_asignacion['mesa']
+                reserva.save()  # Guardar la reserva
+
+                # Si hay mesas combinadas, combinarlas
+                if resultado_asignacion['mesas_combinadas']:
+                    combinar_mesas(resultado_asignacion['mesas_combinadas'], estado='reservada')
+                    messages.info(request, resultado_asignacion['mensaje'])
+                else:
+                    # Mesa individual
+                    reserva.mesa.estado = 'reservada'
+                    reserva.mesa.save()
+                    messages.info(request, resultado_asignacion['mensaje'])
+
+                messages.success(request, f'¡Reserva confirmada para {reserva.nombre_completo}!')
+                logger.info(f"Reserva creada: {reserva.nombre_completo} - Mesa {reserva.mesa.numero} - {numero_personas} personas")
+                return redirect('confirmacion_reserva', reserva_id=reserva.id)
+            else:
+                # No hay mesas disponibles
+                messages.error(request, resultado_asignacion['mensaje'])
+                logger.warning(f"No hay mesas disponibles para {numero_personas} personas")
     else:
         form = ReservaForm()
-    
+
     return render(request, 'reservas/reservar.html', {'form': form})
 
 def confirmacion_reserva(request, reserva_id):

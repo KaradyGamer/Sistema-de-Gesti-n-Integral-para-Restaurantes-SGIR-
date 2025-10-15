@@ -45,6 +45,10 @@ class Pedido(models.Model):
     fecha_pago = models.DateTimeField(null=True, blank=True, help_text='Fecha y hora del pago')
     cajero_responsable = models.ForeignKey('usuarios.Usuario', on_delete=models.SET_NULL, null=True, blank=True, related_name='pedidos_cobrados')
 
+    # ✅ NUEVO: Mesero que comandó el pedido
+    mesero_comanda = models.ForeignKey('usuarios.Usuario', on_delete=models.SET_NULL, null=True, blank=True, related_name='pedidos_comandados', help_text='Mesero que tomó el pedido')
+    numero_personas = models.PositiveIntegerField(default=1, help_text='Número de personas en la mesa')
+
     # Campos de auditoría
     modificado = models.BooleanField(default=False, help_text='Indica si el pedido fue modificado por caja')
     reasignado = models.BooleanField(default=False, help_text='Indica si fue reasignado a otra mesa')

@@ -69,7 +69,11 @@ def crear_pedido_cliente(request):
         forma_pago = request.data.get('forma_pago', 'efectivo')
         total_enviado = request.data.get('total', 0)
 
-        logger.debug(f"Mesa ID: {mesa_id}, Productos: {len(productos_data)}, Forma pago: {forma_pago}, Total: {total_enviado}")
+        # ✅ NUEVO: Capturar mesero y número de personas
+        mesero_id = request.data.get('mesero_id') or request.data.get('usuario_id')
+        numero_personas = request.data.get('numero_personas', 1)
+
+        logger.debug(f"Mesa ID: {mesa_id}, Productos: {len(productos_data)}, Forma pago: {forma_pago}, Total: {total_enviado}, Mesero: {mesero_id}, Personas: {numero_personas}")
 
         # ✅ Validaciones básicas
         if not mesa_id:
@@ -98,14 +102,31 @@ def crear_pedido_cliente(request):
                     'error': f'Mesa {mesa_id} no encontrada'
                 }, status=status.HTTP_404_NOT_FOUND)
 
-        # ✅ Crear el pedido
+        # ✅ Obtener mesero si se proporcionó ID
+        mesero = None
+        if mesero_id:
+            from app.usuarios.models import Usuario
+            try:
+                mesero = Usuario.objects.get(id=mesero_id)
+            except Usuario.DoesNotExist:
+                logger.warning(f"Mesero ID {mesero_id} no encontrado")
+
+        # ✅ Crear el pedido con mesero y número de personas
         pedido = Pedido.objects.create(
             mesa=mesa,
             fecha=timezone.now(),
             forma_pago=forma_pago,
-            estado='pendiente'
+            estado='pendiente',
+            mesero_comanda=mesero,
+            numero_personas=numero_personas
         )
-        logger.info(f"Pedido #{pedido.id} creado para mesa {mesa.numero}")
+
+        # ✅ NUEVO: Cambiar estado de la mesa a 'ocupada'
+        mesa.estado = 'ocupada'
+        mesa.save()
+
+        mesero_nombre = f"{mesero.first_name} {mesero.last_name}" if mesero else "N/A"
+        logger.info(f"Pedido #{pedido.id} creado - Mesa {mesa.numero} - {numero_personas} personas - Mesero: {mesero_nombre}")
 
         total_calculado = 0
         detalles_creados = []
@@ -163,6 +184,7 @@ def crear_pedido_cliente(request):
         pedido.total = total_calculado
         pedido.save()
 
+        mesero_nombre_completo = f"{mesero.first_name} {mesero.last_name}" if mesero else "Cliente directo"
         logger.info(f"Pedido #{pedido.id} completado - Mesa {mesa.numero} - Total: Bs/ {total_calculado}")
 
         return Response({
@@ -170,6 +192,8 @@ def crear_pedido_cliente(request):
             'mensaje': 'Pedido creado exitosamente',
             'pedido_id': pedido.id,
             'mesa': mesa.numero,
+            'numero_personas': numero_personas,
+            'mesero': mesero_nombre_completo,
             'total': float(total_calculado),
             'detalles': detalles_creados,
             'estado': pedido.estado
@@ -680,13 +704,20 @@ def pedidos_en_cocina_api(request):
                     }
                 ]
             
+            # ✅ NUEVO: Información del mesero que comandó
+            mesero_nombre = "Cliente directo"
+            if pedido.mesero_comanda:
+                mesero_nombre = f"{pedido.mesero_comanda.first_name} {pedido.mesero_comanda.last_name}".strip() or pedido.mesero_comanda.username
+
             pedidos_data.append({
                 'id': pedido.id,
                 'mesa': pedido.mesa.numero if pedido.mesa else 'N/A',
                 'estado': pedido.estado,
                 'total': float(pedido.total),
                 'fecha': pedido.fecha.isoformat(),
-                'detalles': detalles_data
+                'detalles': detalles_data,
+                'numero_personas': pedido.numero_personas,
+                'mesero': mesero_nombre
             })
         
         print(f"✅ Enviando {len(pedidos_data)} pedidos al frontend (solo pendientes y en preparación)")

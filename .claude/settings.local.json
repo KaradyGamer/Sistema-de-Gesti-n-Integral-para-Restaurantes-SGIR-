@@ -12,7 +12,12 @@
       "Bash(tree:*)",
       "Bash(git add:*)",
       "Bash(git commit -m \"$(cat <<''EOF''\n🧹 Limpieza de archivos CSS y JavaScript sin uso\n\n❌ Archivos eliminados (no se usaban):\n- templates/static/css/login_mesero.css (349 bytes)\n- templates/static/css/panel_cocinero.css (1.1 KB)\n- templates/static/css/panel_mesero.css (1.2 KB)\n- templates/static/css/formulario.css (1.6 KB)\n- templates/static/js/auth.js\n- templates/static/js/login.js\n- templates/static/js/panel_cocinero.js\n- templates/static/js/panel_mesero.js\n- templates/static/css/sounds/notificacion.mp3 (69 KB)\n\n✅ Razón de eliminación:\nTodos los archivos HTML tienen CSS y JavaScript embebido.\nLos archivos externos no estaban vinculados en ningún template.\n\n📊 Resultado:\n- Espacio liberado: ~75 KB\n- Carpeta templates/static/ eliminada (vacía)\n- Proyecto más limpio y mantenible\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")",
-      "Bash(python -m pip show:*)"
+      "Bash(python -m pip show:*)",
+      "Bash(git commit:*)",
+      "Bash(python manage.py makemigrations:*)",
+      "Bash(envScriptspython.exe manage.py makemigrations)",
+      "Bash(\"env/Scripts/python.exe\" manage.py makemigrations)",
+      "Bash(\"env/Scripts/python.exe\" manage.py migrate)"
     ],
     "deny": [],
     "ask": []

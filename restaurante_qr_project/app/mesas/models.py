@@ -23,6 +23,11 @@ class Mesa(models.Model):
     capacidad = models.PositiveIntegerField(default=4, help_text='Número de personas que caben en la mesa')
     disponible = models.BooleanField(default=True, help_text='Mesa activa para uso')
 
+    # ✅ NUEVO: Sistema de unión de mesas
+    es_combinada = models.BooleanField(default=False, help_text='Indica si está unida con otra mesa')
+    mesas_combinadas = models.CharField(max_length=100, blank=True, null=True, help_text='IDs de mesas combinadas (ej: "1,2,3")')
+    capacidad_combinada = models.PositiveIntegerField(default=0, help_text='Capacidad total cuando está combinada')
+
     # Posición para mapa digital
     posicion_x = models.IntegerField(default=0, help_text='Posición X en el mapa')
     posicion_y = models.IntegerField(default=0, help_text='Posición Y en el mapa')

@@ -13,6 +13,7 @@ import logging
 
 from app.pedidos.models import Pedido, DetallePedido
 from app.mesas.models import Mesa
+from app.mesas.utils import liberar_mesa
 from app.productos.models import Producto
 from app.usuarios.permisos import EsCajero
 from .models import Transaccion, DetallePago, CierreCaja, HistorialModificacion, AlertaStock
@@ -67,6 +68,11 @@ def api_pedidos_pendientes_pago(request):
                     'subtotal': float(detalle.subtotal)
                 })
 
+            # ✅ NUEVO: Información del mesero que comandó
+            mesero_nombre = "Cliente directo"
+            if pedido.mesero_comanda:
+                mesero_nombre = f"{pedido.mesero_comanda.first_name} {pedido.mesero_comanda.last_name}".strip() or pedido.mesero_comanda.username
+
             pedidos_data.append({
                 'id': pedido.id,
                 'mesa': pedido.mesa.numero if pedido.mesa else 'N/A',
@@ -78,7 +84,9 @@ def api_pedidos_pendientes_pago(request):
                 'propina': float(pedido.propina),
                 'total_final': float(total_final),
                 'forma_pago': pedido.forma_pago,
-                'observaciones': pedido.observaciones or ''
+                'observaciones': pedido.observaciones or '',
+                'numero_personas': pedido.numero_personas,
+                'mesero': mesero_nombre
             })
 
         return Response({
@@ -233,10 +241,10 @@ def api_procesar_pago_simple(request):
         # Descontar stock
         descontar_stock_pedido(pedido)
 
-        # Liberar mesa
+        # ✅ MEJORADO: Liberar mesa (incluso si está combinada)
         if pedido.mesa:
-            pedido.mesa.estado = 'disponible'
-            pedido.mesa.save()
+            liberar_mesa(pedido.mesa)
+            logger.info(f"Mesa {pedido.mesa.numero} liberada después del pago")
 
         # Verificar alertas de stock
         verificar_alertas_stock()
@@ -344,10 +352,10 @@ def api_procesar_pago_mixto(request):
         # Descontar stock
         descontar_stock_pedido(pedido)
 
-        # Liberar mesa
+        # ✅ MEJORADO: Liberar mesa (incluso si está combinada)
         if pedido.mesa:
-            pedido.mesa.estado = 'disponible'
-            pedido.mesa.save()
+            liberar_mesa(pedido.mesa)
+            logger.info(f"Mesa {pedido.mesa.numero} liberada después del pago")
 
         # Verificar alertas de stock
         verificar_alertas_stock()
