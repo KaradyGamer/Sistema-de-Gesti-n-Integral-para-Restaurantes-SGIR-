@@ -1021,9 +1021,11 @@ def api_cerrar_caja(request):
 def api_mapa_mesas(request):
     """
     Obtiene el estado de todas las mesas para el mapa digital
+    ✅ ACTUALIZADO: Igual que vista de mesero - muestra TODAS las mesas
     """
     try:
-        mesas = Mesa.objects.filter(disponible=True).order_by('numero')
+        # ✅ CORREGIDO: Obtener TODAS las mesas (no solo disponibles)
+        mesas = Mesa.objects.all().order_by('numero')
 
         mesas_data = []
         for mesa in mesas:

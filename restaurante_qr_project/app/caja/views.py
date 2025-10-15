@@ -138,13 +138,14 @@ def procesar_pago(request, pedido_id):
 def mapa_mesas(request):
     """
     Vista del mapa digital de mesas con estados en tiempo real
+    ✅ ACTUALIZADO: Igual que vista de mesero - muestra TODAS las mesas
     """
     if request.user.rol not in ['cajero', 'admin', 'gerente', 'mesero']:
         messages.error(request, 'No tienes permisos para acceder a esta página.')
         return redirect('/caja/')
 
-    # Obtener todas las mesas con sus pedidos activos
-    mesas = Mesa.objects.filter(disponible=True).order_by('numero')
+    # ✅ CORREGIDO: Obtener TODAS las mesas (no solo disponibles)
+    mesas = Mesa.objects.all().order_by('numero')
 
     # Agregar información de pedidos a cada mesa
     mesas_con_info = []

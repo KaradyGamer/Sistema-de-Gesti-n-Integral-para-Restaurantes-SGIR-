@@ -36,29 +36,52 @@ class Mesa(models.Model):
         return f"Mesa {self.numero}"
 
     def save(self, *args, **kwargs):
+        """
+        ✅ OPTIMIZADO: Solo genera QR cuando es nueva mesa o fuerza regeneración (#5)
+        """
+        # ✅ Detectar si necesitamos generar QR
+        generar_qr = False
+
+        if self.pk is None:
+            # Es una mesa nueva
+            generar_qr = True
+        elif not self.qr_image:
+            # La mesa existe pero no tiene QR
+            generar_qr = True
+        elif kwargs.pop('force_qr_generation', False):
+            # Regeneración forzada (opcional)
+            generar_qr = True
+
         # Guardar primero para obtener el ID
-        is_new = self.pk is None
         super().save(*args, **kwargs)
 
-        # Generar QR solo si no existe o si es necesario actualizar
-        if is_new or not self.qr_image:
-            # Usar dominio desde settings o variable de entorno en producción
-            from django.contrib.sites.models import Site
-            try:
-                domain = Site.objects.get_current().domain
-                protocol = 'https' if settings.DEBUG is False else 'http'
-            except:
-                domain = '127.0.0.1:8000'
-                protocol = 'http'
+        # Solo generar QR si es necesario
+        if generar_qr:
+            self._generate_qr_code()
 
-            url_qr = f"{protocol}://{domain}/menu/mesa/{self.id}/"
-            qr = qrcode.make(url_qr)
-            buffer = BytesIO()
-            qr.save(buffer, format='PNG')
-            buffer.seek(0)  # ✅ AGREGADO: Volver al inicio del buffer
-            file_name = f"mesa-{self.numero}-qr.png"
+    def _generate_qr_code(self):
+        """
+        ✅ NUEVO: Método privado para generar QR sin llamar a save()
+        Separado del save() principal para evitar regeneraciones innecesarias
+        """
+        from django.contrib.sites.models import Site
 
-            # ✅ CORREGIDO: Guardar sin llamar a save() recursivamente
-            self.qr_image.save(file_name, File(buffer), save=False)
-            # ✅ CORREGIDO: Actualizar solo el nombre del archivo, no el objeto
-            Mesa.objects.filter(pk=self.pk).update(qr_image=self.qr_image.name)
+        try:
+            domain = Site.objects.get_current().domain
+            protocol = 'https' if settings.DEBUG is False else 'http'
+        except:
+            domain = '127.0.0.1:8000'
+            protocol = 'http'
+
+        url_qr = f"{protocol}://{domain}/menu/mesa/{self.id}/"
+        qr = qrcode.make(url_qr)
+        buffer = BytesIO()
+        qr.save(buffer, format='PNG')
+        buffer.seek(0)
+        file_name = f"mesa-{self.numero}-qr.png"
+
+        # Guardar sin llamar a save() recursivamente
+        self.qr_image.save(file_name, File(buffer), save=False)
+
+        # Actualizar solo el campo qr_image en la base de datos
+        Mesa.objects.filter(pk=self.pk).update(qr_image=self.qr_image.name)

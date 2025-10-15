@@ -5,6 +5,7 @@
 [![Django](https://img.shields.io/badge/Django-5.2-green.svg)](https://www.djangoproject.com/)
 [![Python](https://img.shields.io/badge/Python-3.13-blue.svg)](https://www.python.org/)
 [![SQLite](https://img.shields.io/badge/SQLite-3-lightgrey.svg)](https://www.sqlite.org/)
+[![Version](https://img.shields.io/badge/Version-2.0.0-brightgreen.svg)](./CHANGELOG.md)
 
 ## 📋 Tabla de Contenidos
 
@@ -504,15 +505,25 @@ Para reportar bugs o solicitar funcionalidades:
 - Reportes automáticos
 - Suite de 35 tests
 
-### 🔜 Próximas Funcionalidades (v2.0)
-- 🗺️ Mapa visual interactivo de mesas
+### ✅ Completado (v2.0) - 2025-10-15
+- 🗺️ **Mapa visual interactivo de mesas para meseros**
+- 🔒 **Control de stock atómico (sin race conditions)**
+- ✅ **Validaciones completas de negocio**
+- 🎯 **Sistema de comandas mejorado**
+- 📊 **Alertas automáticas de inventario**
+- 🔐 **Validación de jornada laboral**
+- ⚡ **Optimización de rendimiento**
+
+### 🔜 Próximas Funcionalidades (v3.0)
 - 📱 App móvil para meseros
 - 🖨️ Integración con impresora térmica
 - 🚚 Módulo de delivery
 - 💳 Integración con pasarelas de pago
 - 📧 Notificaciones por email/SMS
-- 📊 Dashboard con gráficas
+- 📊 Dashboard con gráficas avanzadas
 - 🌐 Multi-idioma
+- 📄 Paginación en listados
+- 🔄 WebSockets para actualizaciones en tiempo real
 
 ---
 

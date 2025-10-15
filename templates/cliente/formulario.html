@@ -6,6 +6,45 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Realiza tu Pedido - Restaurante QR</title>
     <link rel="stylesheet" href="{% static 'css/cliente/formulario.css' %}">
+    <style>
+        /* ✅ ESTILOS PARA MESA PREDETERMINADA */
+        .mesa-info-display {
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .mesa-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 30px;
+            border-radius: 12px;
+            font-size: 20px;
+            font-weight: 700;
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .mesa-icon {
+            font-size: 28px;
+        }
+
+        .field-hint {
+            display: block;
+            margin-top: 5px;
+            font-size: 12px;
+            color: #666;
+            font-style: italic;
+        }
+
+        /* Mejorar input de número de personas */
+        #numberOfPeople {
+            font-size: 18px;
+            font-weight: 600;
+            text-align: center;
+        }
+    </style>
 </head>
 <body>
     <div class="container">
@@ -16,9 +55,30 @@
         </div>
 
         <form id="orderForm" class="form-section">
+            <!-- ✅ NUEVO: Mesa oculta (predeterminada desde el mapa) -->
+            <input type="hidden" id="tableNumber" name="tableNumber" value="{{ mesa_numero }}">
+
+            <!-- ✅ NUEVO: Usuario oculto (mesero logueado) -->
+            {% if usuario_id %}
+            <input type="hidden" id="userId" name="userId" value="{{ usuario_id }}">
+            {% endif %}
+
+            <!-- ✅ NUEVO: Mostrar mesa seleccionada si viene del mapa -->
+            {% if mesa_numero %}
+            <div class="mesa-info-display">
+                <div class="mesa-badge">
+                    <span class="mesa-icon">🍽️</span>
+                    <span class="mesa-text">Mesa {{ mesa_numero }}</span>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- ✅ NUEVO: Campo número de personas (REQUERIDO) -->
             <div class="form-group">
-                <label for="tableNumber">Número de Mesa:</label>
-                <input type="number" id="tableNumber" name="tableNumber" min="1" max="50" required>
+                <label for="numberOfPeople">👥 Número de Personas:</label>
+                <input type="number" id="numberOfPeople" name="numberOfPeople" min="1" max="20" required
+                       placeholder="¿Cuántas personas?">
+                <small class="field-hint">Indica cuántas personas ocuparán la mesa</small>
             </div>
 
             <!-- ✅ NUEVA SECCIÓN DE PESTAÑAS -->

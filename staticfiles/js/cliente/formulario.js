@@ -345,12 +345,15 @@ class RestaurantOrderSystem {
                 this.calculateTotal();
                 document.getElementById('totalAmount').textContent = this.total.toFixed(2);
                 document.getElementById('totalItems').textContent = Object.values(this.cart).reduce((sum, qty) => sum + qty, 0);
-                
+
                 const submitBtn = document.getElementById('submitBtn');
                 const hasItems = Object.keys(this.cart).length > 0;
                 const hasTable = document.getElementById('tableNumber').value.trim() !== '';
-                
-                submitBtn.disabled = !(hasItems && hasTable);
+                // ✅ NUEVO: Verificar número de personas
+                const numberOfPeopleInput = document.getElementById('numberOfPeople');
+                const hasPeople = numberOfPeopleInput ? numberOfPeopleInput.value.trim() !== '' && parseInt(numberOfPeopleInput.value) > 0 : true;
+
+                submitBtn.disabled = !(hasItems && hasTable && hasPeople);
             }
 
             calculateTotal() {
@@ -376,6 +379,14 @@ class RestaurantOrderSystem {
                     this.updateDisplay();
                 });
 
+                // ✅ NUEVO: Event listener para número de personas
+                const numberOfPeopleInput = document.getElementById('numberOfPeople');
+                if (numberOfPeopleInput) {
+                    numberOfPeopleInput.addEventListener('input', () => {
+                        this.updateDisplay();
+                    });
+                }
+
                 document.getElementById('orderForm').addEventListener('submit', (e) => {
                     e.preventDefault();
                     this.submitOrder();
@@ -385,9 +396,19 @@ class RestaurantOrderSystem {
             async submitOrder() {
                 const tableNumber = document.getElementById('tableNumber').value;
                 const paymentMethod = document.getElementById('paymentMethod').value;
-                
+                // ✅ NUEVO: Capturar número de personas
+                const numberOfPeople = document.getElementById('numberOfPeople')?.value;
+                // ✅ NUEVO: Capturar ID del usuario (mesero)
+                const userId = document.getElementById('userId')?.value;
+
                 if (!tableNumber || !paymentMethod) {
                     alert('❌ Por favor completa el número de mesa y la forma de pago');
+                    return;
+                }
+
+                // ✅ NUEVO: Validar número de personas
+                if (!numberOfPeople || numberOfPeople < 1) {
+                    alert('❌ Por favor indica el número de personas');
                     return;
                 }
 
@@ -424,22 +445,29 @@ class RestaurantOrderSystem {
                         mesa_id: parseInt(tableNumber),
                         mesa: parseInt(tableNumber),
                         numero_mesa: parseInt(tableNumber),
+                        numero_personas: parseInt(numberOfPeople),  // ✅ NUEVO
                         forma_pago: paymentMethod,
                         productos: productosDetallados,
                         detalles: productosDetallados,
                         total: parseFloat(this.total.toFixed(2))
                     };
 
+                    // ✅ NUEVO: Agregar mesero_id si existe
+                    if (userId) {
+                        orderData.mesero_id = parseInt(userId);
+                        orderData.usuario_id = parseInt(userId);
+                    }
+
                     console.log('📋 Preparando datos para confirmación:', orderData);
 
                     localStorage.setItem('pendingOrder', JSON.stringify(orderData));
-                    
+
                     this.showSuccess('📋 Preparando confirmación de tu pedido...');
-                    
+
                     setTimeout(() => {
                         window.location.href = '/confirmacion/';
                     }, 1000);
-                    
+
                 } catch (error) {
                     console.error('❌ Error preparando pedido:', error);
                     this.showError(`❌ Error al preparar el pedido: ${error.message}`);

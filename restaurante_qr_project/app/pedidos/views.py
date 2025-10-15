@@ -29,7 +29,18 @@ logger = logging.getLogger('app.pedidos')
 # ──────────────────────────────────────────────
 
 def formulario_cliente(request):
-    return render(request, 'cliente/formulario.html')
+    """Formulario de pedido - puede recibir mesa predeterminada desde mapa"""
+    # ✅ NUEVO: Obtener mesa desde parámetro URL (?mesa=5)
+    mesa_numero = request.GET.get('mesa', None)
+
+    # ✅ NUEVO: Pasar usuario si está autenticado (para meseros)
+    context = {
+        'mesa_numero': mesa_numero,
+        'usuario_id': request.user.id if request.user.is_authenticated else None,
+        'es_mesero': request.user.is_authenticated
+    }
+
+    return render(request, 'cliente/formulario.html', context)
 
 def menu_cliente(request):
     return render(request, 'cliente/formulario.html')
@@ -71,7 +82,7 @@ def crear_pedido_cliente(request):
 
         # ✅ NUEVO: Capturar mesero y número de personas
         mesero_id = request.data.get('mesero_id') or request.data.get('usuario_id')
-        numero_personas = request.data.get('numero_personas', 1)
+        numero_personas = request.data.get('numero_personas')
 
         logger.debug(f"Mesa ID: {mesa_id}, Productos: {len(productos_data)}, Forma pago: {forma_pago}, Total: {total_enviado}, Mesero: {mesero_id}, Personas: {numero_personas}")
 
@@ -80,11 +91,19 @@ def crear_pedido_cliente(request):
             return Response({
                 'error': 'El número de mesa es requerido'
             }, status=status.HTTP_400_BAD_REQUEST)
-            
+
         if not productos_data or len(productos_data) == 0:
             return Response({
                 'error': 'Debe incluir al menos un producto en el pedido'
             }, status=status.HTTP_400_BAD_REQUEST)
+
+        # ✅ NUEVO: Validar número de personas (#6)
+        if not numero_personas or int(numero_personas) < 1:
+            return Response({
+                'error': 'El número de personas debe ser al menos 1'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        numero_personas = int(numero_personas)
 
         # ✅ CORREGIDO: Buscar la mesa por número, no por ID
         try:
@@ -102,6 +121,30 @@ def crear_pedido_cliente(request):
                     'error': f'Mesa {mesa_id} no encontrada'
                 }, status=status.HTTP_404_NOT_FOUND)
 
+        # ✅ NUEVO: Validar que la mesa está disponible (#3)
+        if mesa.estado != 'disponible':
+            return Response({
+                'error': f'Mesa {mesa.numero} no está disponible (estado actual: {mesa.get_estado_display()})'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        # ✅ NUEVO: Verificar que no haya pedido activo en la mesa (#3)
+        pedido_existente = Pedido.objects.filter(
+            mesa=mesa,
+            estado__in=['pendiente', 'en preparacion', 'listo']
+        ).exists()
+
+        if pedido_existente:
+            return Response({
+                'error': f'Mesa {mesa.numero} ya tiene un pedido activo'
+            }, status=status.HTTP_409_CONFLICT)
+
+        # ✅ NUEVO: Validar capacidad de la mesa (#6)
+        capacidad_real = mesa.capacidad_combinada if mesa.es_combinada else mesa.capacidad
+        if numero_personas > capacidad_real:
+            return Response({
+                'error': f'Mesa {mesa.numero} solo tiene capacidad para {capacidad_real} personas. Solicitado: {numero_personas}'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
         # ✅ Obtener mesero si se proporcionó ID
         mesero = None
         if mesero_id:
@@ -110,6 +153,18 @@ def crear_pedido_cliente(request):
                 mesero = Usuario.objects.get(id=mesero_id)
             except Usuario.DoesNotExist:
                 logger.warning(f"Mesero ID {mesero_id} no encontrado")
+
+        # ✅ NUEVO: Validar jornada laboral si hay mesero (#8)
+        if mesero:
+            try:
+                from app.caja.models import JornadaLaboral
+                if not JornadaLaboral.hay_jornada_activa():
+                    return Response({
+                        'error': 'No hay jornada laboral activa. Contacte al cajero para abrir caja.'
+                    }, status=status.HTTP_403_FORBIDDEN)
+            except Exception:
+                # Si el modelo no existe, continuar
+                pass
 
         # ✅ Crear el pedido con mesero y número de personas
         pedido = Pedido.objects.create(
@@ -148,6 +203,25 @@ def crear_pedido_cliente(request):
 
             try:
                 producto = Producto.objects.get(id=producto_id)
+
+                # ✅ NUEVO: Descontar stock ANTES de crear el detalle (#2)
+                stock_descontado = producto.descontar_stock(cantidad)
+
+                if not stock_descontado:
+                    # Stock insuficiente
+                    logger.warning(f"Stock insuficiente de {producto.nombre}. Disponible: {producto.stock_actual}, Solicitado: {cantidad}")
+
+                    # Si requiere inventario y no hay stock, fallar
+                    if producto.requiere_inventario:
+                        # Rollback: eliminar pedido creado
+                        pedido.delete()
+                        mesa.estado = 'disponible'  # Restaurar estado
+                        mesa.save()
+
+                        return Response({
+                            'error': f'Stock insuficiente de {producto.nombre}. Disponible: {producto.stock_actual}, Solicitado: {cantidad}'
+                        }, status=status.HTTP_400_BAD_REQUEST)
+
                 subtotal = producto.precio * cantidad
                 total_calculado += subtotal
 
@@ -163,10 +237,11 @@ def crear_pedido_cliente(request):
                     'producto': producto.nombre,
                     'cantidad': cantidad,
                     'precio_unitario': float(producto.precio),
-                    'subtotal': float(subtotal)
+                    'subtotal': float(subtotal),
+                    'stock_restante': producto.stock_actual if producto.requiere_inventario else None
                 })
 
-                logger.debug(f"Detalle: {cantidad}x {producto.nombre} = Bs/ {subtotal}")
+                logger.debug(f"Detalle: {cantidad}x {producto.nombre} = Bs/ {subtotal} (Stock restante: {producto.stock_actual if producto.requiere_inventario else 'N/A'})")
 
             except Producto.DoesNotExist:
                 logger.error(f"Producto ID {producto_id} no encontrado")
@@ -243,7 +318,7 @@ def panel_mesero(request):
     if not request.user.is_authenticated:
         messages.warning(request, 'Debes iniciar sesión para acceder al panel de mesero.')
         return redirect('/login/')
-    
+
     context = {
         'user': request.user,
         'nombre_usuario': request.user.first_name or request.user.username,
@@ -251,6 +326,52 @@ def panel_mesero(request):
         'user_role': 'mesero'
     }
     return render(request, 'mesero/panel_mesero.html', context)
+
+# ✅ NUEVO: Mapa de mesas para mesero
+@login_required
+def mapa_mesas_mesero(request):
+    """Mapa visual de mesas para que el mesero seleccione y comande"""
+    # Obtener todas las mesas con su información actualizada
+    mesas = Mesa.objects.all().order_by('numero')
+
+    # Serializar información de mesas
+    mesas_data = []
+    for mesa in mesas:
+        from app.mesas.utils import obtener_info_mesa_completa
+        info = obtener_info_mesa_completa(mesa)
+
+        # Obtener pedido activo si existe
+        pedido_activo = None
+        if mesa.estado in ['ocupada', 'pagando']:
+            pedido = Pedido.objects.filter(
+                mesa=mesa,
+                estado__in=['pendiente', 'en preparacion', 'listo']
+            ).first()
+
+            if pedido:
+                pedido_activo = {
+                    'id': pedido.id,
+                    'personas': pedido.numero_personas,
+                    'mesero': f"{pedido.mesero_comanda.first_name} {pedido.mesero_comanda.last_name}" if pedido.mesero_comanda else "N/A"
+                }
+
+        mesas_data.append({
+            'numero': info['numero'],
+            'estado': info['estado'],
+            'capacidad': info['capacidad'],
+            'disponible': info['disponible'],
+            'es_combinada': info['es_combinada'],
+            'display': info['display'],
+            'pedido_activo': pedido_activo
+        })
+
+    context = {
+        'user': request.user,
+        'nombre_usuario': request.user.first_name or request.user.username,
+        'title': 'Mapa de Mesas',
+        'mesas': mesas_data
+    }
+    return render(request, 'mesero/mapa_mesas.html', context)
 
 # ✅ FUNCIÓN 1 CORREGIDA: api_pedidos_mesero
 @login_required

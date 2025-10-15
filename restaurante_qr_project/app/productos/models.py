@@ -1,4 +1,5 @@
 from django.db import models
+from django.db.models import F
 
 class Categoria(models.Model):
     nombre = models.CharField(max_length=50)
@@ -38,14 +39,55 @@ class Producto(models.Model):
         return False
 
     def descontar_stock(self, cantidad):
-        """Descuenta del stock al vender"""
-        if self.requiere_inventario and self.stock_actual >= cantidad:
-            self.stock_actual -= cantidad
-            self.save()
+        """
+        Descuenta del stock al vender de forma ATÓMICA
+        ✅ CORREGIDO: Evita race conditions usando F() expression
+        """
+        if not self.requiere_inventario:
+            return True  # No requiere control de inventario
+
+        # ✅ Actualización atómica - solo actualiza si hay suficiente stock
+        updated = Producto.objects.filter(
+            id=self.id,
+            stock_actual__gte=cantidad  # Solo si stock actual >= cantidad
+        ).update(stock_actual=F('stock_actual') - cantidad)
+
+        if updated:
+            # Refrescar el objeto para tener el stock actualizado
+            self.refresh_from_db()
+
+            # Verificar si llegó a stock bajo para crear alerta
+            if self.stock_bajo:
+                self._crear_alerta_stock()
+
             return True
+
+        # No había suficiente stock
         return False
 
     def agregar_stock(self, cantidad):
-        """Agrega stock (para reposiciones)"""
-        self.stock_actual += cantidad
-        self.save()
+        """
+        Agrega stock (para reposiciones) de forma ATÓMICA
+        ✅ CORREGIDO: Usa F() expression para evitar race conditions
+        """
+        # ✅ Actualización atómica
+        Producto.objects.filter(id=self.id).update(
+            stock_actual=F('stock_actual') + cantidad
+        )
+        self.refresh_from_db()
+
+    def _crear_alerta_stock(self):
+        """Crea alerta de stock bajo si no existe ya"""
+        try:
+            from app.caja.models import AlertaStock
+            AlertaStock.objects.get_or_create(
+                producto=self,
+                tipo='stock_bajo' if self.stock_actual > 0 else 'agotado',
+                estado='activa',
+                defaults={
+                    'stock_actual': self.stock_actual,
+                    'mensaje': f'{self.nombre} - Stock: {self.stock_actual}'
+                }
+            )
+        except Exception:
+            pass  # No fallar si no existe el modelo AlertaStock

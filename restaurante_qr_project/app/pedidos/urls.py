@@ -25,6 +25,9 @@ urlpatterns = [
     path('mesero/confirmar-reserva/<int:reserva_id>/', views.api_confirmar_reserva, name='api_confirmar_reserva'),
     path('mesero/cambiar-estado-reserva/<int:reserva_id>/', views.api_cambiar_estado_reserva, name='api_cambiar_estado_reserva'),
     path('mesero/asignar-mesa/<int:reserva_id>/', views.api_asignar_mesa_reserva, name='api_asignar_mesa_reserva'),
+
+    # 🗺️ NUEVO: Mapa de mesas para mesero
+    path('mesero/mapa-mesas/', views.mapa_mesas_mesero, name='mapa_mesas_mesero'),
     
     # 🛒 API Cliente
     path('cliente/crear/', views.crear_pedido_cliente, name='crear_pedido_cliente'),
