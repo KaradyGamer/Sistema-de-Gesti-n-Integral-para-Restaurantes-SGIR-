@@ -50,9 +50,10 @@ class Mesa(models.Model):
             qr = qrcode.make(url_qr)
             buffer = BytesIO()
             qr.save(buffer, format='PNG')
+            buffer.seek(0)  # ✅ AGREGADO: Volver al inicio del buffer
             file_name = f"mesa-{self.numero}-qr.png"
 
-            # Guardar sin llamar a save() recursivamente
+            # ✅ CORREGIDO: Guardar sin llamar a save() recursivamente
             self.qr_image.save(file_name, File(buffer), save=False)
-            # Actualizar solo el campo qr_image sin triggear save()
-            Mesa.objects.filter(pk=self.pk).update(qr_image=self.qr_image)
+            # ✅ CORREGIDO: Actualizar solo el nombre del archivo, no el objeto
+            Mesa.objects.filter(pk=self.pk).update(qr_image=self.qr_image.name)

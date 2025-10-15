@@ -2,12 +2,14 @@ from django.shortcuts import render, redirect
 from django.contrib import messages
 from django.utils import timezone
 from django.http import JsonResponse
+from django.db import transaction
 from rest_framework import viewsets, status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from datetime import date, datetime, timedelta
+import logging
 
 from .models import Pedido, DetallePedido
 from .serializers import PedidoSerializer
@@ -18,6 +20,9 @@ from app.usuarios.permisos import EsCocinero, EsMesero
 from app.reservas.models import Reserva
 
 from django.contrib.auth.decorators import login_required
+
+# ✅ Configurar logger
+logger = logging.getLogger('app.pedidos')
 
 # ──────────────────────────────────────────────
 # 🔓 Cliente – Plantillas públicas
@@ -38,15 +43,15 @@ def confirmacion_pedido(request):
 # ✅ FUNCIÓN CORREGIDA PARA CREAR PEDIDOS DEL CLIENTE
 @api_view(['POST'])
 @permission_classes([AllowAny])
+@transaction.atomic  # ✅ Garantiza atomicidad de la transacción
 def crear_pedido_cliente(request):
     """
     Crear pedido desde el cliente - VERSIÓN CORREGIDA PARA COMPATIBILIDAD
     """
     try:
-        print(f"🛒 Creando pedido del cliente")
-        print(f"🛒 Datos recibidos: {request.data}")
-        print(f"🛒 Método: {request.method}")
-        print(f"🛒 Content-Type: {request.content_type}")
+        logger.info("Creando pedido del cliente")
+        logger.debug(f"Datos recibidos: {request.data}")
+        logger.debug(f"Método: {request.method}, Content-Type: {request.content_type}")
         
         # ✅ CORREGIDO: Obtener datos con múltiples nombres posibles
         mesa_id = (
@@ -63,11 +68,8 @@ def crear_pedido_cliente(request):
         
         forma_pago = request.data.get('forma_pago', 'efectivo')
         total_enviado = request.data.get('total', 0)
-        
-        print(f"🛒 Mesa ID: {mesa_id}")
-        print(f"🛒 Productos: {productos_data}")
-        print(f"🛒 Forma de pago: {forma_pago}")
-        print(f"🛒 Total enviado: {total_enviado}")
+
+        logger.debug(f"Mesa ID: {mesa_id}, Productos: {len(productos_data)}, Forma pago: {forma_pago}, Total: {total_enviado}")
 
         # ✅ Validaciones básicas
         if not mesa_id:
@@ -84,50 +86,47 @@ def crear_pedido_cliente(request):
         try:
             # Intentar primero por número (más común)
             mesa = Mesa.objects.get(numero=mesa_id)
-            print(f"🛒 Mesa encontrada por número: {mesa}")
+            logger.debug(f"Mesa encontrada por número: {mesa}")
         except Mesa.DoesNotExist:
             try:
                 # Fallback: intentar por ID
                 mesa = Mesa.objects.get(id=mesa_id)
-                print(f"🛒 Mesa encontrada por ID: {mesa}")
+                logger.debug(f"Mesa encontrada por ID: {mesa}")
             except Mesa.DoesNotExist:
+                logger.warning(f"Mesa {mesa_id} no encontrada")
                 return Response({
                     'error': f'Mesa {mesa_id} no encontrada'
                 }, status=status.HTTP_404_NOT_FOUND)
 
         # ✅ Crear el pedido
         pedido = Pedido.objects.create(
-            mesa=mesa, 
-            fecha=timezone.now(), 
+            mesa=mesa,
+            fecha=timezone.now(),
             forma_pago=forma_pago,
             estado='pendiente'
         )
-        print(f"🛒 Pedido creado: {pedido}")
+        logger.info(f"Pedido #{pedido.id} creado para mesa {mesa.numero}")
 
         total_calculado = 0
         detalles_creados = []
         
         # ✅ CORREGIDO: Procesar productos con múltiples formatos
         for item in productos_data:
-            print(f"🛒 Procesando item: {item}")
-            
             # Obtener ID del producto con múltiples nombres posibles
             producto_id = (
-                item.get('producto_id') or 
-                item.get('producto') or 
+                item.get('producto_id') or
+                item.get('producto') or
                 item.get('id')
             )
-            
+
             cantidad = int(item.get('cantidad', 1))
-            
+
             if not producto_id:
-                print(f"❌ Item sin producto ID: {item}")
+                logger.warning(f"Item sin producto ID: {item}")
                 continue
-                
+
             try:
                 producto = Producto.objects.get(id=producto_id)
-                print(f"🛒 Producto encontrado: {producto.nombre} - Bs/ {producto.precio}")
-                
                 subtotal = producto.precio * cantidad
                 total_calculado += subtotal
 
@@ -138,18 +137,18 @@ def crear_pedido_cliente(request):
                     cantidad=cantidad,
                     subtotal=subtotal
                 )
-                
+
                 detalles_creados.append({
                     'producto': producto.nombre,
                     'cantidad': cantidad,
                     'precio_unitario': float(producto.precio),
                     'subtotal': float(subtotal)
                 })
-                
-                print(f"🛒 Detalle creado: {cantidad}x {producto.nombre} = Bs/ {subtotal}")
-                
+
+                logger.debug(f"Detalle: {cantidad}x {producto.nombre} = Bs/ {subtotal}")
+
             except Producto.DoesNotExist:
-                print(f"❌ Producto ID {producto_id} no encontrado")
+                logger.error(f"Producto ID {producto_id} no encontrado")
                 # Continuar con los otros productos en lugar de fallar completamente
                 continue
 
@@ -163,8 +162,8 @@ def crear_pedido_cliente(request):
         # ✅ Actualizar total del pedido
         pedido.total = total_calculado
         pedido.save()
-        
-        print(f"✅ Pedido completado: #{pedido.id}, Total: Bs/ {total_calculado}")
+
+        logger.info(f"Pedido #{pedido.id} completado - Mesa {mesa.numero} - Total: Bs/ {total_calculado}")
 
         return Response({
             'success': True,
@@ -177,10 +176,8 @@ def crear_pedido_cliente(request):
         }, status=status.HTTP_201_CREATED)
 
     except Exception as e:
-        print(f"❌ ERROR GRAVE creando pedido: {str(e)}")
-        import traceback
-        traceback.print_exc()
-        
+        logger.exception(f"Error grave creando pedido: {str(e)}")
+
         return Response({
             'error': f'Error interno del servidor: {str(e)}',
             'debug': 'Ver consola del servidor para detalles'

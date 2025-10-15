@@ -2,6 +2,7 @@ from django.db import models
 from django.utils import timezone
 from datetime import datetime, timedelta
 from django.db.models import Sum, Count, Avg
+from django.db.models.functions import TruncDate
 from app.pedidos.models import Pedido, DetallePedido
 from app.productos.models import Producto
 
@@ -79,16 +80,16 @@ class ReporteVentas(models.Model):
         
         producto_mas_vendido = producto_top['producto__nombre'] if producto_top else "N/A"
         
-        # Día con más ventas
-        ventas_por_dia = pedidos.extra(
-            select={'dia': 'date(fecha)'}
+        # Día con más ventas - ✅ ACTUALIZADO: Usar TruncDate en lugar de .extra()
+        ventas_por_dia = pedidos.annotate(
+            dia=TruncDate('fecha')
         ).values('dia').annotate(
             total_dia=Sum('total')
         ).order_by('-total_dia').first()
         
         dia_mas_ventas = ""
         if ventas_por_dia:
-            fecha_dia = datetime.strptime(ventas_por_dia['dia'], '%Y-%m-%d').date()
+            fecha_dia = ventas_por_dia['dia']  # ✅ TruncDate ya retorna un objeto date
             dias_semana = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo']
             dia_mas_ventas = f"{dias_semana[fecha_dia.weekday()]} ({fecha_dia.strftime('%d/%m')})"
         

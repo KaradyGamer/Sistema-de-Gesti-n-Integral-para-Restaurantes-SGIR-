@@ -9,6 +9,7 @@ from django.db.models import Sum, Q
 from decimal import Decimal
 from datetime import date, datetime
 import json
+import logging
 
 from app.pedidos.models import Pedido, DetallePedido
 from app.mesas.models import Mesa
@@ -28,6 +29,9 @@ from .utils import (
     calcular_total_con_descuento_propina,
     obtener_estadisticas_caja_dia
 )
+
+# ✅ Configurar logger
+logger = logging.getLogger('app.caja')
 
 
 # ══════════════════════════════════════════════
@@ -169,7 +173,7 @@ def api_procesar_pago_simple(request):
         monto_recibido = request.data.get('monto_recibido')
         referencia = request.data.get('referencia', '')
 
-        print(f"💰 Procesando pago simple - Pedido: {pedido_id}, Método: {metodo_pago}")
+        logger.info(f"Procesando pago simple - Pedido: {pedido_id}, Método: {metodo_pago}")
 
         # Validaciones
         if not all([pedido_id, metodo_pago]):
@@ -237,7 +241,7 @@ def api_procesar_pago_simple(request):
         # Verificar alertas de stock
         verificar_alertas_stock()
 
-        print(f"✅ Pago procesado exitosamente - Factura: {numero_factura}")
+        logger.info(f"Pago procesado exitosamente - Factura: {numero_factura}, Total: Bs/ {total_final}")
 
         return Response({
             'success': True,
@@ -250,9 +254,7 @@ def api_procesar_pago_simple(request):
         })
 
     except Exception as e:
-        print(f"❌ Error en api_procesar_pago_simple: {str(e)}")
-        import traceback
-        traceback.print_exc()
+        logger.exception(f"Error en api_procesar_pago_simple: {str(e)}")
 
         return Response({
             'success': False,

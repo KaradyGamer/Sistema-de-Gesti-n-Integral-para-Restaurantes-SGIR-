@@ -10,7 +10,6 @@ from django.contrib import messages
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_protect
 from django.views.decorators.http import require_http_methods
-from django.contrib.auth.models import User
 from .models import Usuario
 
 class RegistroUsuarioView(generics.CreateAPIView):
