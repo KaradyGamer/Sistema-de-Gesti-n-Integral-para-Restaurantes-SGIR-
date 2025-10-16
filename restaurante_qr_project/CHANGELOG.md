@@ -1,5 +1,122 @@
 # CHANGELOG - Sistema de Gestión Integral para Restaurantes (SGIR)
 
+## [2.3.0] - 2025-10-15
+
+### ✨ NUEVAS CARACTERÍSTICAS
+
+#### Sistema de Tolerancia para Reservas (15 minutos)
+- **[NUEVO]** Liberación automática de mesas por no-show
+  - Método `esta_vencida_con_tolerancia()` con 15 minutos configurable
+  - Método `liberar_por_no_show()` cambia estado a 'no_show' y libera mesa
+  - Si cliente llega 10 min tarde → Mesa aún reservada ✅
+  - Si cliente llega 20 min tarde → Mesa ya liberada ❌
+  - Archivo: `app/reservas/models.py:88-135`
+
+- **[NUEVO]** Comando Django para liberar mesas automáticamente
+  - `python manage.py liberar_mesas_no_show`
+  - Busca reservas pendientes/confirmadas que pasaron tolerancia
+  - Marca como no-show y libera mesa automáticamente
+  - Logs detallados de cada operación
+  - Archivo: `app/reservas/management/commands/liberar_mesas_no_show.py`
+
+**Ejemplo de Uso:**
+```bash
+# Ejecutar cada 10-15 minutos con Task Scheduler (Windows) o Cron (Linux)
+python manage.py liberar_mesas_no_show --minutos 15
+```
+
+#### Sistema de Eliminación Suave (Soft Delete)
+- **[NUEVO]** Eliminación suave en 4 modelos principales:
+  - ✅ **Producto**: Mantiene referencia en pedidos históricos
+  - ✅ **Mesa**: Mantiene referencia en reservas y pedidos históricos
+  - ✅ **Usuario**: Mantiene referencia en transacciones y logs
+  - ✅ **Categoría**: Mantiene referencia en productos históricos
+
+**Campos Agregados:**
+- `activo` (BooleanField): True=activo, False=eliminado
+- `fecha_eliminacion` (DateTimeField): Cuándo se eliminó
+- `eliminado_por` (ForeignKey): Quién lo eliminó
+
+**Métodos Agregados:**
+```python
+# Eliminar suavemente
+producto.eliminar_suave(usuario=request.user)
+
+# Restaurar
+producto.restaurar()
+
+# Filtrar solo activos
+productos = Producto.objects.filter(activo=True)
+```
+
+**Ventajas:**
+- ✅ No rompe pedidos/reservas/transacciones históricas
+- ✅ Recuperar registros eliminados por error
+- ✅ Reportes históricos siguen funcionando
+- ✅ Auditoría completa de eliminaciones
+- ✅ Cumple requisitos legales de conservación de datos
+
+### 📊 IMPACTO DE CAMBIOS
+
+**Archivos Nuevos**: 3
+- `app/reservas/management/commands/liberar_mesas_no_show.py` (87 líneas)
+- `app/reservas/management/__init__.py`
+- `app/reservas/management/commands/__init__.py`
+
+**Archivos Modificados**: 5
+- `app/reservas/models.py` (+50 líneas)
+- `app/productos/models.py` (+50 líneas)
+- `app/mesas/models.py` (+25 líneas)
+- `app/usuarios/models.py` (+30 líneas)
+- `VERSION` (2.2.0 → 2.3.0)
+
+**Migraciones Nuevas**: 3
+- `productos/0004_add_soft_delete_to_producto_and_categoria`
+- `mesas/0004_add_soft_delete_to_mesa`
+- `usuarios/0006_add_soft_delete_to_usuario`
+
+**Líneas Agregadas**: ~242
+
+### 🔄 BREAKING CHANGES
+
+**Ninguno.** Retrocompatible al 100%:
+- Campo `activo` tiene default=True
+- Campos nullable no rompen datos existentes
+- Métodos de eliminación normales siguen funcionando
+
+### ⚠️ RECOMENDACIÓN - Actualizar Queries
+
+Para mejor rendimiento, filtrar solo registros activos:
+
+```python
+# ANTES (incluye eliminados)
+productos = Producto.objects.all()
+
+# DESPUÉS (solo activos - RECOMENDADO)
+productos = Producto.objects.filter(activo=True)
+```
+
+### 🧪 PRUEBAS RECOMENDADAS
+
+1. **Tolerancia de Reservas:**
+   - Crear reserva para las 14:00
+   - Esperar hasta las 14:10 → Mesa aún reservada
+   - Esperar hasta las 14:16 → Ejecutar comando → Mesa liberada como no-show
+
+2. **Eliminación Suave:**
+   - Eliminar producto: `producto.eliminar_suave(usuario)`
+   - Verificar que pedidos antiguos siguen mostrando el producto
+   - Restaurar: `producto.restaurar()`
+   - Verificar que vuelve a aparecer en listados
+
+3. **Comando Automático:**
+   ```bash
+   cd restaurante_qr_project
+   python manage.py liberar_mesas_no_show
+   ```
+
+---
+
 ## [2.2.0] - 2025-10-15
 
 ### ✨ NUEVAS CARACTERÍSTICAS CRÍTICAS DE SEGURIDAD

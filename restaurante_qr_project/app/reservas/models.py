@@ -85,6 +85,55 @@ class Reserva(models.Model):
 
         return reserva_datetime < ahora
 
+    def esta_vencida_con_tolerancia(self, minutos_tolerancia=15):
+        """
+        Verifica si la reserva ya pasó considerando tiempo de tolerancia.
+
+        Args:
+            minutos_tolerancia (int): Minutos de tolerancia después de la hora reservada (default: 15)
+
+        Returns:
+            bool: True si ya pasó la hora + tolerancia
+        """
+        ahora = timezone.now()
+        reserva_datetime = self.datetime_reserva
+
+        # ✅ CORREGIDO: Solo hacer aware si no lo está ya
+        if timezone.is_naive(reserva_datetime):
+            reserva_datetime = timezone.make_aware(reserva_datetime)
+
+        # Agregar tiempo de tolerancia
+        hora_limite = reserva_datetime + timedelta(minutes=minutos_tolerancia)
+
+        return ahora > hora_limite
+
+    def liberar_por_no_show(self):
+        """
+        Libera la mesa si el cliente no llegó después del tiempo de tolerancia (15 min).
+        Cambia el estado a 'no_show' y libera la mesa.
+        """
+        if not self.esta_vencida_con_tolerancia():
+            return False  # Aún está en tiempo de tolerancia
+
+        if self.estado not in ['pendiente', 'confirmada']:
+            return False  # Solo liberar reservas que estaban esperando al cliente
+
+        # Cambiar estado a no_show
+        self.estado = 'no_show'
+        self.save()
+
+        # Liberar la mesa si estaba asignada
+        if self.mesa:
+            from app.mesas.utils import liberar_mesa
+            liberar_mesa(self.mesa)
+            logger = __import__('logging').getLogger('app.reservas')
+            logger.info(
+                f"Mesa {self.mesa.numero} liberada por no-show de reserva #{self.id} "
+                f"({self.nombre_completo}) - Hora reserva: {self.hora_reserva}"
+            )
+
+        return True
+
     def validar_solapamiento(self, duracion_reserva_horas=2):
         """
         Valida que no haya otra reserva activa en la misma mesa al mismo tiempo.

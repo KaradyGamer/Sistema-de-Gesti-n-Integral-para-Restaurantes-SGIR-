@@ -4,8 +4,34 @@ from django.db.models import F
 class Categoria(models.Model):
     nombre = models.CharField(max_length=50)
 
+    # ✅ NUEVO: Campos para eliminación suave (soft delete)
+    activo = models.BooleanField(default=True, help_text='Si False, la categoría está eliminada (soft delete)')
+    fecha_eliminacion = models.DateTimeField(null=True, blank=True, help_text='Fecha en que se eliminó la categoría')
+    eliminado_por = models.ForeignKey('usuarios.Usuario', on_delete=models.SET_NULL, null=True, blank=True, related_name='categorias_eliminadas')
+
     def __str__(self):
         return self.nombre
+
+    def eliminar_suave(self, usuario=None):
+        """
+        Eliminación suave: Marca la categoría como inactiva.
+        Los productos históricos mantendrán la referencia.
+
+        Args:
+            usuario: Usuario que realizó la eliminación (opcional)
+        """
+        from django.utils import timezone
+        self.activo = False
+        self.fecha_eliminacion = timezone.now()
+        self.eliminado_por = usuario
+        self.save()
+
+    def restaurar(self):
+        """Restaura una categoría eliminada suavemente"""
+        self.activo = True
+        self.fecha_eliminacion = None
+        self.eliminado_por = None
+        self.save()
 
 
 class Producto(models.Model):
@@ -20,6 +46,11 @@ class Producto(models.Model):
     stock_actual = models.IntegerField(default=0, help_text='Cantidad disponible en inventario')
     stock_minimo = models.IntegerField(default=5, help_text='Stock mínimo antes de alerta')
     requiere_inventario = models.BooleanField(default=False, help_text='Si requiere control de stock')
+
+    # ✅ NUEVO: Campos para eliminación suave (soft delete)
+    activo = models.BooleanField(default=True, help_text='Si False, el producto está eliminado (soft delete)')
+    fecha_eliminacion = models.DateTimeField(null=True, blank=True, help_text='Fecha en que se eliminó el producto')
+    eliminado_por = models.ForeignKey('usuarios.Usuario', on_delete=models.SET_NULL, null=True, blank=True, related_name='productos_eliminados')
 
     def __str__(self):
         return self.nombre
@@ -91,3 +122,24 @@ class Producto(models.Model):
             )
         except Exception:
             pass  # No fallar si no existe el modelo AlertaStock
+
+    def eliminar_suave(self, usuario=None):
+        """
+        Eliminación suave: Marca el producto como inactivo en lugar de eliminarlo.
+        Los pedidos históricos mantendrán la referencia.
+
+        Args:
+            usuario: Usuario que realizó la eliminación (opcional)
+        """
+        from django.utils import timezone
+        self.activo = False
+        self.fecha_eliminacion = timezone.now()
+        self.eliminado_por = usuario
+        self.save()
+
+    def restaurar(self):
+        """Restaura un producto eliminado suavemente"""
+        self.activo = True
+        self.fecha_eliminacion = None
+        self.eliminado_por = None
+        self.save()

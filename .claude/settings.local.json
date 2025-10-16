@@ -2,7 +2,8 @@
   "permissions": {
     "allow": [
       "Bash(env/Scripts/python.exe manage.py makemigrations:*)",
-      "Bash(env/Scripts/python.exe manage.py:*)"
+      "Bash(env/Scripts/python.exe manage.py:*)",
+      "Bash(git add:*)"
     ],
     "deny": [],
     "ask": []

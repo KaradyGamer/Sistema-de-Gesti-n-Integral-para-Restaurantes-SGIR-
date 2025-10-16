@@ -32,6 +32,11 @@ class Mesa(models.Model):
     posicion_x = models.IntegerField(default=0, help_text='Posición X en el mapa')
     posicion_y = models.IntegerField(default=0, help_text='Posición Y en el mapa')
 
+    # ✅ NUEVO: Campos para eliminación suave (soft delete)
+    activo = models.BooleanField(default=True, help_text='Si False, la mesa está eliminada (soft delete)')
+    fecha_eliminacion = models.DateTimeField(null=True, blank=True, help_text='Fecha en que se eliminó la mesa')
+    eliminado_por = models.ForeignKey('usuarios.Usuario', on_delete=models.SET_NULL, null=True, blank=True, related_name='mesas_eliminadas')
+
     def __str__(self):
         return f"Mesa {self.numero}"
 
@@ -85,3 +90,26 @@ class Mesa(models.Model):
 
         # Actualizar solo el campo qr_image en la base de datos
         Mesa.objects.filter(pk=self.pk).update(qr_image=self.qr_image.name)
+
+    def eliminar_suave(self, usuario=None):
+        """
+        Eliminación suave: Marca la mesa como inactiva en lugar de eliminarla.
+        Las reservas y pedidos históricos mantendrán la referencia.
+
+        Args:
+            usuario: Usuario que realizó la eliminación (opcional)
+        """
+        from django.utils import timezone
+        self.activo = False
+        self.disponible = False  # También marcar como no disponible
+        self.fecha_eliminacion = timezone.now()
+        self.eliminado_por = usuario
+        self.save()
+
+    def restaurar(self):
+        """Restaura una mesa eliminada suavemente"""
+        self.activo = True
+        self.disponible = True
+        self.fecha_eliminacion = None
+        self.eliminado_por = None
+        self.save()

@@ -60,7 +60,22 @@ class Usuario(AbstractUser):
     # Control de estado del empleado
     activo = models.BooleanField(
         default=True,
-        help_text='Si está desactivado, no puede iniciar sesión'
+        help_text='Si está desactivado, no puede iniciar sesión (soft delete)'
+    )
+
+    # ✅ NUEVO: Campos adicionales para eliminación suave
+    fecha_eliminacion = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text='Fecha en que se desactivó el usuario (soft delete)'
+    )
+    eliminado_por = models.ForeignKey(
+        'self',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='usuarios_eliminados',
+        help_text='Usuario que desactivó esta cuenta'
     )
 
     # Metadatos
@@ -121,6 +136,29 @@ class Usuario(AbstractUser):
         if not self.qr_token:
             return self.generar_qr_token()
         return self.qr_token
+
+    def eliminar_suave(self, usuario_que_elimina=None):
+        """
+        Eliminación suave: Desactiva el usuario en lugar de eliminarlo.
+        Los pedidos, transacciones y logs mantendrán la referencia.
+
+        Args:
+            usuario_que_elimina: Usuario que realizó la eliminación (opcional)
+        """
+        from django.utils import timezone
+        self.activo = False
+        self.is_active = False  # También desactivar login de Django
+        self.fecha_eliminacion = timezone.now()
+        self.eliminado_por = usuario_que_elimina
+        self.save()
+
+    def restaurar(self):
+        """Restaura un usuario desactivado"""
+        self.activo = True
+        self.is_active = True  # Reactivar login de Django
+        self.fecha_eliminacion = None
+        self.eliminado_por = None
+        self.save()
 
     class Meta:
         verbose_name = 'Usuario'
