@@ -390,8 +390,8 @@ def modificar_pedido(request, pedido_id):
         messages.error(request, 'No se puede modificar un pedido ya pagado.')
         return redirect('detalle_pedido', pedido_id=pedido_id)
 
-    # Obtener todos los productos disponibles
-    productos = Producto.objects.filter(disponible=True).order_by('nombre')
+    # Obtener todos los productos disponibles y activos
+    productos = Producto.objects.filter(disponible=True, activo=True).order_by('nombre')
 
     # Obtener items del pedido con información completa
     items = []
