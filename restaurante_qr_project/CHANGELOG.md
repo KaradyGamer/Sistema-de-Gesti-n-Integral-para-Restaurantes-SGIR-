@@ -1,5 +1,113 @@
 # CHANGELOG - Sistema de Gestión Integral para Restaurantes (SGIR)
 
+## [2.2.0] - 2025-10-15
+
+### ✨ NUEVAS CARACTERÍSTICAS CRÍTICAS DE SEGURIDAD
+
+#### Validación de Solapamiento de Reservas
+- **[NUEVO]** Prevención automática de reservas duplicadas en misma mesa/horario
+  - Validación al guardar reserva (método `save()` overridden)
+  - Método `validar_solapamiento()` con duración configurable
+  - Detecta solapamiento: si inicio_reserva < fin_otra Y fin_reserva > inicio_otra
+  - Excluye reservas canceladas/completadas de validación
+  - Mensaje descriptivo al usuario cuando hay conflicto
+  - Archivo: `app/reservas/models.py:88-148`
+
+**Cómo Funciona:**
+- Por defecto asume 2 horas de duración por reserva
+- Si Mesa 5 tiene reserva a las 12:00, NO permite otra a las 13:00
+- SI permite una a las 14:30 (después de 2.5 horas)
+- Respeta turnos (mañana 8am-1pm, tarde 2pm-9pm)
+
+#### Control de Concurrencia de Mesas (Race Conditions)
+- **[NUEVO]** Implementado `select_for_update()` en asignación de mesas
+  - Bloquea filas de la base de datos durante asignación
+  - Previene que 2 meseros asignen la misma mesa simultáneamente
+  - Implementado en `crear_pedido_cliente()` con select_for_update
+  - Implementado en `asignar_mesa_automatica()` con @transaction.atomic
+  - Archivos: `app/pedidos/views.py:111`, `app/mesas/utils.py:12-57`
+
+**Problema que Resuelve:**
+- Mesero A y Mesero B seleccionan Mesa 5 al mismo tiempo
+- Sin protección: Ambos crean pedidos para Mesa 5 (¡conflicto!)
+- Con select_for_update: Mesero B espera a que A termine, luego ve que Mesa 5 ya está ocupada
+
+#### Validación de Cierre de Caja y Jornada Laboral
+- **[NUEVO]** No se puede cerrar caja si hay pedidos pendientes
+  - Validación en `CierreCaja.cerrar_caja()`
+  - Cuenta pedidos en estados: pendiente, en preparacion, listo, entregado, solicitando_cuenta
+  - Lanza `ValidationError` con número exacto de pedidos pendientes
+  - Archivo: `app/caja/models.py:145-172`
+
+- **[NUEVO]** No se puede finalizar jornada si hay pedidos pendientes
+  - Validación en `JornadaLaboral.finalizar()`
+  - Muestra lista de hasta 5 pedidos pendientes con número de mesa
+  - Previene cierre de restaurante con cuentas abiertas
+  - Archivo: `app/caja/models.py:322-353`
+
+**Ejemplo de Error:**
+```
+No se puede finalizar la jornada laboral. Hay 3 pedido(s) pendiente(s) de pago:
+Pedido #45 (Mesa 3), Pedido #47 (Mesa 8), Pedido #48 (Mesa 12).
+Por favor, procese todos los pagos antes de cerrar la jornada.
+```
+
+### 🔒 MEJORAS DE SEGURIDAD Y CONSISTENCIA
+
+**Transacciones Atómicas:**
+- `@transaction.atomic` en `asignar_mesa_automatica()`
+- Garantiza que combinación de mesas es todo-o-nada
+- Si falla alguna parte, se hace rollback completo
+
+**Bloqueos de Base de Datos:**
+- `select_for_update()` en asignación de mesas
+- `select_for_update()` en creación de pedidos
+- Previene condiciones de carrera (race conditions)
+
+### 📊 IMPACTO DE CAMBIOS
+
+**Archivos Modificados**: 4
+- `app/reservas/models.py` (+60 líneas)
+- `app/pedidos/views.py` (cambio menor)
+- `app/mesas/utils.py` (+4 líneas)
+- `app/caja/models.py` (+40 líneas)
+
+**Líneas Agregadas**: ~110
+**Migraciones**: Ninguna (solo cambios en lógica)
+
+### ✅ PROBLEMAS CRÍTICOS RESUELTOS
+
+1. **Falla Crítica #7 (ANALISIS_FALLAS_LOGICAS.md):**
+   - ✅ Solapamiento de reservas → Validación automática implementada
+
+2. **Falla Alta #8:**
+   - ✅ Condiciones de carrera en mesas → select_for_update() implementado
+
+3. **Falla Crítica #4:**
+   - ✅ Cierre de caja con pedidos pendientes → Validación implementada
+
+### 🔄 BREAKING CHANGES
+
+**Ninguno.** Todos los cambios son mejoras internas de seguridad.
+
+### 🧪 PRUEBAS RECOMENDADAS
+
+1. **Solapamiento de Reservas:**
+   - Crear reserva Mesa 5 a las 12:00
+   - Intentar crear otra Mesa 5 a las 12:30 → Debe fallar
+   - Intentar crear otra Mesa 5 a las 14:30 → Debe funcionar
+
+2. **Concurrencia de Mesas:**
+   - 2 meseros intentan asignar Mesa 3 al mismo tiempo
+   - Solo uno debe tener éxito
+
+3. **Cierre de Caja:**
+   - Intentar cerrar caja con pedidos activos → Debe fallar
+   - Pagar todos los pedidos
+   - Cerrar caja → Debe funcionar
+
+---
+
 ## [2.1.0] - 2025-10-15
 
 ### ✨ NUEVAS CARACTERÍSTICAS

@@ -105,16 +105,16 @@ def crear_pedido_cliente(request):
 
         numero_personas = int(numero_personas)
 
-        # ✅ CORREGIDO: Buscar la mesa por número, no por ID
+        # ✅ CORREGIDO: Buscar la mesa con select_for_update para evitar condiciones de carrera
         try:
-            # Intentar primero por número (más común)
-            mesa = Mesa.objects.get(numero=mesa_id)
-            logger.debug(f"Mesa encontrada por número: {mesa}")
+            # Intentar primero por número (más común) con bloqueo de fila
+            mesa = Mesa.objects.select_for_update().get(numero=mesa_id)
+            logger.debug(f"Mesa encontrada por número (con bloqueo): {mesa}")
         except Mesa.DoesNotExist:
             try:
-                # Fallback: intentar por ID
-                mesa = Mesa.objects.get(id=mesa_id)
-                logger.debug(f"Mesa encontrada por ID: {mesa}")
+                # Fallback: intentar por ID con bloqueo de fila
+                mesa = Mesa.objects.select_for_update().get(id=mesa_id)
+                logger.debug(f"Mesa encontrada por ID (con bloqueo): {mesa}")
             except Mesa.DoesNotExist:
                 logger.warning(f"Mesa {mesa_id} no encontrada")
                 return Response({

@@ -3,14 +3,17 @@ Utilidades para gestión de mesas
 """
 import logging
 from decimal import Decimal
+from django.db import transaction
 from .models import Mesa
 
 logger = logging.getLogger('app.mesas')
 
 
+@transaction.atomic  # ✅ NUEVO: Garantiza atomicidad y permite select_for_update
 def asignar_mesa_automatica(numero_personas, fecha_reserva=None, hora_reserva=None):
     """
     Asigna automáticamente una mesa o combinación de mesas según el número de personas.
+    Usa select_for_update() para prevenir condiciones de carrera.
 
     Args:
         numero_personas (int): Número de personas que necesitan mesa
@@ -29,7 +32,8 @@ def asignar_mesa_automatica(numero_personas, fecha_reserva=None, hora_reserva=No
     logger.info(f"Buscando mesa para {numero_personas} personas")
 
     # 1. Buscar mesa individual con capacidad suficiente
-    mesa_individual = Mesa.objects.filter(
+    # ✅ NUEVO: Usar select_for_update() para evitar condiciones de carrera
+    mesa_individual = Mesa.objects.select_for_update().filter(
         disponible=True,
         capacidad__gte=numero_personas,
         estado='disponible',
@@ -48,7 +52,8 @@ def asignar_mesa_automatica(numero_personas, fecha_reserva=None, hora_reserva=No
 
     # 2. Si no hay mesa individual, buscar combinación de mesas
     logger.info("No hay mesa individual suficiente, buscando combinación de mesas")
-    mesas_disponibles = Mesa.objects.filter(
+    # ✅ NUEVO: Usar select_for_update() para bloquear todas las mesas candidatas
+    mesas_disponibles = Mesa.objects.select_for_update().filter(
         disponible=True,
         estado='disponible',
         es_combinada=False

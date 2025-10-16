@@ -143,9 +143,25 @@ class CierreCaja(models.Model):
         return self.diferencia
 
     def cerrar_caja(self, efectivo_real, observaciones=None):
-        """Cierra el turno de caja y cierra todas las sesiones activas"""
+        """
+        Cierra el turno de caja y cierra todas las sesiones activas.
+        Valida que no haya pedidos pendientes antes de cerrar.
+        """
         from django.contrib.sessions.models import Session
         from django.utils import timezone as tz
+        from app.pedidos.models import Pedido
+        from django.core.exceptions import ValidationError
+
+        # ✅ NUEVO: Validar que no haya pedidos pendientes
+        pedidos_pendientes = Pedido.objects.filter(
+            estado__in=['pendiente', 'en preparacion', 'listo', 'entregado', 'solicitando_cuenta']
+        ).count()
+
+        if pedidos_pendientes > 0:
+            raise ValidationError(
+                f'No se puede cerrar la caja. Hay {pedidos_pendientes} pedido(s) pendiente(s) de pago. '
+                f'Por favor, procese todos los pagos antes de cerrar caja.'
+            )
 
         self.efectivo_real = efectivo_real
         self.diferencia = self.calcular_diferencia()
@@ -304,7 +320,31 @@ class JornadaLaboral(models.Model):
         return cls.objects.filter(estado='activa').exists()
 
     def finalizar(self, usuario, observaciones=None):
-        """Finaliza la jornada laboral"""
+        """
+        Finaliza la jornada laboral.
+        Valida que no haya pedidos pendientes antes de finalizar.
+        """
+        from app.pedidos.models import Pedido
+        from django.core.exceptions import ValidationError
+
+        # ✅ NUEVO: Validar que no haya pedidos pendientes
+        pedidos_pendientes = Pedido.objects.filter(
+            estado__in=['pendiente', 'en preparacion', 'listo', 'entregado', 'solicitando_cuenta']
+        )
+
+        if pedidos_pendientes.exists():
+            # Generar lista detallada de pedidos pendientes
+            lista_pedidos = ', '.join([
+                f"Pedido #{p.id} (Mesa {p.mesa.numero if p.mesa else 'N/A'})"
+                for p in pedidos_pendientes[:5]  # Mostrar máximo 5
+            ])
+
+            raise ValidationError(
+                f'No se puede finalizar la jornada laboral. '
+                f'Hay {pedidos_pendientes.count()} pedido(s) pendiente(s) de pago: {lista_pedidos}. '
+                f'Por favor, procese todos los pagos antes de cerrar la jornada.'
+            )
+
         self.estado = 'finalizada'
         self.hora_fin = timezone.now()
         self.finalizado_por = usuario

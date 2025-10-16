@@ -84,3 +84,65 @@ class Reserva(models.Model):
             reserva_datetime = timezone.make_aware(reserva_datetime)
 
         return reserva_datetime < ahora
+
+    def validar_solapamiento(self, duracion_reserva_horas=2):
+        """
+        Valida que no haya otra reserva activa en la misma mesa al mismo tiempo.
+
+        Args:
+            duracion_reserva_horas: Duración estimada de la reserva en horas (default: 2)
+
+        Returns:
+            tuple: (es_valida, mensaje_error)
+        """
+        if not self.mesa:
+            return (True, None)  # Sin mesa asignada, no hay solapamiento
+
+        # Calcular inicio y fin de esta reserva
+        inicio_reserva = self.datetime_reserva
+        if timezone.is_naive(inicio_reserva):
+            inicio_reserva = timezone.make_aware(inicio_reserva)
+
+        fin_reserva = inicio_reserva + timedelta(hours=duracion_reserva_horas)
+
+        # Buscar reservas que NO están canceladas o completadas
+        reservas_activas = Reserva.objects.filter(
+            mesa=self.mesa,
+            fecha_reserva=self.fecha_reserva,
+            estado__in=['pendiente', 'confirmada', 'en_uso']
+        )
+
+        # Excluir esta misma reserva si ya existe (para edición)
+        if self.pk:
+            reservas_activas = reservas_activas.exclude(pk=self.pk)
+
+        # Verificar solapamiento con cada reserva activa
+        for reserva in reservas_activas:
+            inicio_otra = reserva.datetime_reserva
+            if timezone.is_naive(inicio_otra):
+                inicio_otra = timezone.make_aware(inicio_otra)
+
+            fin_otra = inicio_otra + timedelta(hours=duracion_reserva_horas)
+
+            # Detectar solapamiento:
+            # Las reservas se solapan si inicio_reserva < fin_otra Y fin_reserva > inicio_otra
+            if inicio_reserva < fin_otra and fin_reserva > inicio_otra:
+                return (
+                    False,
+                    f"Mesa {self.mesa.numero} ya tiene reserva de {reserva.nombre_completo} "
+                    f"a las {reserva.hora_reserva.strftime('%H:%M')}. "
+                    f"Las reservas se solapan (duración estimada: {duracion_reserva_horas}h)"
+                )
+
+        return (True, None)
+
+    def save(self, *args, **kwargs):
+        """Override save para validar solapamiento antes de guardar"""
+        # Validar solapamiento solo si la reserva no está cancelada/completada
+        if self.estado in ['pendiente', 'confirmada', 'en_uso']:
+            es_valida, mensaje = self.validar_solapamiento()
+            if not es_valida:
+                from django.core.exceptions import ValidationError
+                raise ValidationError(mensaje)
+
+        super().save(*args, **kwargs)
