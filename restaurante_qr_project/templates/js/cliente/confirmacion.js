@@ -1,6 +1,4 @@
-// Hacer el CSRF token disponible globalmente
-            window.csrfToken = '{{ csrf_token }}';
-
+// Sistema de Confirmación de Pedidos
 class OrderConfirmation {
             constructor() {
                 this.orderData = null;
@@ -10,6 +8,33 @@ class OrderConfirmation {
             init() {
                 // Obtener datos del pedido desde localStorage o URL params
                 this.loadOrderData();
+            }
+
+            // Obtener CSRF token desde el DOM
+            getCSRFToken() {
+                // Buscar en input oculto
+                const tokenInput = document.querySelector('[name=csrfmiddlewaretoken]');
+                if (tokenInput) {
+                    return tokenInput.value;
+                }
+
+                // Buscar en meta tag
+                const tokenMeta = document.querySelector('meta[name="csrf-token"]');
+                if (tokenMeta) {
+                    return tokenMeta.content;
+                }
+
+                // Buscar en cookies
+                const cookies = document.cookie.split(';');
+                for (let cookie of cookies) {
+                    const [name, value] = cookie.trim().split('=');
+                    if (name === 'csrftoken') {
+                        return value;
+                    }
+                }
+
+                console.error('❌ No se encontró el CSRF token');
+                return '';
             }
 
             loadOrderData() {
@@ -106,7 +131,7 @@ class OrderConfirmation {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
-                            'X-CSRFToken': window.csrfToken,
+                            'X-CSRFToken': this.getCSRFToken(),
                             'Accept': 'application/json',
                         },
                         credentials: 'same-origin',

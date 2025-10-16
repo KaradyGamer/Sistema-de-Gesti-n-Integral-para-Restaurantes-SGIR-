@@ -124,8 +124,7 @@ DECIMAL_SEPARATOR = ','
 STATIC_URL = '/static/'
 
 STATICFILES_DIRS = [
-    os.path.join(BASE_DIR, 'templates', 'css'),  # CSS dentro de templates/css/
-    os.path.join(BASE_DIR, 'templates', 'js'),   # JS dentro de templates/js/
+    os.path.join(BASE_DIR, 'templates'),  # Templates contiene css/, js/, etc.
 ]
 
 STATIC_ROOT = os.path.join(BASE_DIR, 'static_collected')  # ✅ Carpeta donde collectstatic recopila archivos
