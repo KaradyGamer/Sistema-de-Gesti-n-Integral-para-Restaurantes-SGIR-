@@ -1,5 +1,109 @@
 # CHANGELOG - Sistema de Gestión Integral para Restaurantes (SGIR)
 
+## [2.1.0] - 2025-10-15
+
+### ✨ NUEVAS CARACTERÍSTICAS
+
+#### Sistema de Modificación de Pedidos con Control de Stock
+- **[NUEVO]** Modificación completa de pedidos con rollback automático de inventario
+  - Agregar nuevos productos al pedido
+  - Eliminar productos no pagados del pedido
+  - Cambiar cantidades de productos existentes
+  - Stock se restaura automáticamente al eliminar/reducir productos
+  - Stock se descuenta automáticamente al agregar/aumentar productos
+  - Archivo: `app/pedidos/utils.py`
+
+- **[NUEVO]** Control de pago por producto individual
+  - Cada producto en un pedido puede ser pagado parcialmente
+  - Campo `cantidad_pagada` en DetallePedido
+  - Propiedad `cantidad_pendiente` calcula productos sin pagar
+  - Propiedad `esta_pagado_completo` valida si producto fue pagado
+  - Solo se pueden modificar productos NO pagados
+  - Archivo: `app/pedidos/models.py:106-134`
+
+- **[NUEVO]** Snapshot de precios históricos
+  - Precio del producto se captura al momento del pedido
+  - Campo `precio_unitario` en DetallePedido
+  - Cambios futuros de precio no afectan pedidos existentes
+  - Cálculos siempre usan precio histórico
+  - Archivo: `app/pedidos/models.py:98-103`
+
+#### APIs para Modificación de Pedidos
+- **[NUEVO]** `POST /api/pedidos/<id>/modificar/` - Modificar pedido completo
+  - Recibe dict de productos con cantidades nuevas
+  - Restaura stock de productos eliminados
+  - Descuenta stock de productos nuevos
+  - Manejo de errores de stock insuficiente con rollback
+  - Archivo: `app/pedidos/views.py:1003-1057`
+
+- **[NUEVO]** `DELETE /api/pedidos/<id>/eliminar-producto/<producto_id>/` - Eliminar producto
+  - Elimina solo cantidad NO pagada
+  - Restaura stock automáticamente
+  - Si producto está completamente pagado, devuelve error
+  - Archivo: `app/pedidos/views.py:1060-1093`
+
+- **[NUEVO]** `GET /api/pedidos/<id>/resumen-modificacion/` - Resumen previo a modificación
+  - Muestra productos que pueden ser modificados
+  - Indica cantidad pagada vs pendiente por producto
+  - Muestra stock disponible de cada producto
+  - Archivo: `app/pedidos/views.py:1096-1121`
+
+### 🔧 MEJORAS TÉCNICAS
+
+#### Modelos
+- **[MEJORADO]** Modelo DetallePedido con campos de control de pago
+  - `precio_unitario`: Snapshot del precio al momento del pedido
+  - `cantidad_pagada`: Unidades ya pagadas del producto
+  - `@property cantidad_pendiente`: Calcula unidades sin pagar
+  - `@property esta_pagado_completo`: Validación de pago completo
+  - Archivo: `app/pedidos/models.py:89-134`
+
+- **[MEJORADO]** Modelo Pedido con métodos de cálculo de pagos
+  - `calcular_total()`: Recalcula total desde detalles
+  - `todos_productos_pagados()`: Valida si TODO está pagado
+  - `productos_pendientes_pago()`: Lista productos sin pagar
+  - Archivo: `app/pedidos/models.py:65-86`
+
+#### Funciones Utilitarias
+- **[NUEVO]** `modificar_pedido_con_stock()` - Modificación atómica con stock
+  - Transacción completa con @transaction.atomic
+  - Rollback automático si hay errores
+  - Logging detallado de operaciones
+  - Archivo: `app/pedidos/utils.py:14-144`
+
+- **[NUEVO]** `eliminar_producto_de_pedido()` - Eliminación con validación
+  - Verifica que producto no esté completamente pagado
+  - Restaura solo cantidad pendiente
+  - Si tiene cantidad pagada, reduce en lugar de eliminar
+  - Archivo: `app/pedidos/utils.py:147-206`
+
+- **[NUEVO]** `obtener_resumen_modificacion()` - Info detallada pre-modificación
+  - Serializa información completa del pedido
+  - Indica si cada producto puede ser modificado
+  - Muestra stock disponible de cada producto
+  - Archivo: `app/pedidos/utils.py:209-253`
+
+### 📊 IMPACTO DE CAMBIOS
+
+**Archivos Modificados**: 5
+**Archivos Nuevos**: 1 (`app/pedidos/utils.py`)
+**Líneas Agregadas**: ~500
+**Migraciones**: 1 nueva (`0006_add_precio_unitario_and_cantidad_pagada_to_detalle`)
+
+### 🔄 BREAKING CHANGES
+
+Ninguno. Todos los cambios son retrocompatibles. Los campos nuevos tienen valores por defecto.
+
+### 🧪 PRUEBAS RECOMENDADAS
+
+1. Crear pedido nuevo y verificar que `precio_unitario` se captura
+2. Modificar pedido agregando productos (verificar descuento de stock)
+3. Modificar pedido eliminando productos (verificar restauración de stock)
+4. Intentar modificar producto ya pagado (debe fallar)
+5. Modificar pedido con stock insuficiente (debe hacer rollback)
+
+---
+
 ## [2.0.0] - 2025-10-15
 
 ### 🔴 CORRECCIONES CRÍTICAS

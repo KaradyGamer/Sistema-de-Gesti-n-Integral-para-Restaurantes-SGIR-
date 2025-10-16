@@ -7,6 +7,7 @@ class Pedido(models.Model):
         ('en preparacion', 'En Preparación'),
         ('listo', 'Listo'),
         ('entregado', 'Entregado'),
+        ('solicitando_cuenta', 'Cliente Solicitó Cuenta'),  # ✅ NUEVO: Cliente terminó de comer
     ]
 
     FORMA_PAGO_CHOICES = [
@@ -61,6 +62,29 @@ class Pedido(models.Model):
     def __str__(self):
         return f"Pedido #{self.id} - Mesa {self.mesa.numero if self.mesa else 'N/A'} - {self.get_estado_display()}"
 
+    def calcular_total(self):
+        """Calcula total desde detalles (útil si se modifican productos)"""
+        return sum(detalle.subtotal for detalle in self.detalles.all())
+
+    def todos_productos_pagados(self):
+        """Verifica si TODOS los productos del pedido están completamente pagados"""
+        return all(detalle.esta_pagado_completo for detalle in self.detalles.all())
+
+    def productos_pendientes_pago(self):
+        """Retorna lista de productos que aún tienen cantidad pendiente de pago"""
+        return [
+            {
+                'producto': detalle.producto.nombre,
+                'cantidad_total': detalle.cantidad,
+                'cantidad_pagada': detalle.cantidad_pagada,
+                'cantidad_pendiente': detalle.cantidad_pendiente,
+                'precio_unitario': float(detalle.precio_unitario),
+                'subtotal_pendiente': float(detalle.precio_unitario * detalle.cantidad_pendiente)
+            }
+            for detalle in self.detalles.all()
+            if detalle.cantidad_pendiente > 0
+        ]
+
 
 class DetallePedido(models.Model):
     """Modelo para los detalles de pedidos"""
@@ -69,10 +93,42 @@ class DetallePedido(models.Model):
     producto = models.ForeignKey('productos.Producto', on_delete=models.PROTECT, related_name='detalles_pedidos')
     cantidad = models.PositiveIntegerField(default=1)
     subtotal = models.DecimalField(max_digits=10, decimal_places=2, default=0)
-    
+
+    # ✅ NUEVO: Snapshot de precio unitario histórico
+    precio_unitario = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=0,
+        help_text='Precio del producto al momento del pedido'
+    )
+
+    # ✅ NUEVO: Control de pago por producto individual
+    cantidad_pagada = models.PositiveIntegerField(
+        default=0,
+        help_text='Cantidad de este producto ya pagada'
+    )
+
     class Meta:
         verbose_name = 'Detalle de Pedido'
         verbose_name_plural = 'Detalles de Pedidos'
-    
+
     def __str__(self):
         return f"{self.cantidad}x {self.producto.nombre if self.producto else 'Producto'} - Pedido #{self.pedido.id}"
+
+    def save(self, *args, **kwargs):
+        """Guardar snapshot de precio al crear"""
+        if not self.precio_unitario and self.producto:
+            self.precio_unitario = self.producto.precio
+        if not self.subtotal:
+            self.subtotal = self.precio_unitario * self.cantidad
+        super().save(*args, **kwargs)
+
+    @property
+    def cantidad_pendiente(self):
+        """Cantidad que aún falta por pagar"""
+        return self.cantidad - self.cantidad_pagada
+
+    @property
+    def esta_pagado_completo(self):
+        """Verifica si todo el detalle está pagado"""
+        return self.cantidad_pagada >= self.cantidad

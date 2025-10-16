@@ -225,11 +225,12 @@ def crear_pedido_cliente(request):
                 subtotal = producto.precio * cantidad
                 total_calculado += subtotal
 
-                # Crear detalle del pedido
+                # ✅ NUEVO: Crear detalle del pedido con precio_unitario explícito
                 detalle = DetallePedido.objects.create(
                     pedido=pedido,
                     producto=producto,
                     cantidad=cantidad,
+                    precio_unitario=producto.precio,  # ✅ Snapshot del precio actual
                     subtotal=subtotal
                 )
 
@@ -994,3 +995,127 @@ class PedidoViewSet(viewsets.ModelViewSet):
     queryset = Pedido.objects.all().order_by('-fecha')
     serializer_class = PedidoSerializer
     permission_classes = [IsAuthenticated]
+
+# ──────────────────────────────────────────────
+# 📝 MODIFICACIÓN DE PEDIDOS CON STOCK
+# ──────────────────────────────────────────────
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def modificar_pedido_api(request, pedido_id):
+    """
+    API para modificar un pedido existente con control de stock.
+    Permite agregar, eliminar o cambiar cantidades de productos.
+
+    Body: {
+        "productos": {
+            "1": 3,  # producto_id: cantidad
+            "2": 1,
+            ...
+        }
+    }
+    """
+    try:
+        from .utils import modificar_pedido_con_stock
+        import json
+
+        logger.info(f"Usuario {request.user} solicitando modificación de pedido #{pedido_id}")
+
+        # Obtener productos desde el request
+        productos_nuevos = request.data.get('productos', {})
+
+        if not productos_nuevos:
+            return Response({
+                'error': 'Debe proporcionar al menos un producto'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        # Convertir claves a int si vienen como strings
+        productos_nuevos = {
+            int(k): int(v) for k, v in productos_nuevos.items()
+        }
+
+        # Llamar a la función de modificación
+        resultado = modificar_pedido_con_stock(pedido_id, productos_nuevos)
+
+        return Response({
+            'success': True,
+            'mensaje': resultado['mensaje'],
+            'pedido_id': pedido_id,
+            'nuevo_total': resultado['nuevo_total']
+        }, status=status.HTTP_200_OK)
+
+    except ValueError as e:
+        logger.warning(f"Error de validación modificando pedido #{pedido_id}: {str(e)}")
+        return Response({
+            'error': str(e)
+        }, status=status.HTTP_400_BAD_REQUEST)
+
+    except Exception as e:
+        logger.exception(f"Error grave modificando pedido #{pedido_id}: {str(e)}")
+        return Response({
+            'error': f'Error interno del servidor: {str(e)}'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['DELETE'])
+@permission_classes([IsAuthenticated])
+def eliminar_producto_pedido_api(request, pedido_id, producto_id):
+    """
+    API para eliminar un producto específico de un pedido.
+    Solo elimina la cantidad NO pagada. Si todo está pagado, devuelve error.
+    """
+    try:
+        from .utils import eliminar_producto_de_pedido
+
+        logger.info(
+            f"Usuario {request.user} eliminando producto {producto_id} "
+            f"del pedido #{pedido_id}"
+        )
+
+        resultado = eliminar_producto_de_pedido(pedido_id, producto_id)
+
+        return Response({
+            'success': True,
+            'mensaje': resultado['mensaje'],
+            'nuevo_total': resultado['nuevo_total']
+        }, status=status.HTTP_200_OK)
+
+    except ValueError as e:
+        logger.warning(f"Error eliminando producto: {str(e)}")
+        return Response({
+            'error': str(e)
+        }, status=status.HTTP_400_BAD_REQUEST)
+
+    except Exception as e:
+        logger.exception(f"Error grave eliminando producto de pedido: {str(e)}")
+        return Response({
+            'error': f'Error interno del servidor: {str(e)}'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def resumen_modificacion_pedido_api(request, pedido_id):
+    """
+    API para obtener información detallada del pedido antes de modificarlo.
+    Muestra qué productos pueden ser modificados y cuáles están pagados.
+    """
+    try:
+        from .utils import obtener_resumen_modificacion
+
+        logger.info(f"Usuario {request.user} consultando resumen de pedido #{pedido_id}")
+
+        resumen = obtener_resumen_modificacion(pedido_id)
+
+        return Response(resumen, status=status.HTTP_200_OK)
+
+    except ValueError as e:
+        return Response({
+            'error': str(e)
+        }, status=status.HTTP_404_NOT_FOUND)
+
+    except Exception as e:
+        logger.exception(f"Error obteniendo resumen de pedido: {str(e)}")
+        return Response({
+            'error': f'Error interno del servidor: {str(e)}'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
