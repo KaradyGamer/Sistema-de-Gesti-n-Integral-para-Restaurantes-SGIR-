@@ -1,6 +1,4 @@
-// Hacer el CSRF token disponible globalmente
-            window.csrfToken = '{{ csrf_token }}';
-
+// Sistema de Pedidos para Restaurante
 class RestaurantOrderSystem {
             constructor() {
                 this.products = {};

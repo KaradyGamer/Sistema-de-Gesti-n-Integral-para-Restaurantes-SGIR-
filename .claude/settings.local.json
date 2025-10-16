@@ -5,7 +5,10 @@
       "Bash(../env/Scripts/python.exe manage.py makemigrations:*)",
       "Bash(cat:*)",
       "Bash(env/Scripts/python.exe:*)",
-      "Bash(tree:*)"
+      "Bash(tree:*)",
+      "Bash(curl:*)",
+      "Read(//c/Users/jhami/OneDrive/Desktop/Proyecto/**)",
+      "Bash(git add:*)"
     ],
     "deny": [],
     "ask": []
