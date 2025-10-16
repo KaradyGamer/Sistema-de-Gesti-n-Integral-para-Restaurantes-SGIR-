@@ -19,6 +19,8 @@
 - [Testing](#-testing)
 - [Uso del Sistema](#-uso-del-sistema)
 - [API REST](#-api-rest)
+- [Scripts de Utilidad](#️-scripts-de-utilidad)
+- [Roadmap](#-roadmap)
 - [Licencia](#-licencia)
 
 ---
@@ -159,7 +161,7 @@ Esto creará:
 - Categorías y productos de ejemplo
 - 15 mesas configuradas con QR codes
 
-Ver [scripts/README.md](restaurante_qr_project/scripts/README.md) para más detalles.
+Ver sección [Scripts de Utilidad](#️-scripts-de-utilidad) para más detalles.
 
 ### 7. Crear superusuario (opcional)
 
@@ -197,7 +199,6 @@ restaurante_qr_project/
 │   ├── css/             # Estilos CSS
 │   └── js/              # JavaScript
 ├── scripts/             # Scripts de utilidad y setup
-│   ├── README.md        # Documentación de scripts
 │   ├── crear_datos_iniciales.py
 │   ├── crear_cajero.py
 │   └── actualizar_mesas.py
@@ -513,6 +514,102 @@ Este proyecto es privado y de uso educativo/comercial.
 
 Para reportar bugs o solicitar funcionalidades:
 - Issues: [GitHub Issues](https://github.com/KaradyGamer/Sistema-de-Gesti-n-Integral-para-Restaurantes-SGIR-/issues)
+
+---
+
+## 🛠️ Scripts de Utilidad
+
+El proyecto incluye scripts de setup y mantenimiento en `restaurante_qr_project/scripts/`:
+
+### 📋 Scripts Disponibles
+
+#### 1. `crear_datos_iniciales.py` - Setup inicial completo
+
+Crea todos los datos necesarios para empezar a usar el sistema.
+
+**Ejecutar:**
+```bash
+cd restaurante_qr_project
+python scripts/crear_datos_iniciales.py
+```
+
+**Crea:**
+- ✅ **Usuarios**: admin, 2 cajeros, 2 meseros, 1 cocinero
+- ✅ **Categorías** de productos (Bebidas, Platos Fuertes, Postres, etc.)
+- ✅ **20+ productos** de ejemplo con precios
+- ✅ **15 mesas** numeradas y configuradas
+- ✅ **QR codes** automáticos para cada mesa
+
+**Usuarios creados:**
+| Usuario | Password | PIN | Rol |
+|---------|----------|-----|-----|
+| `admin` | `admin123` | - | Administrador |
+| `cajero1` | `cajero123` | 1000 | Cajero |
+| `cajero2` | `cajero123` | 2000 | Cajero |
+| `mesero1` | `mesero123` | 3000 | Mesero |
+| `mesero2` | `mesero123` | 4000 | Mesero |
+| `cocinero1` | `cocinero123` | 5000 | Cocinero |
+
+---
+
+#### 2. `crear_cajero.py` - Crear cajero rápido
+
+Crea un usuario cajero de prueba rápidamente.
+
+**Ejecutar:**
+```bash
+python scripts/crear_cajero.py
+```
+
+**Crea:**
+- Usuario: `cajero1`
+- Password: `cajero123`
+- Rol: Cajero
+
+**Cuándo usar:** Testing rápido del módulo de caja
+
+---
+
+#### 3. `actualizar_mesas.py` - Actualizar mesas existentes
+
+Actualiza mesas con capacidad y posiciones para el mapa visual.
+
+**Ejecutar:**
+```bash
+python scripts/actualizar_mesas.py
+```
+
+**Qué hace:**
+- Asigna capacidad por defecto (4 personas)
+- Calcula posiciones X,Y para mapa visual
+- Distribuye mesas en grid 4x4
+
+**Cuándo usar:** Después de agregar mesas manualmente o si el mapa no muestra posiciones
+
+---
+
+### 🚀 Orden Recomendado para Setup Inicial
+
+```bash
+# 1. Crear/migrar base de datos
+python manage.py migrate
+
+# 2. Crear todos los datos iniciales
+python scripts/crear_datos_iniciales.py
+
+# 3. (Opcional) Actualizar mesas si es necesario
+python scripts/actualizar_mesas.py
+
+# 4. Iniciar servidor
+python manage.py runserver
+```
+
+### ⚠️ Advertencia
+
+Estos scripts son para **desarrollo/testing**. En producción:
+- No uses contraseñas simples como `admin123`
+- Crea usuarios manualmente con contraseñas seguras
+- Usa variables de entorno para credenciales
 
 ---
 
