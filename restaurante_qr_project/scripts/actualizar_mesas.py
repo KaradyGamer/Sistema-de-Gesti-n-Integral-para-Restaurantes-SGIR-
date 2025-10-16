@@ -1,10 +1,19 @@
 #!/usr/bin/env python
 """
 Script para actualizar mesas existentes con los nuevos campos
-Ejecutar: python actualizar_mesas.py
+Ejecutar desde raíz del proyecto: python scripts/actualizar_mesas.py
 """
 import os
+import sys
 import django
+
+# Agregar el directorio padre al path para importar módulos de Django
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+# Configurar encoding para Windows
+if sys.platform == 'win32':
+    import io
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 
 # Configurar Django
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'backend.settings')

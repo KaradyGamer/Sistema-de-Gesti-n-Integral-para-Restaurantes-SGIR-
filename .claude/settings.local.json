@@ -4,7 +4,8 @@
       "Bash(git commit:*)",
       "Bash(../env/Scripts/python.exe manage.py makemigrations:*)",
       "Bash(cat:*)",
-      "Bash(env/Scripts/python.exe:*)"
+      "Bash(env/Scripts/python.exe:*)",
+      "Bash(tree:*)"
     ],
     "deny": [],
     "ask": []

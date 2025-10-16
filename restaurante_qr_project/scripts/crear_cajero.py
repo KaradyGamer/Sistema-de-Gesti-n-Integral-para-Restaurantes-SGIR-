@@ -1,10 +1,19 @@
 #!/usr/bin/env python
 """
 Script para crear un usuario cajero de prueba
-Ejecutar: python crear_cajero.py
+Ejecutar desde raíz del proyecto: python scripts/crear_cajero.py
 """
 import os
+import sys
 import django
+
+# Agregar el directorio padre al path para importar módulos de Django
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+# Configurar encoding para Windows
+if sys.platform == 'win32':
+    import io
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 
 # Configurar Django
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'backend.settings')

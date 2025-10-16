@@ -1,10 +1,13 @@
 """
 Script para crear datos iniciales del restaurante
-Ejecutar con: python crear_datos_iniciales.py
+Ejecutar desde raíz del proyecto: python scripts/crear_datos_iniciales.py
 """
 import os
 import sys
 import django
+
+# Agregar el directorio padre al path para importar módulos de Django
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # Configurar encoding para Windows
 if sys.platform == 'win32':
