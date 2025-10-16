@@ -3,8 +3,9 @@ from django.contrib import messages
 from django.utils import timezone
 from django.http import JsonResponse
 from django.db import transaction
+from django.views.decorators.csrf import csrf_exempt
 from rest_framework import viewsets, status
-from rest_framework.decorators import api_view, permission_classes
+from rest_framework.decorators import api_view, permission_classes, authentication_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -53,6 +54,7 @@ def confirmacion_pedido(request):
 
 # ✅ FUNCIÓN CORREGIDA PARA CREAR PEDIDOS DEL CLIENTE
 @api_view(['POST'])
+@authentication_classes([])  # ✅ Sin autenticación = sin CSRF
 @permission_classes([AllowAny])
 @transaction.atomic  # ✅ Garantiza atomicidad de la transacción
 def crear_pedido_cliente(request):
@@ -153,18 +155,6 @@ def crear_pedido_cliente(request):
                 mesero = Usuario.objects.get(id=mesero_id)
             except Usuario.DoesNotExist:
                 logger.warning(f"Mesero ID {mesero_id} no encontrado")
-
-        # ✅ NUEVO: Validar jornada laboral si hay mesero (#8)
-        if mesero:
-            try:
-                from app.caja.models import JornadaLaboral
-                if not JornadaLaboral.hay_jornada_activa():
-                    return Response({
-                        'error': 'No hay jornada laboral activa. Contacte al cajero para abrir caja.'
-                    }, status=status.HTTP_403_FORBIDDEN)
-            except Exception:
-                # Si el modelo no existe, continuar
-                pass
 
         # ✅ Crear el pedido con mesero y número de personas
         pedido = Pedido.objects.create(

@@ -15,13 +15,17 @@ class OrderConfirmation {
                 // Buscar en input oculto
                 const tokenInput = document.querySelector('[name=csrfmiddlewaretoken]');
                 if (tokenInput) {
-                    return tokenInput.value;
+                    const token = tokenInput.value.trim();
+                    console.log('🔑 CSRF Token encontrado (input):', token.length, 'caracteres');
+                    return token;
                 }
 
                 // Buscar en meta tag
                 const tokenMeta = document.querySelector('meta[name="csrf-token"]');
                 if (tokenMeta) {
-                    return tokenMeta.content;
+                    const token = tokenMeta.content.trim();
+                    console.log('🔑 CSRF Token encontrado (meta):', token.length, 'caracteres');
+                    return token;
                 }
 
                 // Buscar en cookies
@@ -29,6 +33,7 @@ class OrderConfirmation {
                 for (let cookie of cookies) {
                     const [name, value] = cookie.trim().split('=');
                     if (name === 'csrftoken') {
+                        console.log('🔑 CSRF Token encontrado (cookie):', value.length, 'caracteres');
                         return value;
                     }
                 }
