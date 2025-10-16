@@ -146,13 +146,30 @@ DATABASE_URL=sqlite:///db.sqlite3
 python manage.py migrate
 ```
 
-### 6. Crear superusuario (opcional)
+### 6. Crear datos iniciales (recomendado)
+
+Para poblar el sistema con usuarios, productos y mesas de ejemplo:
+
+```bash
+python scripts/crear_datos_iniciales.py
+```
+
+Esto creará:
+- Usuarios de prueba (admin, cajeros, meseros, cocineros)
+- Categorías y productos de ejemplo
+- 15 mesas configuradas con QR codes
+
+Ver [scripts/README.md](restaurante_qr_project/scripts/README.md) para más detalles.
+
+### 7. Crear superusuario (opcional)
+
+Si prefieres crear tu propio admin manualmente:
 
 ```bash
 python manage.py createsuperuser
 ```
 
-### 7. Ejecutar servidor
+### 8. Ejecutar servidor
 
 ```bash
 python manage.py runserver
@@ -175,9 +192,16 @@ restaurante_qr_project/
 │   ├── reservas/         # Sistema de reservas
 │   └── reportes/         # Reportes y estadísticas
 ├── backend/              # Configuración del proyecto
+├── templates/            # Frontend (HTML/CSS/JS)
+│   ├── html/            # Templates HTML organizados
+│   ├── css/             # Estilos CSS
+│   └── js/              # JavaScript
+├── scripts/             # Scripts de utilidad y setup
+│   ├── README.md        # Documentación de scripts
+│   ├── crear_datos_iniciales.py
+│   ├── crear_cajero.py
+│   └── actualizar_mesas.py
 ├── media/               # Archivos multimedia
-├── staticfiles/         # Archivos estáticos
-├── templates/           # Templates HTML
 ├── logs/               # Archivos de log
 ├── db.sqlite3          # Base de datos
 └── manage.py           # Script de gestión Django
