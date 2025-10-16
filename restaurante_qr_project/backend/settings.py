@@ -77,7 +77,7 @@ TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
         'DIRS': [
-            BASE_DIR.parent / 'templates',  # Templates en la raíz del proyecto
+            BASE_DIR / 'templates',  # Templates dentro de restaurante_qr_project
         ],
         'APP_DIRS': True,
         'OPTIONS': {
@@ -124,7 +124,7 @@ DECIMAL_SEPARATOR = ','
 STATIC_URL = '/static/'
 
 STATICFILES_DIRS = [
-    os.path.join(BASE_DIR.parent, 'staticfiles'),  # ✅ Archivos estáticos en la raíz del proyecto
+    os.path.join(BASE_DIR, 'staticfiles'),  # Archivos estáticos dentro de restaurante_qr_project
 ]
 
 STATIC_ROOT = os.path.join(BASE_DIR, 'static_collected')  # ✅ Carpeta donde collectstatic recopila archivos
