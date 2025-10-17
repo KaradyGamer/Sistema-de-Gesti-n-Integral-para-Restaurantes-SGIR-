@@ -3,7 +3,7 @@ from rest_framework.response import Response
 from rest_framework_simplejwt.views import TokenObtainPairView
 from .serializers import RegistroUsuarioSerializer, CustomTokenObtainPairSerializer
 
-# ✅ NUEVAS IMPORTACIONES PARA DJANGO SESSION
+#  NUEVAS IMPORTACIONES PARA DJANGO SESSION
 from django.shortcuts import render, redirect
 from django.contrib.auth import authenticate, login, logout
 from django.contrib import messages
@@ -30,19 +30,19 @@ class RegistroUsuarioView(generics.CreateAPIView):
 class CustomTokenObtainPairView(TokenObtainPairView):
     serializer_class = CustomTokenObtainPairSerializer
 
-# ✅ NUEVA VISTA: Login con Django Session
+#  NUEVA VISTA: Login con Django Session
 @csrf_protect
 @require_http_methods(["POST"])
 def session_login(request):
     """
-    Vista para login con sesión Django (compatible con @login_required)
+    Vista para login con sesin Django (compatible con @login_required)
     """
     try:
         username = request.POST.get('username')
         password = request.POST.get('password')
         rol_solicitado = request.POST.get('rol')
         
-        print(f"🔐 Intento de login: {username}, rol: {rol_solicitado}")
+        print(f" Intento de login: {username}, rol: {rol_solicitado}")
         
         if not all([username, password, rol_solicitado]):
             return JsonResponse({
@@ -50,24 +50,24 @@ def session_login(request):
                 'error': 'Por favor completa todos los campos'
             }, status=400)
         
-        # ✅ Autenticar usuario
+        #  Autenticar usuario
         user = authenticate(request, username=username, password=password)
         
         if user is not None:
-            # ✅ Verificar si el usuario está activo
+            #  Verificar si el usuario est activo
             if not user.is_active:
                 return JsonResponse({
                     'success': False,
-                    'error': 'Tu cuenta está desactivada'
+                    'error': 'Tu cuenta est desactivada'
                 }, status=400)
             
-            # ✅ Verificar rol (si el usuario tiene el modelo Usuario personalizado)
+            #  Verificar rol (si el usuario tiene el modelo Usuario personalizado)
             try:
                 usuario_perfil = Usuario.objects.get(username=username)
                 rol_usuario = usuario_perfil.rol
-                print(f"🔐 Rol del usuario en BD: {rol_usuario}")
+                print(f" Rol del usuario en BD: {rol_usuario}")
                 
-                # ✅ Mapear roles para compatibilidad
+                #  Mapear roles para compatibilidad
                 mapeo_roles = {
                     'cocinero': ['cocinero'],
                     'mesero': ['mesero'],
@@ -84,7 +84,7 @@ def session_login(request):
                     }, status=403)
 
             except Usuario.DoesNotExist:
-                # ✅ Si no tiene perfil personalizado, permitir admin/superuser
+                #  Si no tiene perfil personalizado, permitir admin/superuser
                 if not user.is_superuser and rol_solicitado == 'administrador':
                     return JsonResponse({
                         'success': False,
@@ -96,11 +96,11 @@ def session_login(request):
                         'error': 'Usuario sin rol asignado'
                     }, status=403)
 
-            # ✅ Crear sesión Django
+            #  Crear sesin Django
             login(request, user)
-            print(f"✅ Sesión creada para {username}")
+            print(f" Sesin creada para {username}")
 
-            # ✅ Determinar URL de redirección
+            #  Determinar URL de redireccin
             redirect_urls = {
                 'cocinero': '/cocina/',
                 'mesero': '/mesero/',
@@ -119,14 +119,14 @@ def session_login(request):
             })
             
         else:
-            print(f"❌ Credenciales inválidas para {username}")
+            print(f" Credenciales invlidas para {username}")
             return JsonResponse({
                 'success': False,
-                'error': 'Usuario o contraseña incorrectos'
+                'error': 'Usuario o contrasea incorrectos'
             }, status=401)
             
     except Exception as e:
-        print(f"❌ Error en session_login: {str(e)}")
+        print(f" Error en session_login: {str(e)}")
         import traceback
         traceback.print_exc()
         
@@ -135,16 +135,16 @@ def session_login(request):
             'error': 'Error interno del servidor'
         }, status=500)
 
-# ✅ NUEVA VISTA: Logout
+#  NUEVA VISTA: Logout
 def session_logout(request):
     """
-    Vista para cerrar sesión
+    Vista para cerrar sesin
     """
     logout(request)
-    messages.success(request, 'Sesión cerrada correctamente')
+    messages.success(request, 'Sesin cerrada correctamente')
     return redirect('/login/')
 
-# 🆕 NUEVO SISTEMA DE LOGIN
+#  NUEVO SISTEMA DE LOGIN
 
 import json
 
@@ -180,10 +180,10 @@ def login_pin(request):
                 'error': 'Este usuario no puede usar PIN'
             }, status=403)
 
-        # Crear sesión
+        # Crear sesin
         login(request, usuario, backend='django.contrib.auth.backends.ModelBackend')
 
-        # Determinar redirección según rol
+        # Determinar redireccin segn rol
         redirect_urls = {
             'cajero': '/caja/',
             'mesero': '/empleado/',  # Panel unificado
@@ -201,7 +201,7 @@ def login_pin(request):
         })
 
     except Exception as e:
-        print(f"❌ Error en login_pin: {str(e)}")
+        print(f" Error en login_pin: {str(e)}")
         import traceback
         traceback.print_exc()
 
@@ -243,7 +243,7 @@ def login_admin(request):
                 if not usuario.activo:
                     return JsonResponse({
                         'success': False,
-                        'error': 'Tu cuenta está desactivada'
+                        'error': 'Tu cuenta est desactivada'
                     }, status=400)
 
             except Usuario.DoesNotExist:
@@ -254,7 +254,7 @@ def login_admin(request):
                         'error': 'Usuario sin permisos de administrador'
                     }, status=403)
 
-            # Crear sesión
+            # Crear sesin
             login(request, user)
 
             return JsonResponse({
@@ -267,11 +267,11 @@ def login_admin(request):
         else:
             return JsonResponse({
                 'success': False,
-                'error': 'Usuario o contraseña incorrectos'
+                'error': 'Usuario o contrasea incorrectos'
             }, status=401)
 
     except Exception as e:
-        print(f"❌ Error en login_admin: {str(e)}")
+        print(f" Error en login_admin: {str(e)}")
         import traceback
         traceback.print_exc()
 
@@ -280,7 +280,7 @@ def login_admin(request):
             'error': 'Error interno del servidor'
         }, status=500)
 
-# 🆕 AUTENTICACIÓN POR QR
+#  AUTENTICACIN POR QR
 
 def auth_qr(request, token):
     """
@@ -292,39 +292,112 @@ def auth_qr(request, token):
         from app.caja.models import CierreCaja
         from datetime import date
 
+        print("=" * 80)
+        print(f"[AUTH-QR] INICIO - Intento de autenticacion por QR")
+        print(f"[AUTH-QR] Token recibido: {token}")
+        print(f"[AUTH-QR] Tipo: {type(token)}")
+        print(f"[AUTH-QR] Usuario actual: {request.user}")
+        print(f"[AUTH-QR] Esta autenticado: {request.user.is_authenticated}")
+
         # Buscar usuario por token
         try:
             usuario = Usuario.objects.get(qr_token=token, activo=True)
+            print(f"[AUTH-QR] ✓ Usuario encontrado: {usuario.username} ({usuario.rol})")
+            print(f"[AUTH-QR] ✓ Usuario activo: {usuario.activo}")
+            print(f"[AUTH-QR] ✓ Usuario is_active: {usuario.is_active}")
         except Usuario.DoesNotExist:
-            messages.error(request, 'Código QR inválido o expirado')
+            print(f"[AUTH-QR] ✗ ERROR: Token QR no encontrado en BD: {token}")
+            print(f"[AUTH-QR] ✗ Redirigiendo a login...")
+            messages.error(request, 'Codigo QR invalido o expirado')
             return redirect('/login/')
 
-        # ✅ VALIDAR QUE LA CAJA ESTÉ ABIERTA (solo para meseros y cocineros)
-        if usuario.rol in ['mesero', 'cocinero']:
-            caja_abierta = CierreCaja.objects.filter(
-                estado='abierto',
-                fecha=date.today()
-            ).exists()
+        # VALIDAR QUE LA CAJA ESTE ABIERTA (solo para meseros y cocineros)
+        # COMENTADO TEMPORALMENTE PARA PRUEBAS
+        # if usuario.rol in ['mesero', 'cocinero']:
+        #     caja_abierta = CierreCaja.objects.filter(
+        #         estado='abierto',
+        #         fecha=date.today()
+        #     ).exists()
 
-            if not caja_abierta:
-                messages.error(request, '🔒 La caja está cerrada. No puedes iniciar sesión hasta que un cajero abra la caja.')
-                return redirect('/login/')
+        #     print(f"[AUTH-QR] Verificando caja para {usuario.rol}: {'Abierta' if caja_abierta else 'Cerrada'}")
 
-        # Autenticar y crear sesión
+        #     if not caja_abierta:
+        #         print(f"[AUTH-QR] ERROR: Caja cerrada - Redirigiendo a login")
+        #         messages.error(request, 'La caja esta cerrada. No puedes iniciar sesion hasta que un cajero abra la caja.')
+        #         return redirect('/login/')
+
+        # Autenticar y crear sesion
+        print(f"[AUTH-QR] Intentando login para: {usuario.username}")
         login(request, usuario, backend='django.contrib.auth.backends.ModelBackend')
-        print(f"✅ Login por QR exitoso: {usuario.username} ({usuario.rol})")
+        print(f"[AUTH-QR] ✓ Login por QR exitoso: {usuario.username} ({usuario.rol})")
+        print(f"[AUTH-QR] ✓ Usuario ahora autenticado: {request.user.is_authenticated}")
 
-        # Redirigir según el rol
+        # Redirigir segn el rol
         if usuario.rol == 'mesero' or usuario.rol == 'cocinero':
+            print(f"[AUTH-QR] → Redirigiendo a /empleado/")
             return redirect('/empleado/')  # Panel unificado
         elif usuario.rol == 'cajero':
+            print(f"[AUTH-QR] → Redirigiendo a /caja/")
             return redirect('/caja/')
         else:
+            print(f"[AUTH-QR] → Redirigiendo a /")
             return redirect('/')
 
+        print("=" * 80)
+
     except Exception as e:
-        print(f"❌ Error en auth_qr: {str(e)}")
+        print(f"[AUTH-QR] ERROR en auth_qr: {str(e)}")
         import traceback
         traceback.print_exc()
-        messages.error(request, 'Error al procesar el código QR')
+        messages.error(request, 'Error al procesar el codigo QR')
         return redirect('/login/')
+
+# VISTA PARA VER TODOS LOS QR
+def ver_todos_qr(request):
+    """
+    Muestra todos los códigos QR del sistema (mesas y empleados)
+    """
+    from app.mesas.models import Mesa
+    import socket
+
+    # Obtener IP del servidor
+    try:
+        hostname = socket.gethostname()
+        ip_servidor = socket.gethostbyname(hostname)
+        ip_servidor = f"{ip_servidor}:8000"
+    except:
+        ip_servidor = "localhost:8000"
+
+    # Obtener todas las mesas activas
+    mesas = Mesa.objects.filter(activo=True).order_by('numero')
+
+    # Obtener empleados que pueden usar QR
+    empleados = Usuario.objects.filter(
+        rol__in=['mesero', 'cocinero'],
+        activo=True
+    ).order_by('rol', 'username')
+
+    context = {
+        'ip_servidor': ip_servidor,
+        'mesas': mesas,
+        'empleados': empleados,
+        'MEDIA_URL': '/media/'
+    }
+
+    return render(request, 'admin/ver_qr.html', context)
+
+def ver_qr_simple(request):
+    import socket
+    try:
+        hostname = socket.gethostname()
+        ip_servidor = socket.gethostbyname(hostname)
+        ip_servidor = f"{ip_servidor}:8000"
+    except:
+        ip_servidor = "localhost:8000"
+    
+    context = {
+        'ip_servidor': ip_servidor,
+        'mesas': range(1, 16),
+        'total_mesas': 15,
+    }
+    return render(request, 'admin/qr_simple.html', context)

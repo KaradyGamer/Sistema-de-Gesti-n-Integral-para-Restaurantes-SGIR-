@@ -1,3 +1,8 @@
+/* ============================================
+   DISEÑO NEGRO DOMINANTE - Tema Oscuro
+   Aplicado automáticamente
+   ============================================ */
+
 * {
             margin: 0;
             padding: 0;
@@ -6,7 +11,7 @@
 
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: #2d2d2d;
             min-height: 100vh;
             padding: 20px;
         }
@@ -17,7 +22,7 @@
         }
 
         .header {
-            background: white;
+            background: #2d2d2d;
             padding: 20px;
             border-radius: 10px;
             margin-bottom: 20px;
@@ -28,7 +33,7 @@
         }
 
         .header h1 {
-            color: #333;
+            color: #e0e0e0;
             font-size: 24px;
         }
 
@@ -50,7 +55,7 @@
         }
 
         .btn-primary {
-            background: #667eea;
+            background: #000000;
             color: white;
         }
 
@@ -83,7 +88,7 @@
 
         .btn-warning {
             background: #ffc107;
-            color: #333;
+            color: #e0e0e0;
         }
 
         .btn-warning:hover {
@@ -91,7 +96,7 @@
         }
 
         .card {
-            background: white;
+            background: #2d2d2d;
             padding: 25px;
             border-radius: 10px;
             box-shadow: 0 2px 10px rgba(0,0,0,0.1);
@@ -99,7 +104,7 @@
         }
 
         .card h2 {
-            color: #333;
+            color: #e0e0e0;
             margin-bottom: 20px;
             padding-bottom: 10px;
             border-bottom: 2px solid #667eea;
@@ -114,7 +119,7 @@
 
         .info-box {
             padding: 15px;
-            background: #f8f9fa;
+            background: #2d2d2d;
             border-radius: 8px;
             border-left: 4px solid #667eea;
         }
@@ -122,7 +127,7 @@
         .info-box label {
             display: block;
             font-size: 12px;
-            color: #666;
+            color: #b0b0b0;
             text-transform: uppercase;
             margin-bottom: 5px;
             font-weight: bold;
@@ -130,21 +135,21 @@
 
         .info-box .value {
             font-size: 18px;
-            color: #333;
+            color: #e0e0e0;
             font-weight: bold;
         }
 
         .status-badge {
             display: inline-block;
             padding: 5px 15px;
-            border-radius: 20px;
+            border-radius: 8px;
             font-size: 14px;
             font-weight: bold;
         }
 
         .status-pendiente {
             background: #ffc107;
-            color: #333;
+            color: #e0e0e0;
         }
 
         .status-preparando {
@@ -169,7 +174,7 @@
         }
 
         .items-table th {
-            background: #667eea;
+            background: #000000;
             color: white;
             padding: 12px;
             text-align: left;
@@ -182,13 +187,13 @@
         }
 
         .items-table tr:hover {
-            background: #f8f9fa;
+            background: #2d2d2d;
         }
 
         .total-section {
             margin-top: 30px;
             padding: 20px;
-            background: #f8f9fa;
+            background: #2d2d2d;
             border-radius: 8px;
         }
 
@@ -247,14 +252,14 @@
         .historial-item {
             padding: 15px;
             border-left: 3px solid #667eea;
-            background: #f8f9fa;
+            background: #2d2d2d;
             margin-bottom: 10px;
             border-radius: 5px;
         }
 
         .historial-item .fecha {
             font-size: 12px;
-            color: #666;
+            color: #b0b0b0;
             margin-bottom: 5px;
         }
 
@@ -266,7 +271,7 @@
         .historial-item .tipo {
             display: inline-block;
             padding: 3px 10px;
-            background: #667eea;
+            background: #000000;
             color: white;
             border-radius: 3px;
             font-size: 12px;
@@ -304,3 +309,30 @@
                 padding: 8px;
             }
         }
+
+/* ========================================
+   RESPONSIVE - TODOS LOS DISPOSITIVOS
+   ======================================== */
+
+@media (max-width: 480px) {
+    body { font-size: 14px; }
+    .container { padding: 10px; }
+    h1 { font-size: 1.5em; }
+    h2 { font-size: 1.3em; }
+    h3 { font-size: 1.1em; }
+    button, .btn { width: 100%; margin-bottom: 10px; }
+    .header, .form-section, .card { padding: 15px; }
+    table { font-size: 12px; }
+    .grid { grid-template-columns: 1fr; }
+}
+
+@media (min-width: 481px) and (max-width: 768px) {
+    .container { padding: 15px; }
+    h1 { font-size: 1.8em; }
+    h2 { font-size: 1.5em; }
+}
+
+@media (max-height: 500px) and (orientation: landscape) {
+    .container { padding: 10px; }
+    h1 { font-size: 1.2em; }
+}

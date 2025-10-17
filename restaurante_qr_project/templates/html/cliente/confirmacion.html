@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Confirmar Pedido - Restaurante QR</title>
-    <link rel="stylesheet" href="{% static 'css/cliente/confirmacion.css' %}">
+    <link rel="stylesheet" href="{% static 'css/cliente/confirmacion.css' %}?v=10.0">
 </head>
 <body>
     <div class="container">
@@ -36,6 +36,11 @@
         </div>
     </div>
 
-    <script src="{% static 'js/cliente/confirmacion.js' %}"></script>
+    <!-- Campo oculto para detectar si es mesero -->
+    {% if usuario_id %}
+    <input type="hidden" id="userId" value="{{ usuario_id }}">
+    {% endif %}
+
+    <script src="{% static 'js/cliente/confirmacion.js' %}?v=2.0"></script>
 </body>
 </html>

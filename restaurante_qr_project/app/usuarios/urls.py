@@ -6,7 +6,9 @@ from .views import (
     session_logout,
     login_pin,
     login_admin,
-    auth_qr
+    auth_qr,
+    ver_todos_qr,
+    ver_qr_simple
 )
 from .views_empleado import panel_empleado
 
@@ -29,4 +31,8 @@ urlpatterns = [
 
     # ✅ Logout
     path('logout/', session_logout, name='session_logout'),
+
+    # 📱 Ver todos los QR
+    path('ver-qr/', ver_todos_qr, name='ver_qr'),
+    path('qr/', ver_qr_simple, name='qr_simple'),  # Vista simplificada
 ]

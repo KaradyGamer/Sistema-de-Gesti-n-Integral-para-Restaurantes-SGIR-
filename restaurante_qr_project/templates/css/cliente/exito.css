@@ -1,3 +1,8 @@
+/* ============================================
+   DISEÑO NEGRO DOMINANTE - Tema Oscuro
+   Aplicado automáticamente
+   ============================================ */
+
 * {
             margin: 0;
             padding: 0;
@@ -6,17 +11,17 @@
 
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: #2d2d2d;
             min-height: 100vh;
             display: flex;
             justify-content: center;
             align-items: center;
-            color: #333;
+            color: #e0e0e0;
             padding: 20px;
         }
 
         .exito-container {
-            background: white;
+            background: #2d2d2d;
             padding: 50px 40px;
             border-radius: 25px;
             box-shadow: 0 20px 50px rgba(0,0,0,0.15);
@@ -34,7 +39,7 @@
             left: 0;
             right: 0;
             height: 6px;
-            background: linear-gradient(45deg, #27ae60, #2ecc71);
+            background: #2d2d2d;
         }
 
         .success-icon {
@@ -49,34 +54,32 @@
         }
 
         .exito-container h1 {
-            color: #27ae60;
+            color: #ffffff;
             font-size: 2.5em;
             margin-bottom: 15px;
-            font-weight: 700;
-            background: linear-gradient(45deg, #27ae60, #2ecc71);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
+            font-weight: 500;
+            background: #2d2d2d;
+            color: #ffffff}
 
         .success-message {
             font-size: 1.3em;
-            color: #2c3e50;
+            color: #ffffff;
             margin-bottom: 10px;
             font-weight: 600;
         }
 
         .success-description {
             font-size: 1.1em;
-            color: #7f8c8d;
+            color: #b0b0b0;
             margin-bottom: 30px;
             line-height: 1.6;
         }
 
         .order-status {
-            background: linear-gradient(45deg, #f39c12, #e67e22);
+            background: #2d2d2d;
             color: white;
             padding: 20px;
-            border-radius: 15px;
+            border-radius: 8px;
             margin: 25px 0;
             position: relative;
         }
@@ -92,15 +95,15 @@
         }
 
         .order-steps {
-            background: #f8f9fa;
+            background: #2d2d2d;
             padding: 25px;
-            border-radius: 15px;
+            border-radius: 8px;
             margin: 25px 0;
             text-align: left;
         }
 
         .order-steps h4 {
-            color: #2c3e50;
+            color: #ffffff;
             margin-bottom: 15px;
             text-align: center;
             font-size: 1.2em;
@@ -123,7 +126,7 @@
             width: 30px;
             height: 30px;
             border-radius: 50%;
-            background: #3498db;
+            background: #000000;
             color: white;
             display: flex;
             align-items: center;
@@ -137,7 +140,7 @@
         }
 
         .step.active .step-icon {
-            background: #f39c12;
+            background: #000000;
             animation: activeStep 1.5s ease-in-out infinite;
         }
 
@@ -148,11 +151,11 @@
 
         .step-text {
             flex-grow: 1;
-            color: #2c3e50;
+            color: #ffffff;
         }
 
         .step.completed .step-text {
-            color: #27ae60;
+            color: #ffffff;
             font-weight: 600;
         }
 
@@ -183,7 +186,7 @@
         }
 
         .btn-primary {
-            background: linear-gradient(45deg, #3498db, #2980b9);
+            background: #2d2d2d;
             color: white;
         }
 
@@ -193,7 +196,7 @@
         }
 
         .btn-secondary {
-            background: linear-gradient(45deg, #95a5a6, #7f8c8d);
+            background: #2d2d2d;
             color: white;
         }
 
@@ -203,7 +206,7 @@
         }
 
         .estimated-time {
-            background: linear-gradient(45deg, #9b59b6, #8e44ad);
+            background: #2d2d2d;
             color: white;
             padding: 15px;
             border-radius: 12px;
@@ -214,7 +217,7 @@
 
         .time-number {
             font-size: 1.5em;
-            font-weight: 700;
+            font-weight: 500;
         }
 
         .footer-note {
@@ -263,3 +266,30 @@
                 transform: translateY(0);
             }
         }
+
+/* ========================================
+   RESPONSIVE - TODOS LOS DISPOSITIVOS
+   ======================================== */
+
+@media (max-width: 480px) {
+    body { font-size: 14px; }
+    .container { padding: 10px; }
+    h1 { font-size: 1.5em; }
+    h2 { font-size: 1.3em; }
+    h3 { font-size: 1.1em; }
+    button, .btn { width: 100%; margin-bottom: 10px; }
+    .header, .form-section, .card { padding: 15px; }
+    table { font-size: 12px; }
+    .grid { grid-template-columns: 1fr; }
+}
+
+@media (min-width: 481px) and (max-width: 768px) {
+    .container { padding: 15px; }
+    h1 { font-size: 1.8em; }
+    h2 { font-size: 1.5em; }
+}
+
+@media (max-height: 500px) and (orientation: landscape) {
+    .container { padding: 10px; }
+    h1 { font-size: 1.2em; }
+}

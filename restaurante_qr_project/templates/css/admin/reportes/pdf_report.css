@@ -104,3 +104,107 @@ body {
             cursor: pointer;
             margin: 20px 0;
         }
+
+/* ========================================
+   RESPONSIVE - ADAPTABLE A TODOS LOS DISPOSITIVOS
+   ======================================== */
+
+/* Móvil pequeño (< 480px) */
+@media (max-width: 480px) {
+    body {
+        font-size: 14px;
+    }
+
+    .container {
+        padding: 10px !important;
+        margin: 0 !important;
+    }
+
+    h1 { font-size: 1.5em !important; }
+    h2 { font-size: 1.3em !important; }
+    h3 { font-size: 1.1em !important; }
+
+    /* Botones full-width en móvil */
+    button, .btn, input[type="submit"] {
+        width: 100% !important;
+        max-width: 100% !important;
+        margin-bottom: 10px;
+    }
+
+    /* Reducir padding general */
+    .header, .form-section, .card {
+        padding: 15px !important;
+    }
+
+    /* Tablas apiladas */
+    table {
+        font-size: 12px;
+    }
+
+    /* Grid a 1 columna */
+    .grid, [class*="grid-"] {
+        grid-template-columns: 1fr !important;
+    }
+}
+
+/* Tablet (481px - 768px) */
+@media (min-width: 481px) and (max-width: 768px) {
+    .container {
+        padding: 15px;
+    }
+
+    h1 { font-size: 1.8em; }
+    h2 { font-size: 1.5em; }
+    h3 { font-size: 1.3em; }
+
+    /* Grid a 2 columnas máximo */
+    [class*="grid-3"], [class*="grid-4"] {
+        grid-template-columns: repeat(2, 1fr) !important;
+    }
+}
+
+/* Landscape móvil */
+@media (max-height: 500px) and (orientation: landscape) {
+    .container {
+        padding: 10px;
+    }
+
+    h1 { font-size: 1.2em !important; }
+    .header { padding: 10px !important; }
+}
+
+/* Touch-friendly - aumentar áreas táctiles */
+@media (hover: none) and (pointer: coarse) {
+    button, .btn, a {
+        min-height: 44px !important;
+        min-width: 44px !important;
+    }
+}
+
+
+/* ========================================
+   RESPONSIVE - TODOS LOS DISPOSITIVOS
+   ======================================== */
+
+@media (max-width: 480px) {
+    body { font-size: 14px; }
+    .container { padding: 10px; }
+    h1 { font-size: 1.5em; }
+    h2 { font-size: 1.3em; }
+    h3 { font-size: 1.1em; }
+    button, .btn { width: 100%; margin-bottom: 10px; }
+    .header, .form-section, .card { padding: 15px; }
+    table { font-size: 12px; }
+    .grid { grid-template-columns: 1fr; }
+}
+
+@media (min-width: 481px) and (max-width: 768px) {
+    .container { padding: 15px; }
+    h1 { font-size: 1.8em; }
+    h2 { font-size: 1.5em; }
+}
+
+@media (max-height: 500px) and (orientation: landscape) {
+    .container { padding: 10px; }
+    h1 { font-size: 1.2em; }
+}

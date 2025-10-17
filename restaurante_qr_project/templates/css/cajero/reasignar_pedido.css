@@ -1,3 +1,8 @@
+/* ============================================
+   DISEÑO NEGRO DOMINANTE - Tema Oscuro
+   Aplicado automáticamente
+   ============================================ */
+
 * {
             margin: 0;
             padding: 0;
@@ -6,7 +11,7 @@
 
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: #2d2d2d;
             min-height: 100vh;
             padding: 20px;
             display: flex;
@@ -20,7 +25,7 @@
         }
 
         .header {
-            background: white;
+            background: #2d2d2d;
             padding: 20px;
             border-radius: 10px;
             margin-bottom: 20px;
@@ -29,18 +34,18 @@
         }
 
         .header h1 {
-            color: #333;
+            color: #e0e0e0;
             font-size: 24px;
             margin-bottom: 10px;
         }
 
         .header p {
-            color: #666;
+            color: #b0b0b0;
             font-size: 14px;
         }
 
         .card {
-            background: white;
+            background: #2d2d2d;
             padding: 30px;
             border-radius: 10px;
             box-shadow: 0 2px 10px rgba(0,0,0,0.1);
@@ -48,7 +53,7 @@
         }
 
         .card h2 {
-            color: #333;
+            color: #e0e0e0;
             margin-bottom: 20px;
             padding-bottom: 10px;
             border-bottom: 2px solid #667eea;
@@ -75,11 +80,11 @@
         .alert-info {
             background: #d1ecf1;
             border: 1px solid #bee5eb;
-            color: #0c5460;
+            color: #ffffff;
         }
 
         .pedido-info {
-            background: #f8f9fa;
+            background: #2d2d2d;
             padding: 20px;
             border-radius: 8px;
             margin-bottom: 25px;
@@ -98,12 +103,12 @@
         }
 
         .pedido-info .label {
-            color: #666;
+            color: #b0b0b0;
             font-weight: bold;
         }
 
         .pedido-info .value {
-            color: #333;
+            color: #e0e0e0;
             font-weight: bold;
         }
 
@@ -115,7 +120,7 @@
         }
 
         .mesa-option {
-            background: white;
+            background: #2d2d2d;
             border: 3px solid #ddd;
             border-radius: 10px;
             padding: 20px;
@@ -127,16 +132,16 @@
 
         .mesa-option:hover {
             transform: translateY(-5px);
-            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
         }
 
         .mesa-option.selected {
             border-color: #667eea;
-            background: #f8f9ff;
+            background: #2d2d2d;
         }
 
         .mesa-option.libre {
-            border-color: #28a745;
+            border-color: #ffffff;
         }
 
         .mesa-option.libre:hover {
@@ -152,7 +157,7 @@
 
         .mesa-option.no-disponible {
             border-color: #6c757d;
-            background: #e2e3e5;
+            background: #242424;
             cursor: not-allowed;
             opacity: 0.5;
         }
@@ -161,7 +166,7 @@
             font-size: 32px;
             font-weight: bold;
             margin-bottom: 10px;
-            color: #333;
+            color: #e0e0e0;
         }
 
         .mesa-estado {
@@ -169,13 +174,13 @@
             font-weight: bold;
             text-transform: uppercase;
             padding: 5px 10px;
-            border-radius: 15px;
+            border-radius: 8px;
             display: inline-block;
         }
 
         .mesa-option.libre .mesa-estado {
             background: #d4edda;
-            color: #155724;
+            color: #ffffff;
         }
 
         .mesa-option.ocupada .mesa-estado {
@@ -184,13 +189,13 @@
         }
 
         .mesa-option.no-disponible .mesa-estado {
-            background: #e2e3e5;
+            background: #242424;
             color: #6c757d;
         }
 
         .mesa-capacidad {
             font-size: 11px;
-            color: #666;
+            color: #b0b0b0;
             margin-top: 5px;
         }
 
@@ -201,7 +206,7 @@
         .form-group label {
             display: block;
             font-weight: bold;
-            color: #333;
+            color: #e0e0e0;
             margin-bottom: 8px;
         }
 
@@ -241,7 +246,7 @@
         }
 
         .btn-primary {
-            background: #667eea;
+            background: #000000;
             color: white;
         }
 
@@ -295,3 +300,30 @@
                 flex-direction: column;
             }
         }
+
+/* ========================================
+   RESPONSIVE - TODOS LOS DISPOSITIVOS
+   ======================================== */
+
+@media (max-width: 480px) {
+    body { font-size: 14px; }
+    .container { padding: 10px; }
+    h1 { font-size: 1.5em; }
+    h2 { font-size: 1.3em; }
+    h3 { font-size: 1.1em; }
+    button, .btn { width: 100%; margin-bottom: 10px; }
+    .header, .form-section, .card { padding: 15px; }
+    table { font-size: 12px; }
+    .grid { grid-template-columns: 1fr; }
+}
+
+@media (min-width: 481px) and (max-width: 768px) {
+    .container { padding: 15px; }
+    h1 { font-size: 1.8em; }
+    h2 { font-size: 1.5em; }
+}
+
+@media (max-height: 500px) and (orientation: landscape) {
+    .container { padding: 10px; }
+    h1 { font-size: 1.2em; }
+}

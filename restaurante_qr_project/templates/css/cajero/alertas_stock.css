@@ -1,3 +1,8 @@
+/* ============================================
+   DISEÑO NEGRO DOMINANTE - Tema Oscuro
+   Aplicado automáticamente
+   ============================================ */
+
 * {
             margin: 0;
             padding: 0;
@@ -6,7 +11,7 @@
 
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: #2d2d2d;
             min-height: 100vh;
             padding: 20px;
         }
@@ -17,7 +22,7 @@
         }
 
         .header {
-            background: white;
+            background: #2d2d2d;
             padding: 20px;
             border-radius: 10px;
             margin-bottom: 20px;
@@ -28,7 +33,7 @@
         }
 
         .header h1 {
-            color: #333;
+            color: #e0e0e0;
             font-size: 24px;
         }
 
@@ -80,7 +85,7 @@
         }
 
         .stat-box {
-            background: white;
+            background: #2d2d2d;
             padding: 20px;
             border-radius: 10px;
             box-shadow: 0 2px 10px rgba(0,0,0,0.1);
@@ -99,7 +104,7 @@
         }
 
         .stat-box .label {
-            color: #666;
+            color: #b0b0b0;
             font-size: 14px;
         }
 
@@ -120,7 +125,7 @@
         }
 
         .card {
-            background: white;
+            background: #2d2d2d;
             padding: 25px;
             border-radius: 10px;
             box-shadow: 0 2px 10px rgba(0,0,0,0.1);
@@ -128,7 +133,7 @@
         }
 
         .card h2 {
-            color: #333;
+            color: #e0e0e0;
             margin-bottom: 20px;
             padding-bottom: 10px;
             border-bottom: 2px solid #667eea;
@@ -183,7 +188,7 @@
 
         .alert-details {
             font-size: 14px;
-            color: #666;
+            color: #b0b0b0;
         }
 
         .alert-stock {
@@ -209,7 +214,7 @@
         .no-alerts {
             text-align: center;
             padding: 60px 20px;
-            color: #666;
+            color: #b0b0b0;
         }
 
         .no-alerts .icon {
@@ -223,7 +228,7 @@
         }
 
         .filters {
-            background: #f8f9fa;
+            background: #2d2d2d;
             padding: 15px;
             border-radius: 8px;
             margin-bottom: 20px;
@@ -234,7 +239,7 @@
 
         .filters label {
             font-weight: bold;
-            color: #666;
+            color: #b0b0b0;
         }
 
         .filters select {
@@ -250,14 +255,14 @@
             background: #d1ecf1;
             border-radius: 5px;
             margin-bottom: 20px;
-            color: #0c5460;
+            color: #ffffff;
             font-size: 14px;
         }
 
         .stock-progress {
             width: 100%;
             height: 8px;
-            background: #e9ecef;
+            background: #242424;
             border-radius: 4px;
             margin-top: 8px;
             overflow: hidden;
@@ -294,3 +299,30 @@
                 text-align: center;
             }
         }
+
+/* ========================================
+   RESPONSIVE - TODOS LOS DISPOSITIVOS
+   ======================================== */
+
+@media (max-width: 480px) {
+    body { font-size: 14px; }
+    .container { padding: 10px; }
+    h1 { font-size: 1.5em; }
+    h2 { font-size: 1.3em; }
+    h3 { font-size: 1.1em; }
+    button, .btn { width: 100%; margin-bottom: 10px; }
+    .header, .form-section, .card { padding: 15px; }
+    table { font-size: 12px; }
+    .grid { grid-template-columns: 1fr; }
+}
+
+@media (min-width: 481px) and (max-width: 768px) {
+    .container { padding: 15px; }
+    h1 { font-size: 1.8em; }
+    h2 { font-size: 1.5em; }
+}
+
+@media (max-height: 500px) and (orientation: landscape) {
+    .container { padding: 10px; }
+    h1 { font-size: 1.2em; }
+}

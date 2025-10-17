@@ -537,11 +537,17 @@ def generar_qr_empleado(request, empleado_id):
         if not empleado.activo:
             return JsonResponse({'error': 'El empleado está inactivo'}, status=400)
 
-        # Generar nuevo token QR
+        # Generar nuevo token QR (SIEMPRE regenerar para tener URL actualizada)
         token = empleado.generar_qr_token()
 
-        # Crear URL de autenticación
-        qr_url = f"{request.scheme}://{request.get_host()}/usuarios/auth-qr/{token}/"
+        # Crear URL de autenticación usando variable de entorno
+        from django.conf import settings
+        from decouple import config
+
+        # Obtener host configurado o usar el del request
+        qr_host = config('QR_HOST', default=request.get_host())
+
+        qr_url = f"{request.scheme}://{qr_host}/usuarios/auth-qr/{token}/"
 
         # Generar código QR
         qr = qrcode.QRCode(

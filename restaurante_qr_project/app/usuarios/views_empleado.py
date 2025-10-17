@@ -12,11 +12,15 @@ def panel_empleado(request):
     Panel unificado que muestra todas las áreas a las que el empleado tiene acceso
     """
     usuario = request.user
+    print(f"[PANEL_EMPLEADO] Acceso de usuario: {usuario.username}, rol: {usuario.rol}")
 
     # Verificar que sea mesero o cocinero
     if usuario.rol not in ['mesero', 'cocinero']:
+        print(f"[PANEL_EMPLEADO] Rol {usuario.rol} no permitido - redirigiendo a login")
         messages.error(request, 'No tienes permisos para acceder a este panel.')
         return redirect('/login/')
+
+    print(f"[PANEL_EMPLEADO] Rol verificado OK - renderizando panel")
 
     # Obtener áreas activas del empleado
     areas_activas = usuario.get_areas_activas()

@@ -75,11 +75,6 @@ class OrderConfirmation {
                         <div>Tu mesa de servicio</div>
                     </div>
 
-                    <div class="payment-info">
-                        <div class="payment-method">${this.getPaymentMethodName(this.orderData.forma_pago)}</div>
-                        <div>Método de pago seleccionado</div>
-                    </div>
-
                     <div class="order-summary">
                         <h3>📋 Resumen del Pedido</h3>
                 `;
@@ -112,15 +107,6 @@ class OrderConfirmation {
                 actionButtons.style.display = 'flex';
             }
 
-            getPaymentMethodName(method) {
-                const methods = {
-                    'efectivo': '💵 Efectivo',
-                    'qr': '📱 Código QR',
-                    'tarjeta': '💳 Tarjeta'
-                };
-                return methods[method] || method;
-            }
-
             async confirmOrder() {
                 const confirmBtn = document.getElementById('confirmBtn');
                 const originalText = confirmBtn.textContent;
@@ -148,13 +134,20 @@ class OrderConfirmation {
                     if (response.ok) {
                         const result = await response.json();
                         console.log('✅ Pedido enviado exitosamente:', result);
-                        
+
                         // Limpiar datos temporales
                         localStorage.removeItem('pendingOrder');
-                        
-                        // Redirigir a página de éxito
-                        window.location.href = '/exito/';
-                        
+
+                        // Verificar si es un mesero (si hay userId en los datos)
+                        const userId = document.getElementById('userId');
+                        if (userId && userId.value) {
+                            // Es mesero - redirigir al mapa de mesas
+                            window.location.href = '/mesero/';
+                        } else {
+                            // Es cliente - mostrar página de éxito
+                            window.location.href = '/exito/';
+                        }
+
                     } else {
                         let errorMessage = `Error ${response.status}`;
                         try {

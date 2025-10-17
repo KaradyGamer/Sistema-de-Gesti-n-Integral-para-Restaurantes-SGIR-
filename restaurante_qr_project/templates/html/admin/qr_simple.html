@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QR Codes - SGIR</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        header {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+            text-align: center;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 32px;
+        }
+
+        .ip-info {
+            background: #667eea;
+            color: white;
+            padding: 12px 25px;
+            border-radius: 25px;
+            display: inline-block;
+            font-weight: 600;
+            font-size: 18px;
+        }
+
+        .seccion {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+        }
+
+        .seccion h2 {
+            color: #333;
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 3px solid #667eea;
+            font-size: 26px;
+        }
+
+        .qr-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 25px;
+            margin-top: 25px;
+        }
+
+        .qr-card {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            border-radius: 15px;
+            padding: 25px;
+            text-align: center;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s;
+            border: 3px solid transparent;
+        }
+
+        .qr-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+            border-color: #667eea;
+        }
+
+        .qr-card h3 {
+            color: #667eea;
+            margin-bottom: 20px;
+            font-size: 22px;
+            font-weight: 700;
+        }
+
+        .qr-card img {
+            width: 100%;
+            max-width: 250px;
+            height: auto;
+            border: 4px solid white;
+            border-radius: 12px;
+            background: white;
+            padding: 15px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .instrucciones {
+            background: linear-gradient(135deg, #fff3cd 0%, #ffe69c 100%);
+            border-left: 5px solid #ffc107;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 25px;
+        }
+
+        .instrucciones h3 {
+            color: #856404;
+            margin-bottom: 12px;
+            font-size: 20px;
+        }
+
+        .instrucciones ul {
+            color: #856404;
+            line-height: 1.8;
+            padding-left: 20px;
+        }
+
+        .instrucciones li {
+            margin-bottom: 8px;
+        }
+
+        .badge {
+            display: inline-block;
+            background: #28a745;
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 600;
+            margin-top: 10px;
+        }
+
+        @media (max-width: 768px) {
+            .qr-grid {
+                grid-template-columns: 1fr;
+            }
+
+            h1 {
+                font-size: 24px;
+            }
+
+            .seccion h2 {
+                font-size: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📱 Códigos QR del Sistema</h1>
+            <div class="ip-info">Servidor: {{ ip_servidor }}</div>
+        </header>
+
+        <div class="instrucciones">
+            <h3>📋 Instrucciones para escanear:</h3>
+            <ul>
+                <li><strong>QR de Mesa:</strong> El cliente escanea y accede directamente al menú de su mesa</li>
+                <li><strong>QR de Empleado:</strong> Mesero o cocinero escanea para iniciar sesión automáticamente</li>
+                <li><strong>Tip:</strong> Puedes imprimir estos QR o mostrarlos en una tablet/celular</li>
+            </ul>
+        </div>
+
+        <!-- Sección: QR de Mesas -->
+        <div class="seccion">
+            <h2>🍽️ Códigos QR de Mesas ({{ total_mesas }})</h2>
+            <div class="qr-grid">
+                {% for i in mesas %}
+                <div class="qr-card">
+                    <h3>Mesa {{ i }}</h3>
+                    <img src="/media/qrcodes/mesa-{{ i }}-qr.png"
+                         alt="QR Mesa {{ i }}"
+                         onerror="this.parentElement.innerHTML='<p style=color:red;>QR no generado</p>'">
+                    <div class="badge">Capacidad: 4 personas</div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Sección: QR de Empleados -->
+        <div class="seccion">
+            <h2>👥 Códigos QR de Empleados</h2>
+            <div class="qr-grid">
+                <div class="qr-card">
+                    <h3>🍴 Mesero: mesero1</h3>
+                    <img src="/media/qr_empleados/mesero-mesero1-qr.png"
+                         alt="QR Mesero">
+                    <div class="badge">Login automático</div>
+                </div>
+
+                <div class="qr-card">
+                    <h3>👨‍🍳 Cocinero: cocinero1</h3>
+                    <img src="/media/qr_empleados/cocinero-cocinero1-qr.png"
+                         alt="QR Cocinero">
+                    <div class="badge">Login automático</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

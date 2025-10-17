@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ title }} - Sistema de Restaurante</title>
-    <link rel="stylesheet" href="{% static 'css/cajero/panel_caja.css' %}">
+    <link rel="stylesheet" href="{% static 'css/cajero/panel_caja.css' %}?v=10.0">
 </head>
 <body>
     <div class="container">
@@ -13,7 +13,7 @@
         <header>
             <div>
                 <h1>💰 {{ title }}</h1>
-                <p style="color: #999;">Gestión de Pagos y Caja</p>
+                <p>Gestión de Pagos y Caja</p>
             </div>
             <div class="user-info">
                 <p><strong>{{ nombre_usuario }}</strong></p>
@@ -33,7 +33,7 @@
         {% else %}
         <div class="turno-info cerrado">
             <strong>⚠️ No hay turno abierto</strong> -
-            <a href="{% url 'caja:abrir_caja' %}" class="btn" style="margin-left: 10px;">Abrir Turno</a>
+            <a href="{% url 'caja:abrir_caja' %}" class="btn">Abrir Turno</a>
         </div>
         {% endif %}
 
@@ -69,12 +69,7 @@
                         <div class="pedido-header">
                             <h3>Pedido #{{ pedido.id }}</h3>
                             <div>
-                                <span class="badge" style="background:
-                                    {% if pedido.estado == 'pendiente' %}#ffc107
-                                    {% elif pedido.estado == 'en preparacion' %}#17a2b8
-                                    {% elif pedido.estado == 'listo' %}#28a745
-                                    {% elif pedido.estado == 'entregado' %}#6c757d
-                                    {% endif %}; color: white; padding: 5px 10px; border-radius: 15px; margin-right: 10px;">
+                                <span class="badge badge-{{ pedido.estado|slugify }}">
                                     {{ pedido.get_estado_display }}
                                 </span>
                                 <span class="mesa">Mesa {{ pedido.mesa.numero }}</span>
@@ -99,11 +94,11 @@
                         </div>
                         <div class="actions">
                             <a href="{% url 'caja:detalle_pedido' pedido.id %}" class="btn">👁️ Ver Detalle</a>
-                            <a href="{% url 'caja:modificar_pedido' pedido.id %}" class="btn" style="background: #ff9800;">✏️ Modificar</a>
+                            <a href="{% url 'caja:modificar_pedido' pedido.id %}" class="btn btn-secondary">✏️ Modificar</a>
                             {% if pedido.estado == 'entregado' %}
                             <a href="{% url 'caja:procesar_pago' pedido.id %}" class="btn btn-success">💰 Cobrar</a>
                             {% else %}
-                            <button class="btn" style="background: #6c757d; cursor: not-allowed;" disabled title="El pedido debe estar 'Entregado' para cobrar">💰 Cobrar (Pendiente)</button>
+                            <button class="btn btn-disabled" disabled title="El pedido debe estar 'Entregado' para cobrar">💰 Cobrar (Pendiente)</button>
                             {% endif %}
                         </div>
                     </div>
@@ -132,7 +127,7 @@
                             </small>
                         </div>
                         {% endfor %}
-                        <a href="{% url 'caja:alertas_stock' %}" class="btn" style="width: 100%; text-align: center;">Ver Todas</a>
+                        <a href="{% url 'caja:alertas_stock' %}" class="btn btn-block">Ver Todas</a>
                     {% else %}
                     <div class="empty-state">
                         <p>✅ Sin alertas activas</p>
@@ -141,14 +136,14 @@
                 </div>
 
                 <!-- Acciones Rápidas -->
-                <div class="section" style="margin-top: 20px;">
+                <div class="section quick-actions">
                     <h2>🚀 Acciones Rápidas</h2>
-                    <a href="{% url 'caja:gestionar_jornada' %}" class="btn" style="width: 100%; text-align: center; margin-bottom: 10px; background: #ff9800;">📅 Gestión de Jornada</a>
-                    <a href="{% url 'caja:personal_panel' %}" class="btn" style="width: 100%; text-align: center; margin-bottom: 10px; background: #28a745;">👥 Gestión de Personal</a>
-                    <a href="{% url 'caja:mapa_mesas' %}" class="btn" style="width: 100%; text-align: center; margin-bottom: 10px;">🗺️ Mapa de Mesas</a>
-                    <a href="{% url 'caja:historial' %}" class="btn" style="width: 100%; text-align: center; margin-bottom: 10px;">📜 Historial</a>
+                    <a href="{% url 'caja:gestionar_jornada' %}" class="btn btn-block">📅 Gestión de Jornada</a>
+                    <a href="{% url 'caja:personal_panel' %}" class="btn btn-block">👥 Gestión de Personal</a>
+                    <a href="{% url 'caja:mapa_mesas' %}" class="btn btn-block">🗺️ Mapa de Mesas</a>
+                    <a href="{% url 'caja:historial' %}" class="btn btn-block">📜 Historial</a>
                     {% if turno_abierto %}
-                    <a href="{% url 'caja:cierre_caja' %}" class="btn" style="width: 100%; text-align: center; background: #dc3545;">🔒 Cerrar Caja</a>
+                    <a href="{% url 'caja:cierre_caja' %}" class="btn btn-block btn-danger">🔒 Cerrar Caja</a>
                     {% endif %}
                 </div>
             </div>

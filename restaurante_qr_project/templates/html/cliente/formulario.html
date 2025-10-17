@@ -5,31 +5,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Realiza tu Pedido - Restaurante QR</title>
-    <link rel="stylesheet" href="{% static 'css/cliente/formulario.css' %}">
+    <link rel="stylesheet" href="{% static 'css/cliente/formulario.css' %}?v=11.0">
     <style>
-        /* ✅ ESTILOS PARA MESA PREDETERMINADA */
-        .mesa-info-display {
-            margin-bottom: 20px;
-            text-align: center;
-        }
-
-        .mesa-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 10px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 15px 30px;
-            border-radius: 12px;
-            font-size: 20px;
-            font-weight: 700;
-            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
-        }
-
-        .mesa-icon {
-            font-size: 28px;
-        }
-
+        /* Estilos adicionales para compatibilidad */
         .field-hint {
             display: block;
             margin-top: 5px;
@@ -38,10 +16,9 @@
             font-style: italic;
         }
 
-        /* Mejorar input de número de personas */
         #numberOfPeople {
             font-size: 18px;
-            font-weight: 600;
+            font-weight: 500;
             text-align: center;
         }
     </style>
@@ -50,8 +27,8 @@
     <div class="container">
         <!-- CSRF Token para Django -->
         {% csrf_token %}<div class="header">
-            <h1>🍽️ Realiza tu Pedido</h1>
-            <p>Explora nuestro menú por categorías</p>
+            <h1>Menú</h1>
+            <p>Selecciona tus productos favoritos</p>
         </div>
 
         <form id="orderForm" class="form-section">
@@ -103,22 +80,54 @@
                 <div class="total-items">Productos seleccionados: <span id="totalItems">0</span></div>
             </div>
 
-            <div class="form-group">
-                <label for="paymentMethod">Forma de pago:</label>
-                <select id="paymentMethod" name="paymentMethod" required>
-                    <option value="">Seleccionar método</option>
-                    <option value="efectivo">💵 Efectivo</option>
-                    <option value="qr">📱 Código QR</option>
-                    <option value="tarjeta">💳 Tarjeta</option>
-                </select>
-            </div>
-
             <button type="submit" class="submit-btn" id="submitBtn" disabled>
-                📋 Revisar Pedido
+                📋 Confirmar Pedido
             </button>
         </form>
     </div>
 
-    <script src="{% static 'js/cliente/formulario.js' %}"></script>
+    <!-- ✅ NUEVO: Modal de información del producto -->
+    <div id="productModal" class="modal">
+        <div class="modal-content">
+            <button class="modal-close" onclick="orderSystem.closeProductModal()">&times;</button>
+
+            <div class="modal-body">
+                <div class="modal-image-container">
+                    <img id="modalProductImage" src="" alt="Producto">
+                </div>
+
+                <div class="modal-info">
+                    <h2 id="modalProductName" class="modal-title"></h2>
+                    <p id="modalProductDescription" class="modal-description"></p>
+                    <div id="modalProductPrice" class="modal-price"></div>
+
+                    <!-- ✅ FUTURO: Aquí irán los modificadores en FASE 3 -->
+                    <div id="modalModifiers" class="modal-modifiers">
+                        <!-- Los modificadores se insertarán aquí dinámicamente -->
+                    </div>
+
+                    <div class="modal-quantity-section">
+                        <label>Cantidad:</label>
+                        <div class="modal-quantity-control">
+                            <button type="button" class="quantity-btn" onclick="orderSystem.decreaseModalQuantity()">−</button>
+                            <span id="modalQuantity" class="quantity-display">1</span>
+                            <button type="button" class="quantity-btn" onclick="orderSystem.increaseModalQuantity()">+</button>
+                        </div>
+                    </div>
+
+                    <div class="modal-total">
+                        <span>Subtotal:</span>
+                        <span id="modalSubtotal" class="modal-subtotal-amount">Bs/ 0.00</span>
+                    </div>
+
+                    <button type="button" class="modal-add-btn" onclick="orderSystem.addFromModal()">
+                        ✓ Agregar al Pedido
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="{% static 'js/cliente/formulario.js' %}?v=3.0"></script>
 </body>
 </html>

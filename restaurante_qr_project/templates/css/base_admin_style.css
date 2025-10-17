@@ -1,0 +1,418 @@
+/* ============================================
+   BASE ADMIN STYLE - Diseño tipo WordPress Admin
+   Para usar en todos los paneles del sistema
+   Blanco y Negro con alta legibilidad
+   ============================================ */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+    background: #f0f0f1;
+    color: #1d2327;
+    line-height: 1.6;
+}
+
+/* ============================================
+   HEADER - Negro con información clara
+   ============================================ */
+.header, header {
+    background: #1d2327;
+    color: #ffffff;
+    padding: 20px 30px;
+    border-bottom: 1px solid #000000;
+}
+
+.header h1, header h1 {
+    font-size: 23px;
+    font-weight: 400;
+    margin-bottom: 5px;
+}
+
+.header p, header p {
+    font-size: 13px;
+    color: #c3c4c7;
+}
+
+.user-info {
+    display: flex;
+    gap: 15px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.user-info p {
+    font-size: 13px;
+    margin: 0;
+}
+
+.user-info span {
+    font-size: 13px;
+    color: #c3c4c7;
+}
+
+.user-info strong {
+    color: #ffffff;
+}
+
+/* ============================================
+   BOTONES
+   ============================================ */
+.btn, button.btn, a.btn {
+    background: #2271b1;
+    color: #ffffff !important;
+    border: 1px solid #2271b1;
+    padding: 8px 16px;
+    border-radius: 3px;
+    font-size: 13px;
+    font-weight: 500;
+    text-decoration: none;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: inline-block;
+}
+
+.btn:hover, button.btn:hover, a.btn:hover {
+    background: #135e96;
+    border-color: #135e96;
+}
+
+.btn-primary {
+    background: #2271b1;
+    border-color: #2271b1;
+}
+
+.btn-primary:hover {
+    background: #135e96;
+    border-color: #135e96;
+}
+
+.btn-success {
+    background: #00a32a;
+    border-color: #00a32a;
+}
+
+.btn-success:hover {
+    background: #008a20;
+    border-color: #008a20;
+}
+
+.btn-danger, .logout-btn {
+    background: #d63638;
+    border-color: #d63638;
+    color: #ffffff !important;
+}
+
+.btn-danger:hover, .logout-btn:hover {
+    background: #b32d2e;
+    border-color: #b32d2e;
+}
+
+.btn-secondary {
+    background: #f6f7f7;
+    color: #1d2327 !important;
+    border-color: #c3c4c7;
+}
+
+.btn-secondary:hover {
+    background: #dcdcde;
+    border-color: #a7aaad;
+}
+
+/* ============================================
+   CONTAINER
+   ============================================ */
+.container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+/* ============================================
+   CARDS Y SECCIONES
+   ============================================ */
+.card, .section {
+    background: #ffffff;
+    border: 1px solid #c3c4c7;
+    border-radius: 4px;
+    padding: 20px;
+    box-shadow: 0 1px 1px rgba(0, 0, 0, 0.04);
+    margin-bottom: 20px;
+}
+
+.card-header {
+    padding-bottom: 15px;
+    border-bottom: 1px solid #dcdcde;
+    margin-bottom: 20px;
+}
+
+.card-header h1, .card-header h2, .card-header h3 {
+    font-size: 18px;
+    font-weight: 400;
+    color: #1d2327;
+    margin: 0;
+}
+
+.section h2 {
+    font-size: 18px;
+    font-weight: 400;
+    color: #1d2327;
+    margin-bottom: 20px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #dcdcde;
+}
+
+/* ============================================
+   ALERTS / MENSAJES
+   ============================================ */
+.alert {
+    padding: 12px 15px;
+    border-left: 4px solid;
+    border-radius: 3px;
+    margin-bottom: 20px;
+    font-size: 14px;
+}
+
+.alert-info {
+    background: #f0f6fc;
+    border-left-color: #2271b1;
+    color: #1d2327;
+}
+
+.alert-success {
+    background: #edfaef;
+    border-left-color: #00a32a;
+    color: #1d2327;
+}
+
+.alert-danger {
+    background: #fcf0f1;
+    border-left-color: #d63638;
+    color: #1d2327;
+}
+
+.alert-warning {
+    background: #fcf9e8;
+    border-left-color: #dba617;
+    color: #1d2327;
+}
+
+/* ============================================
+   FORMULARIOS
+   ============================================ */
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    font-weight: 600;
+    color: #1d2327;
+    margin-bottom: 8px;
+    font-size: 14px;
+}
+
+.form-group input[type="text"],
+.form-group input[type="email"],
+.form-group input[type="number"],
+.form-group input[type="date"],
+.form-group input[type="time"],
+.form-group input[type="tel"],
+.form-group select,
+.form-group textarea {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #8c8f94;
+    border-radius: 3px;
+    font-size: 14px;
+    color: #1d2327;
+    background: #ffffff;
+    transition: all 0.2s;
+}
+
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+    border-color: #2271b1;
+    outline: none;
+    box-shadow: 0 0 0 1px #2271b1;
+}
+
+/* ============================================
+   TABLAS
+   ============================================ */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    background: #ffffff;
+    border: 1px solid #c3c4c7;
+}
+
+thead {
+    background: #f6f7f7;
+}
+
+th {
+    padding: 12px 15px;
+    text-align: left;
+    font-weight: 600;
+    color: #1d2327;
+    font-size: 14px;
+    border-bottom: 1px solid #c3c4c7;
+}
+
+td {
+    padding: 12px 15px;
+    border-bottom: 1px solid #dcdcde;
+    color: #1d2327;
+    font-size: 14px;
+}
+
+tbody tr:hover {
+    background: #f6f7f7;
+}
+
+/* ============================================
+   BADGES / ETIQUETAS
+   ============================================ */
+.badge {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 3px;
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 1;
+}
+
+.badge-pendiente {
+    background: #fcf9e8;
+    color: #1d2327;
+    border: 1px solid #dba617;
+}
+
+.badge-preparando {
+    background: #f0f6fc;
+    color: #1d2327;
+    border: 1px solid #2271b1;
+}
+
+.badge-listo {
+    background: #edfaef;
+    color: #1d2327;
+    border: 1px solid #00a32a;
+}
+
+.badge-entregado {
+    background: #f6f7f7;
+    color: #1d2327;
+    border: 1px solid #8c8f94;
+}
+
+.badge-pagado {
+    background: #1d2327;
+    color: #ffffff;
+}
+
+/* ============================================
+   STATS / ESTADÍSTICAS
+   ============================================ */
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 16px;
+    margin-bottom: 30px;
+}
+
+.stat-card {
+    background: #ffffff;
+    border: 1px solid #c3c4c7;
+    border-radius: 4px;
+    padding: 20px;
+    text-align: center;
+    box-shadow: 0 1px 1px rgba(0, 0, 0, 0.04);
+}
+
+.stat-card h3 {
+    font-size: 14px;
+    font-weight: 400;
+    color: #50575e;
+    margin-bottom: 12px;
+}
+
+.stat-card .value {
+    font-size: 32px;
+    font-weight: 400;
+    color: #1d2327;
+    line-height: 1;
+}
+
+/* ============================================
+   EMPTY STATE
+   ============================================ */
+.empty-state, .no-alerts, .no-cierre {
+    text-align: center;
+    padding: 60px 20px;
+    color: #50575e;
+}
+
+.empty-state .icon,
+.no-alerts .icon,
+.no-cierre .icon {
+    font-size: 48px;
+    margin-bottom: 20px;
+    display: block;
+}
+
+.empty-state h3,
+.no-alerts h3,
+.no-cierre h3 {
+    font-size: 18px;
+    font-weight: 400;
+    color: #1d2327;
+    margin-bottom: 8px;
+}
+
+.empty-state p,
+.no-alerts p,
+.no-cierre p {
+    font-size: 14px;
+    color: #646970;
+}
+
+/* ============================================
+   RESPONSIVE
+   ============================================ */
+@media (max-width: 768px) {
+    .container {
+        padding: 15px;
+    }
+
+    .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 12px;
+    }
+
+    .stat-card .value {
+        font-size: 24px;
+    }
+
+    .header, header {
+        padding: 15px 20px;
+    }
+
+    .user-info {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+}
+
+@media (max-width: 480px) {
+    .stats-grid {
+        grid-template-columns: 1fr;
+    }
+}

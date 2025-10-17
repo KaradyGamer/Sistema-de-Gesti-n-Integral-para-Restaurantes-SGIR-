@@ -22,19 +22,19 @@ from app.reservas.models import Reserva
 
 from django.contrib.auth.decorators import login_required
 
-# ✅ Configurar logger
+#  Configurar logger
 logger = logging.getLogger('app.pedidos')
 
-# ──────────────────────────────────────────────
-# 🔓 Cliente – Plantillas públicas
-# ──────────────────────────────────────────────
+# 
+#  Cliente  Plantillas pblicas
+# 
 
 def formulario_cliente(request):
     """Formulario de pedido - puede recibir mesa predeterminada desde mapa"""
-    # ✅ NUEVO: Obtener mesa desde parámetro URL (?mesa=5)
+    #  NUEVO: Obtener mesa desde parmetro URL (?mesa=5)
     mesa_numero = request.GET.get('mesa', None)
 
-    # ✅ NUEVO: Pasar usuario si está autenticado (para meseros)
+    #  NUEVO: Pasar usuario si est autenticado (para meseros)
     context = {
         'mesa_numero': mesa_numero,
         'usuario_id': request.user.id if request.user.is_authenticated else None,
@@ -50,23 +50,26 @@ def vista_exito(request):
     return render(request, 'cliente/exito.html')
 
 def confirmacion_pedido(request):
-    return render(request, 'cliente/confirmacion.html')
+    context = {
+        'usuario_id': request.user.id if request.user.is_authenticated else None,
+    }
+    return render(request, 'cliente/confirmacion.html', context)
 
-# ✅ FUNCIÓN CORREGIDA PARA CREAR PEDIDOS DEL CLIENTE
+#  FUNCIN CORREGIDA PARA CREAR PEDIDOS DEL CLIENTE
 @api_view(['POST'])
-@authentication_classes([])  # ✅ Sin autenticación = sin CSRF
+@authentication_classes([])  #  Sin autenticacin = sin CSRF
 @permission_classes([AllowAny])
-@transaction.atomic  # ✅ Garantiza atomicidad de la transacción
+@transaction.atomic  #  Garantiza atomicidad de la transaccin
 def crear_pedido_cliente(request):
     """
-    Crear pedido desde el cliente - VERSIÓN CORREGIDA PARA COMPATIBILIDAD
+    Crear pedido desde el cliente - VERSIN CORREGIDA PARA COMPATIBILIDAD
     """
     try:
         logger.info("Creando pedido del cliente")
         logger.debug(f"Datos recibidos: {request.data}")
-        logger.debug(f"Método: {request.method}, Content-Type: {request.content_type}")
+        logger.debug(f"Mtodo: {request.method}, Content-Type: {request.content_type}")
         
-        # ✅ CORREGIDO: Obtener datos con múltiples nombres posibles
+        #  CORREGIDO: Obtener datos con mltiples nombres posibles
         mesa_id = (
             request.data.get('mesa_id') or 
             request.data.get('mesa') or 
@@ -82,16 +85,16 @@ def crear_pedido_cliente(request):
         forma_pago = request.data.get('forma_pago', 'efectivo')
         total_enviado = request.data.get('total', 0)
 
-        # ✅ NUEVO: Capturar mesero y número de personas
+        #  NUEVO: Capturar mesero y nmero de personas
         mesero_id = request.data.get('mesero_id') or request.data.get('usuario_id')
         numero_personas = request.data.get('numero_personas')
 
         logger.debug(f"Mesa ID: {mesa_id}, Productos: {len(productos_data)}, Forma pago: {forma_pago}, Total: {total_enviado}, Mesero: {mesero_id}, Personas: {numero_personas}")
 
-        # ✅ Validaciones básicas
+        #  Validaciones bsicas
         if not mesa_id:
             return Response({
-                'error': 'El número de mesa es requerido'
+                'error': 'El nmero de mesa es requerido'
             }, status=status.HTTP_400_BAD_REQUEST)
 
         if not productos_data or len(productos_data) == 0:
@@ -99,19 +102,19 @@ def crear_pedido_cliente(request):
                 'error': 'Debe incluir al menos un producto en el pedido'
             }, status=status.HTTP_400_BAD_REQUEST)
 
-        # ✅ NUEVO: Validar número de personas (#6)
+        #  NUEVO: Validar nmero de personas (#6)
         if not numero_personas or int(numero_personas) < 1:
             return Response({
-                'error': 'El número de personas debe ser al menos 1'
+                'error': 'El nmero de personas debe ser al menos 1'
             }, status=status.HTTP_400_BAD_REQUEST)
 
         numero_personas = int(numero_personas)
 
-        # ✅ CORREGIDO: Buscar la mesa con select_for_update para evitar condiciones de carrera
+        #  CORREGIDO: Buscar la mesa con select_for_update para evitar condiciones de carrera
         try:
-            # Intentar primero por número (más común) con bloqueo de fila
+            # Intentar primero por nmero (ms comn) con bloqueo de fila
             mesa = Mesa.objects.select_for_update().get(numero=mesa_id)
-            logger.debug(f"Mesa encontrada por número (con bloqueo): {mesa}")
+            logger.debug(f"Mesa encontrada por nmero (con bloqueo): {mesa}")
         except Mesa.DoesNotExist:
             try:
                 # Fallback: intentar por ID con bloqueo de fila
@@ -123,13 +126,13 @@ def crear_pedido_cliente(request):
                     'error': f'Mesa {mesa_id} no encontrada'
                 }, status=status.HTTP_404_NOT_FOUND)
 
-        # ✅ NUEVO: Validar que la mesa está disponible (#3)
+        #  NUEVO: Validar que la mesa est disponible (#3)
         if mesa.estado != 'disponible':
             return Response({
-                'error': f'Mesa {mesa.numero} no está disponible (estado actual: {mesa.get_estado_display()})'
+                'error': f'Mesa {mesa.numero} no est disponible (estado actual: {mesa.get_estado_display()})'
             }, status=status.HTTP_400_BAD_REQUEST)
 
-        # ✅ NUEVO: Verificar que no haya pedido activo en la mesa (#3)
+        #  NUEVO: Verificar que no haya pedido activo en la mesa (#3)
         pedido_existente = Pedido.objects.filter(
             mesa=mesa,
             estado__in=['pendiente', 'en preparacion', 'listo']
@@ -140,14 +143,14 @@ def crear_pedido_cliente(request):
                 'error': f'Mesa {mesa.numero} ya tiene un pedido activo'
             }, status=status.HTTP_409_CONFLICT)
 
-        # ✅ NUEVO: Validar capacidad de la mesa (#6)
+        #  NUEVO: Validar capacidad de la mesa (#6)
         capacidad_real = mesa.capacidad_combinada if mesa.es_combinada else mesa.capacidad
         if numero_personas > capacidad_real:
             return Response({
                 'error': f'Mesa {mesa.numero} solo tiene capacidad para {capacidad_real} personas. Solicitado: {numero_personas}'
             }, status=status.HTTP_400_BAD_REQUEST)
 
-        # ✅ Obtener mesero si se proporcionó ID
+        #  Obtener mesero si se proporcion ID
         mesero = None
         if mesero_id:
             from app.usuarios.models import Usuario
@@ -156,7 +159,7 @@ def crear_pedido_cliente(request):
             except Usuario.DoesNotExist:
                 logger.warning(f"Mesero ID {mesero_id} no encontrado")
 
-        # ✅ Crear el pedido con mesero y número de personas
+        #  Crear el pedido con mesero y nmero de personas
         pedido = Pedido.objects.create(
             mesa=mesa,
             fecha=timezone.now(),
@@ -166,7 +169,7 @@ def crear_pedido_cliente(request):
             numero_personas=numero_personas
         )
 
-        # ✅ NUEVO: Cambiar estado de la mesa a 'ocupada'
+        #  NUEVO: Cambiar estado de la mesa a 'ocupada'
         mesa.estado = 'ocupada'
         mesa.save()
 
@@ -176,9 +179,9 @@ def crear_pedido_cliente(request):
         total_calculado = 0
         detalles_creados = []
         
-        # ✅ CORREGIDO: Procesar productos con múltiples formatos
+        #  CORREGIDO: Procesar productos con mltiples formatos
         for item in productos_data:
-            # Obtener ID del producto con múltiples nombres posibles
+            # Obtener ID del producto con mltiples nombres posibles
             producto_id = (
                 item.get('producto_id') or
                 item.get('producto') or
@@ -194,7 +197,7 @@ def crear_pedido_cliente(request):
             try:
                 producto = Producto.objects.get(id=producto_id)
 
-                # ✅ NUEVO: Descontar stock ANTES de crear el detalle (#2)
+                #  NUEVO: Descontar stock ANTES de crear el detalle (#2)
                 stock_descontado = producto.descontar_stock(cantidad)
 
                 if not stock_descontado:
@@ -215,12 +218,12 @@ def crear_pedido_cliente(request):
                 subtotal = producto.precio * cantidad
                 total_calculado += subtotal
 
-                # ✅ NUEVO: Crear detalle del pedido con precio_unitario explícito
+                #  NUEVO: Crear detalle del pedido con precio_unitario explcito
                 detalle = DetallePedido.objects.create(
                     pedido=pedido,
                     producto=producto,
                     cantidad=cantidad,
-                    precio_unitario=producto.precio,  # ✅ Snapshot del precio actual
+                    precio_unitario=producto.precio,  #  Snapshot del precio actual
                     subtotal=subtotal
                 )
 
@@ -239,14 +242,14 @@ def crear_pedido_cliente(request):
                 # Continuar con los otros productos en lugar de fallar completamente
                 continue
 
-        # ✅ Verificar que se crearon detalles
+        #  Verificar que se crearon detalles
         if not detalles_creados:
             pedido.delete()  # Limpiar pedido sin detalles
             return Response({
                 'error': 'No se pudieron procesar los productos del pedido'
             }, status=status.HTTP_400_BAD_REQUEST)
 
-        # ✅ Actualizar total del pedido
+        #  Actualizar total del pedido
         pedido.total = total_calculado
         pedido.save()
 
@@ -273,19 +276,19 @@ def crear_pedido_cliente(request):
             'debug': 'Ver consola del servidor para detalles'
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-# ──────────────────────────────────────────────
-# 👨‍🍳 Cocinero – Vistas HTML
-# ──────────────────────────────────────────────
+# 
+#  Cocinero  Vistas HTML
+# 
 
-# 🔓 Login cocinero (público)
+#  Login cocinero (pblico)
 def login_cocinero(request):
     return render(request, 'login.html')
 
-# 🔐 Panel cocinero (requiere autenticación y rol)
+#  Panel cocinero (requiere autenticacin y rol)
 def panel_cocina(request):
     """Panel del cocinero - Sin decoradores Django"""
     if not request.user.is_authenticated:
-        messages.warning(request, 'Debes iniciar sesión para acceder al panel de cocina.')
+        messages.warning(request, 'Debes iniciar sesin para acceder al panel de cocina.')
         return redirect('/login/')
     
     return render(request, 'cocinero/panel_cocina.html', {
@@ -295,19 +298,19 @@ def panel_cocina(request):
         'nombre_usuario': request.user.first_name or request.user.username,
     })
 
-# ──────────────────────────────────────────────
-# 🧾 Mesero – Vistas HTML protegidas MEJORADAS
-# ──────────────────────────────────────────────
+# 
+#  Mesero  Vistas HTML protegidas MEJORADAS
+# 
 
-# 🔓 Login mesero (público)
+#  Login mesero (pblico)
 def login_mesero(request):
     return render(request, 'login.html')
 
-# 🔐 Panel mesero MEJORADO con pestañas y auto-actualización
+#  Panel mesero MEJORADO con pestaas y auto-actualizacin
 def panel_mesero(request):
-    """Panel mesero mejorado con pestañas de pedidos y reservas"""
+    """Panel mesero mejorado con pestaas de pedidos y reservas"""
     if not request.user.is_authenticated:
-        messages.warning(request, 'Debes iniciar sesión para acceder al panel de mesero.')
+        messages.warning(request, 'Debes iniciar sesin para acceder al panel de mesero.')
         return redirect('/login/')
 
     context = {
@@ -318,14 +321,14 @@ def panel_mesero(request):
     }
     return render(request, 'mesero/panel_mesero.html', context)
 
-# ✅ NUEVO: Mapa de mesas para mesero
+#  NUEVO: Mapa de mesas para mesero
 @login_required
 def mapa_mesas_mesero(request):
     """Mapa visual de mesas para que el mesero seleccione y comande"""
-    # Obtener todas las mesas con su información actualizada
+    # Obtener todas las mesas con su informacin actualizada
     mesas = Mesa.objects.all().order_by('numero')
 
-    # Serializar información de mesas
+    # Serializar informacin de mesas
     mesas_data = []
     for mesa in mesas:
         from app.mesas.utils import obtener_info_mesa_completa
@@ -364,17 +367,17 @@ def mapa_mesas_mesero(request):
     }
     return render(request, 'mesero/mapa_mesas.html', context)
 
-# ✅ FUNCIÓN 1 CORREGIDA: api_pedidos_mesero
+#  FUNCIN 1 CORREGIDA: api_pedidos_mesero
 @login_required
 def api_pedidos_mesero(request):
     """API para obtener pedidos del mesero (listos y entregados) - DJANGO AUTH"""
     try:
-        print(f"🧾 API Pedidos Mesero - Usuario: {request.user}")
-        print(f"🧾 Usuario autenticado: {request.user.is_authenticated}")
+        print(f" API Pedidos Mesero - Usuario: {request.user}")
+        print(f" Usuario autenticado: {request.user.is_authenticated}")
         
         fecha_hoy = date.today()
         
-        # ✅ SOLUCIONADO: Usar 'detalles' en lugar de 'detallepedido_set'
+        #  SOLUCIONADO: Usar 'detalles' en lugar de 'detallepedido_set'
         pedidos_listos = Pedido.objects.filter(
             estado='listo',
             fecha__date=fecha_hoy
@@ -385,14 +388,14 @@ def api_pedidos_mesero(request):
             fecha__date=fecha_hoy
         ).select_related('mesa').prefetch_related('detalles__producto').order_by('-fecha')
         
-        print(f"🧾 Pedidos listos encontrados: {pedidos_listos.count()}")
-        print(f"🧾 Pedidos entregados encontrados: {pedidos_entregados.count()}")
+        print(f" Pedidos listos encontrados: {pedidos_listos.count()}")
+        print(f" Pedidos entregados encontrados: {pedidos_entregados.count()}")
         
         # Serializar pedidos listos
         pedidos_listos_data = []
         for pedido in pedidos_listos:
             try:
-                # ✅ SOLUCIONADO: Usar 'detalles' en lugar de 'detallepedido_set'
+                #  SOLUCIONADO: Usar 'detalles' en lugar de 'detallepedido_set'
                 productos = [detalle.producto.nombre for detalle in pedido.detalles.all()]
             except:
                 productos = [f'Pedido Mesa {pedido.mesa.numero if pedido.mesa else "N/A"}']
@@ -411,7 +414,7 @@ def api_pedidos_mesero(request):
         pedidos_entregados_data = []
         for pedido in pedidos_entregados:
             try:
-                # ✅ SOLUCIONADO: Usar 'detalles' en lugar de 'detallepedido_set'
+                #  SOLUCIONADO: Usar 'detalles' en lugar de 'detallepedido_set'
                 productos = [detalle.producto.nombre for detalle in pedido.detalles.all()]
             except:
                 productos = [f'Pedido Mesa {pedido.mesa.numero if pedido.mesa else "N/A"}']
@@ -432,12 +435,12 @@ def api_pedidos_mesero(request):
             'timestamp': datetime.now().isoformat()
         }
         
-        print(f"✅ Enviando {len(pedidos_listos_data)} pedidos listos y {len(pedidos_entregados_data)} entregados")
+        print(f" Enviando {len(pedidos_listos_data)} pedidos listos y {len(pedidos_entregados_data)} entregados")
         
         return JsonResponse(response_data)
         
     except Exception as e:
-        print(f"❌ Error en api_pedidos_mesero: {str(e)}")
+        print(f" Error en api_pedidos_mesero: {str(e)}")
         import traceback
         traceback.print_exc()
         
@@ -446,51 +449,51 @@ def api_pedidos_mesero(request):
             'error': str(e)
         }, status=500)
 
-# ✅ FUNCIÓN 2 CORREGIDA: api_reservas_mesero
+#  FUNCIN 2 CORREGIDA: api_reservas_mesero
 @login_required
 def api_reservas_mesero(request):
-    """API para obtener reservas del día para el mesero - DJANGO AUTH"""
+    """API para obtener reservas del da para el mesero - DJANGO AUTH"""
     try:
         print("=" * 50)
-        print(f"📅 API RESERVAS MESERO - Usuario: {request.user}")
-        print(f"📅 Usuario autenticado: {request.user.is_authenticated}")
+        print(f" API RESERVAS MESERO - Usuario: {request.user}")
+        print(f" Usuario autenticado: {request.user.is_authenticated}")
         print("=" * 50)
         
         # Obtener fecha actual
         fecha_hoy = timezone.now().date()
         fecha_manana = fecha_hoy + timedelta(days=1)
         
-        print(f"📅 Fecha hoy: {fecha_hoy}")
-        print(f"📅 Fecha mañana: {fecha_manana}")
+        print(f" Fecha hoy: {fecha_hoy}")
+        print(f" Fecha maana: {fecha_manana}")
         
         # Obtener TODAS las reservas para debug
         todas_reservas = Reserva.objects.all()
-        print(f"📊 TOTAL reservas en BD: {todas_reservas.count()}")
+        print(f" TOTAL reservas en BD: {todas_reservas.count()}")
         
         for reserva in todas_reservas:
-            print(f"  📋 Reserva #{reserva.id}: {reserva.nombre_completo} | {reserva.fecha_reserva} | {reserva.estado}")
+            print(f"   Reserva #{reserva.id}: {reserva.nombre_completo} | {reserva.fecha_reserva} | {reserva.estado}")
         
         # Obtener reservas de hoy
         reservas_hoy = Reserva.objects.filter(
             fecha_reserva=fecha_hoy
         ).order_by('hora_reserva')
         
-        print(f"📅 Reservas encontradas para HOY ({fecha_hoy}): {reservas_hoy.count()}")
+        print(f" Reservas encontradas para HOY ({fecha_hoy}): {reservas_hoy.count()}")
         
         # Debug detallado de reservas de hoy
         for reserva in reservas_hoy:
-            print(f"  ✅ Reserva HOY #{reserva.id}: {reserva.nombre_completo}, {reserva.hora_reserva}, Estado: {reserva.estado}")
+            print(f"   Reserva HOY #{reserva.id}: {reserva.nombre_completo}, {reserva.hora_reserva}, Estado: {reserva.estado}")
         
-        # Próximas reservas (mañana en adelante)
+        # Prximas reservas (maana en adelante)
         reservas_proximas = Reserva.objects.filter(
             fecha_reserva__gte=fecha_manana
         ).order_by('fecha_reserva', 'hora_reserva')[:10]
         
-        print(f"📅 Próximas reservas encontradas: {reservas_proximas.count()}")
+        print(f" Prximas reservas encontradas: {reservas_proximas.count()}")
         
-        # Debug próximas reservas
+        # Debug prximas reservas
         for reserva in reservas_proximas:
-            print(f"  🔜 Reserva PRÓXIMA #{reserva.id}: {reserva.nombre_completo}, {reserva.fecha_reserva}, {reserva.hora_reserva}")
+            print(f"   Reserva PRXIMA #{reserva.id}: {reserva.nombre_completo}, {reserva.fecha_reserva}, {reserva.hora_reserva}")
         
         # Serializar reservas de hoy
         reservas_hoy_data = []
@@ -522,9 +525,9 @@ def api_reservas_mesero(request):
             }
             
             reservas_hoy_data.append(reserva_data)
-            print(f"  ✅ Serializada reserva HOY: {reserva.nombre_completo} - {reserva.estado}")
+            print(f"   Serializada reserva HOY: {reserva.nombre_completo} - {reserva.estado}")
         
-        # Serializar próximas reservas
+        # Serializar prximas reservas
         reservas_proximas_data = []
         for reserva in reservas_proximas:
             reserva_data = {
@@ -539,7 +542,7 @@ def api_reservas_mesero(request):
                 'mesa': reserva.mesa.numero if reserva.mesa else None
             }
             reservas_proximas_data.append(reserva_data)
-            print(f"  ✅ Serializada reserva PRÓXIMA: {reserva.nombre_completo}")
+            print(f"   Serializada reserva PRXIMA: {reserva.nombre_completo}")
         
         response_data = {
             'success': True,
@@ -555,15 +558,15 @@ def api_reservas_mesero(request):
             }
         }
         
-        print(f"📅 RESPUESTA FINAL:")
+        print(f" RESPUESTA FINAL:")
         print(f"  - Reservas HOY: {len(reservas_hoy_data)}")
-        print(f"  - Reservas PRÓXIMAS: {len(reservas_proximas_data)}")
+        print(f"  - Reservas PRXIMAS: {len(reservas_proximas_data)}")
         print("=" * 50)
         
         return JsonResponse(response_data)
         
     except Exception as e:
-        print(f"❌ ERROR GRAVE en api_reservas_mesero: {str(e)}")
+        print(f" ERROR GRAVE en api_reservas_mesero: {str(e)}")
         import traceback
         traceback.print_exc()
         
@@ -573,12 +576,12 @@ def api_reservas_mesero(request):
             'mensaje': 'Error al obtener las reservas'
         }, status=500)
 
-# ✅ FUNCIÓN 3 CORREGIDA: api_entregar_pedido
+#  FUNCIN 3 CORREGIDA: api_entregar_pedido
 @login_required  
 def api_entregar_pedido(request, pedido_id):
     """API para marcar un pedido como entregado - DJANGO AUTH"""
     if request.method != 'POST':
-        return JsonResponse({'success': False, 'error': 'Método no permitido'}, status=405)
+        return JsonResponse({'success': False, 'error': 'Mtodo no permitido'}, status=405)
         
     try:
         pedido = Pedido.objects.get(id=pedido_id)
@@ -586,13 +589,13 @@ def api_entregar_pedido(request, pedido_id):
         if pedido.estado != 'listo':
             return JsonResponse({
                 'success': False,
-                'error': 'Solo se pueden entregar pedidos que están listos'
+                'error': 'Solo se pueden entregar pedidos que estn listos'
             }, status=400)
         
         pedido.estado = 'entregado'
         pedido.save()
         
-        print(f"✅ Pedido #{pedido_id} marcado como entregado por {request.user}")
+        print(f" Pedido #{pedido_id} marcado como entregado por {request.user}")
         
         return JsonResponse({
             'success': True,
@@ -606,18 +609,18 @@ def api_entregar_pedido(request, pedido_id):
             'error': 'Pedido no encontrado'
         }, status=404)
     except Exception as e:
-        print(f"❌ Error en api_entregar_pedido: {str(e)}")
+        print(f" Error en api_entregar_pedido: {str(e)}")
         return JsonResponse({
             'success': False,
             'error': str(e)
         }, status=500)
 
-# ✅ FUNCIÓN 4 CORREGIDA: api_confirmar_reserva
+#  FUNCIN 4 CORREGIDA: api_confirmar_reserva
 @login_required
 def api_confirmar_reserva(request, reserva_id):
     """API para confirmar una reserva - DJANGO AUTH"""
     if request.method != 'POST':
-        return JsonResponse({'success': False, 'error': 'Método no permitido'}, status=405)
+        return JsonResponse({'success': False, 'error': 'Mtodo no permitido'}, status=405)
         
     try:
         reserva = Reserva.objects.get(id=reserva_id)
@@ -631,7 +634,7 @@ def api_confirmar_reserva(request, reserva_id):
         reserva.estado = 'confirmada'
         reserva.save()
         
-        print(f"✅ Reserva #{reserva_id} confirmada por {request.user}")
+        print(f" Reserva #{reserva_id} confirmada por {request.user}")
         
         return JsonResponse({
             'success': True,
@@ -646,18 +649,18 @@ def api_confirmar_reserva(request, reserva_id):
             'error': 'Reserva no encontrada'
         }, status=404)
     except Exception as e:
-        print(f"❌ Error en api_confirmar_reserva: {str(e)}")
+        print(f" Error en api_confirmar_reserva: {str(e)}")
         return JsonResponse({
             'success': False,
             'error': str(e)
         }, status=500)
 
-# ✅ FUNCIÓN 5 CORREGIDA: api_cambiar_estado_reserva
+#  FUNCIN 5 CORREGIDA: api_cambiar_estado_reserva
 @login_required
 def api_cambiar_estado_reserva(request, reserva_id):
     """API para cambiar el estado de una reserva - DJANGO AUTH"""
     if request.method != 'POST':
-        return JsonResponse({'success': False, 'error': 'Método no permitido'}, status=405)
+        return JsonResponse({'success': False, 'error': 'Mtodo no permitido'}, status=405)
         
     try:
         import json
@@ -674,7 +677,7 @@ def api_cambiar_estado_reserva(request, reserva_id):
         if nuevo_estado not in estados_validos:
             return JsonResponse({
                 'success': False,
-                'error': f'Estado inválido. Estados válidos: {", ".join(estados_validos)}'
+                'error': f'Estado invlido. Estados vlidos: {", ".join(estados_validos)}'
             }, status=400)
         
         reserva = Reserva.objects.get(id=reserva_id)
@@ -682,7 +685,7 @@ def api_cambiar_estado_reserva(request, reserva_id):
         reserva.estado = nuevo_estado
         reserva.save()
         
-        print(f"✅ Reserva #{reserva_id} cambiada de '{estado_anterior}' a '{nuevo_estado}' por {request.user}")
+        print(f" Reserva #{reserva_id} cambiada de '{estado_anterior}' a '{nuevo_estado}' por {request.user}")
         
         return JsonResponse({
             'success': True,
@@ -698,18 +701,18 @@ def api_cambiar_estado_reserva(request, reserva_id):
             'error': 'Reserva no encontrada'
         }, status=404)
     except Exception as e:
-        print(f"❌ Error en api_cambiar_estado_reserva: {str(e)}")
+        print(f" Error en api_cambiar_estado_reserva: {str(e)}")
         return JsonResponse({
             'success': False,
             'error': str(e)
         }, status=500)
 
-# ✅ FUNCIÓN 6 CORREGIDA: api_asignar_mesa_reserva
+#  FUNCIN 6 CORREGIDA: api_asignar_mesa_reserva
 @login_required
 def api_asignar_mesa_reserva(request, reserva_id):
     """API para asignar mesa a una reserva - DJANGO AUTH"""
     if request.method != 'POST':
-        return JsonResponse({'success': False, 'error': 'Método no permitido'}, status=405)
+        return JsonResponse({'success': False, 'error': 'Mtodo no permitido'}, status=405)
         
     try:
         import json
@@ -719,7 +722,7 @@ def api_asignar_mesa_reserva(request, reserva_id):
         if not mesa_numero:
             return JsonResponse({
                 'success': False,
-                'error': 'Número de mesa requerido'
+                'error': 'Nmero de mesa requerido'
             }, status=400)
         
         reserva = Reserva.objects.get(id=reserva_id)
@@ -736,7 +739,7 @@ def api_asignar_mesa_reserva(request, reserva_id):
         reserva.mesa = mesa
         reserva.save()
         
-        print(f"✅ Mesa {mesa_numero} asignada a reserva #{reserva_id} por {request.user}")
+        print(f" Mesa {mesa_numero} asignada a reserva #{reserva_id} por {request.user}")
         
         return JsonResponse({
             'success': True,
@@ -752,40 +755,40 @@ def api_asignar_mesa_reserva(request, reserva_id):
             'error': 'Reserva no encontrada'
         }, status=404)
     except Exception as e:
-        print(f"❌ Error en api_asignar_mesa_reserva: {str(e)}")
+        print(f" Error en api_asignar_mesa_reserva: {str(e)}")
         return JsonResponse({
             'success': False,
             'error': str(e)
         }, status=500)
 
-# ──────────────────────────────────────────────
-# 🔐 APIs COCINA CORREGIDAS - DJANGO AUTH
-# ──────────────────────────────────────────────
+# 
+#  APIs COCINA CORREGIDAS - DJANGO AUTH
+# 
 
-# ✅ NUEVA FUNCIÓN PARA REEMPLAZAR PedidosEnCocinaAPIView
+#  NUEVA FUNCIN PARA REEMPLAZAR PedidosEnCocinaAPIView
 @login_required
 def pedidos_en_cocina_api(request):
     """API para obtener todos los pedidos para la cocina - DJANGO AUTH"""
     try:
-        # ✅ Debug: Verificar el usuario y rol
-        print(f"🔍 API Cocina - Usuario autenticado: {request.user}")
-        print(f"🔍 Username: {request.user.username}")
+        #  Debug: Verificar el usuario y rol
+        print(f" API Cocina - Usuario autenticado: {request.user}")
+        print(f" Username: {request.user.username}")
         
-        # ✅ CORREGIDO: Solo mostrar pedidos que el cocinero necesita trabajar
+        #  CORREGIDO: Solo mostrar pedidos que el cocinero necesita trabajar
         # Excluir 'listo' y 'entregado' porque ya no son responsabilidad del cocinero
         pedidos = Pedido.objects.filter(
-            estado__in=['pendiente', 'en preparacion']  # ✅ SOLO ESTOS ESTADOS
+            estado__in=['pendiente', 'en preparacion']  #  SOLO ESTOS ESTADOS
         ).order_by('-fecha')
         
-        print(f"✅ Pedidos encontrados para cocina: {pedidos.count()}")
+        print(f" Pedidos encontrados para cocina: {pedidos.count()}")
         
         pedidos_data = []
         for pedido in pedidos:
-            print(f"📦 Procesando pedido ID: {pedido.id}, Mesa: {pedido.mesa}, Estado: {pedido.estado}")
+            print(f" Procesando pedido ID: {pedido.id}, Mesa: {pedido.mesa}, Estado: {pedido.estado}")
             
-            # ✅ SOLUCIONADO: Usar 'detalles' en lugar de 'detallepedido_set'
+            #  SOLUCIONADO: Usar 'detalles' en lugar de 'detallepedido_set'
             try:
-                detalles = pedido.detalles.all()  # ✅ CORREGIDO
+                detalles = pedido.detalles.all()  #  CORREGIDO
                 if detalles.exists():
                     detalles_data = []
                     for detalle in detalles:
@@ -794,9 +797,9 @@ def pedidos_en_cocina_api(request):
                             'producto': detalle.producto.nombre if detalle.producto else 'Producto',
                             'subtotal': float(detalle.subtotal)
                         })
-                    print(f"  📋 Detalles encontrados: {len(detalles_data)}")
+                    print(f"   Detalles encontrados: {len(detalles_data)}")
                 else:
-                    # Si no hay detalles, crear uno genérico
+                    # Si no hay detalles, crear uno genrico
                     detalles_data = [
                         {
                             'cantidad': 1,
@@ -804,10 +807,10 @@ def pedidos_en_cocina_api(request):
                             'subtotal': float(pedido.total)
                         }
                     ]
-                    print(f"  📋 No hay detalles, creando genérico")
+                    print(f"   No hay detalles, creando genrico")
             except Exception as e:
-                print(f"  ❌ Error obteniendo detalles: {str(e)}")
-                # Fallback: usar datos básicos
+                print(f"   Error obteniendo detalles: {str(e)}")
+                # Fallback: usar datos bsicos
                 detalles_data = [
                     {
                         'cantidad': 1,
@@ -816,7 +819,7 @@ def pedidos_en_cocina_api(request):
                     }
                 ]
             
-            # ✅ NUEVO: Información del mesero que comandó
+            #  NUEVO: Informacin del mesero que comand
             mesero_nombre = "Cliente directo"
             if pedido.mesero_comanda:
                 mesero_nombre = f"{pedido.mesero_comanda.first_name} {pedido.mesero_comanda.last_name}".strip() or pedido.mesero_comanda.username
@@ -832,11 +835,11 @@ def pedidos_en_cocina_api(request):
                 'mesero': mesero_nombre
             })
         
-        print(f"✅ Enviando {len(pedidos_data)} pedidos al frontend (solo pendientes y en preparación)")
+        print(f" Enviando {len(pedidos_data)} pedidos al frontend (solo pendientes y en preparacin)")
         return JsonResponse(pedidos_data, safe=False)
         
     except Exception as e:
-        print(f"❌ ERROR GRAVE en pedidos_en_cocina_api: {str(e)}")
+        print(f" ERROR GRAVE en pedidos_en_cocina_api: {str(e)}")
         import traceback
         traceback.print_exc()
         
@@ -845,39 +848,39 @@ def pedidos_en_cocina_api(request):
             'mensaje_debug': 'Ver consola del servidor para detalles'
         }, status=500)
 
-# ✅ FUNCIÓN CORREGIDA: actualizar_estado_pedido
+#  FUNCIN CORREGIDA: actualizar_estado_pedido
 @login_required
 def actualizar_estado_pedido(request, pedido_id):
     """Actualizar estado del pedido - DJANGO AUTH"""
     if request.method != 'PATCH':
-        return JsonResponse({'error': 'Método no permitido'}, status=405)
+        return JsonResponse({'error': 'Mtodo no permitido'}, status=405)
         
     try:
         import json
         data = json.loads(request.body) if request.body else {}
         
-        print(f"🔄 Actualizando pedido {pedido_id}, usuario: {request.user}")
-        print(f"🔄 Datos recibidos: {data}")
+        print(f" Actualizando pedido {pedido_id}, usuario: {request.user}")
+        print(f" Datos recibidos: {data}")
         
         # Buscar el pedido
         pedido = Pedido.objects.get(id=pedido_id)
-        print(f"🔄 Pedido encontrado: {pedido}")
+        print(f" Pedido encontrado: {pedido}")
         
         # Obtener el nuevo estado del request
         nuevo_estado = data.get('estado')
-        print(f"🔄 Nuevo estado solicitado: {nuevo_estado}")
+        print(f" Nuevo estado solicitado: {nuevo_estado}")
         
-        # Validar que se envió un estado
+        # Validar que se envi un estado
         if not nuevo_estado:
             return JsonResponse({
                 'error': 'El campo "estado" es requerido'
             }, status=400)
         
-        # Validar que el estado es válido
+        # Validar que el estado es vlido
         estados_validos = ['pendiente', 'en preparacion', 'listo', 'entregado']
         if nuevo_estado not in estados_validos:
             return JsonResponse({
-                'error': f'Estado inválido. Estados válidos: {", ".join(estados_validos)}'
+                'error': f'Estado invlido. Estados vlidos: {", ".join(estados_validos)}'
             }, status=400)
         
         # Actualizar el estado
@@ -885,7 +888,7 @@ def actualizar_estado_pedido(request, pedido_id):
         pedido.estado = nuevo_estado
         pedido.save()
         
-        print(f"✅ Pedido {pedido_id} actualizado de '{estado_anterior}' a '{nuevo_estado}'")
+        print(f" Pedido {pedido_id} actualizado de '{estado_anterior}' a '{nuevo_estado}'")
         
         return JsonResponse({
             'mensaje': f'Pedido #{pedido_id} actualizado correctamente',
@@ -895,34 +898,34 @@ def actualizar_estado_pedido(request, pedido_id):
         })
 
     except Pedido.DoesNotExist:
-        print(f"❌ Pedido {pedido_id} no encontrado")
+        print(f" Pedido {pedido_id} no encontrado")
         return JsonResponse({
             'error': f'Pedido con ID {pedido_id} no encontrado'
         }, status=404)
     
     except Exception as e:
-        print(f"❌ Error al actualizar pedido {pedido_id}: {str(e)}")
+        print(f" Error al actualizar pedido {pedido_id}: {str(e)}")
         import traceback
         traceback.print_exc()
         return JsonResponse({
             'error': f'Error interno: {str(e)}'
         }, status=500)
 
-# ──────────────────────────────────────────────
-# 🔐 APIs RESTANTES (MANTENER ORIGINALES)
-# ──────────────────────────────────────────────
+# 
+#  APIs RESTANTES (MANTENER ORIGINALES)
+# 
 
-# Función para obtener pedidos por mesa (para meseros)
+# Funcin para obtener pedidos por mesa (para meseros)
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])  # ✅ Temporalmente sin EsMesero
+@permission_classes([IsAuthenticated])  #  Temporalmente sin EsMesero
 def pedidos_por_mesa(request):
     """API para que el mesero vea pedidos por mesa"""
     try:
-        print(f"🧾 Mesero solicitando pedidos por mesa: {request.user}")
+        print(f" Mesero solicitando pedidos por mesa: {request.user}")
         
         # Obtener todas las mesas con pedidos activos
         pedidos = Pedido.objects.exclude(estado='entregado').select_related('mesa').order_by('-fecha')
-        print(f"🧾 Pedidos activos encontrados: {pedidos.count()}")
+        print(f" Pedidos activos encontrados: {pedidos.count()}")
         
         # Agrupar por mesa
         mesas_data = {}
@@ -942,53 +945,53 @@ def pedidos_por_mesa(request):
                 'fecha': pedido.fecha.isoformat()
             })
         
-        print(f"🧾 Enviando datos de {len(mesas_data)} mesas")
+        print(f" Enviando datos de {len(mesas_data)} mesas")
         return Response(list(mesas_data.values()), status=status.HTTP_200_OK)
     
     except Exception as e:
-        print(f"❌ Error en pedidos_por_mesa: {str(e)}")
+        print(f" Error en pedidos_por_mesa: {str(e)}")
         return Response({
             'error': f'Error al obtener pedidos por mesa: {str(e)}'
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-# Función para marcar pedido como entregado (para meseros) - FUNCIÓN ORIGINAL
+# Funcin para marcar pedido como entregado (para meseros) - FUNCIN ORIGINAL
 @api_view(['PATCH'])
-@permission_classes([IsAuthenticated])  # ✅ Temporalmente sin EsMesero
+@permission_classes([IsAuthenticated])  #  Temporalmente sin EsMesero
 def marcar_entregado(request, pedido_id):
     """Marcar pedido como entregado"""
     try:
-        print(f"📦 Marcando pedido {pedido_id} como entregado, usuario: {request.user}")
+        print(f" Marcando pedido {pedido_id} como entregado, usuario: {request.user}")
         
         pedido = Pedido.objects.get(id=pedido_id)
         pedido.estado = 'entregado'
         pedido.save()
         
-        print(f"✅ Pedido {pedido_id} marcado como entregado")
+        print(f" Pedido {pedido_id} marcado como entregado")
         
         return Response({
             'mensaje': f'Pedido #{pedido_id} marcado como entregado'
         }, status=status.HTTP_200_OK)
         
     except Pedido.DoesNotExist:
-        print(f"❌ Pedido {pedido_id} no encontrado para marcar como entregado")
+        print(f" Pedido {pedido_id} no encontrado para marcar como entregado")
         return Response({
             'error': f'Pedido con ID {pedido_id} no encontrado'
         }, status=status.HTTP_404_NOT_FOUND)
     except Exception as e:
-        print(f"❌ Error al marcar como entregado: {str(e)}")
+        print(f" Error al marcar como entregado: {str(e)}")
         return Response({
             'error': f'Error: {str(e)}'
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-# 🔄 CRUD completo (opcional si usas routers)
+#  CRUD completo (opcional si usas routers)
 class PedidoViewSet(viewsets.ModelViewSet):
     queryset = Pedido.objects.all().order_by('-fecha')
     serializer_class = PedidoSerializer
     permission_classes = [IsAuthenticated]
 
-# ──────────────────────────────────────────────
-# 📝 MODIFICACIÓN DE PEDIDOS CON STOCK
-# ──────────────────────────────────────────────
+# 
+#  MODIFICACIN DE PEDIDOS CON STOCK
+# 
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
@@ -1009,7 +1012,7 @@ def modificar_pedido_api(request, pedido_id):
         from .utils import modificar_pedido_con_stock
         import json
 
-        logger.info(f"Usuario {request.user} solicitando modificación de pedido #{pedido_id}")
+        logger.info(f"Usuario {request.user} solicitando modificacin de pedido #{pedido_id}")
 
         # Obtener productos desde el request
         productos_nuevos = request.data.get('productos', {})
@@ -1024,7 +1027,7 @@ def modificar_pedido_api(request, pedido_id):
             int(k): int(v) for k, v in productos_nuevos.items()
         }
 
-        # Llamar a la función de modificación
+        # Llamar a la funcin de modificacin
         resultado = modificar_pedido_con_stock(pedido_id, productos_nuevos)
 
         return Response({
@@ -1035,7 +1038,7 @@ def modificar_pedido_api(request, pedido_id):
         }, status=status.HTTP_200_OK)
 
     except ValueError as e:
-        logger.warning(f"Error de validación modificando pedido #{pedido_id}: {str(e)}")
+        logger.warning(f"Error de validacin modificando pedido #{pedido_id}: {str(e)}")
         return Response({
             'error': str(e)
         }, status=status.HTTP_400_BAD_REQUEST)
@@ -1051,8 +1054,8 @@ def modificar_pedido_api(request, pedido_id):
 @permission_classes([IsAuthenticated])
 def eliminar_producto_pedido_api(request, pedido_id, producto_id):
     """
-    API para eliminar un producto específico de un pedido.
-    Solo elimina la cantidad NO pagada. Si todo está pagado, devuelve error.
+    API para eliminar un producto especfico de un pedido.
+    Solo elimina la cantidad NO pagada. Si todo est pagado, devuelve error.
     """
     try:
         from .utils import eliminar_producto_de_pedido
@@ -1087,8 +1090,8 @@ def eliminar_producto_pedido_api(request, pedido_id, producto_id):
 @permission_classes([IsAuthenticated])
 def resumen_modificacion_pedido_api(request, pedido_id):
     """
-    API para obtener información detallada del pedido antes de modificarlo.
-    Muestra qué productos pueden ser modificados y cuáles están pagados.
+    API para obtener informacin detallada del pedido antes de modificarlo.
+    Muestra qu productos pueden ser modificados y cules estn pagados.
     """
     try:
         from .utils import obtener_resumen_modificacion

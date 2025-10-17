@@ -407,6 +407,23 @@ coverage html
 4. Enviar pedido
 5. Pedido llega directamente a cocina
 
+### 📱 Ver Códigos QR
+
+Accede a la página de visualización de QR para imprimir o escanear:
+
+**URL:** `/usuarios/qr/`
+
+**Muestra:**
+- Todos los QR de mesas (15 en total)
+- QR de empleados para login automático
+- IP actual del servidor
+- Interfaz responsive y hermosa
+
+**Uso:**
+1. Abre la URL en navegador
+2. Escanea QR desde pantalla
+3. O imprime para uso físico
+
 ---
 
 ## 🔌 API REST
@@ -463,6 +480,33 @@ El sistema genera logs automáticos en `logs/`:
 - `errors.log` - Solo errores (ERROR, CRITICAL)
 
 Rotación automática: 5MB por archivo, 5 backups
+
+### Configuración de Red (QR Codes)
+
+Para que los códigos QR funcionen en diferentes redes:
+
+**1. Edita `.env` y configura la variable `QR_HOST`:**
+```env
+# Para desarrollo local
+QR_HOST=localhost:8000
+
+# Para red local (WiFi)
+QR_HOST=192.168.1.100:8000
+
+# Para producción (dominio)
+QR_HOST=tu-dominio.com
+```
+
+**2. Regenera los QR cuando cambies de red:**
+```bash
+# Mesas
+python scripts/regenerar_qr.py 192.168.1.100:8000
+
+# Empleados
+python scripts/regenerar_qr_empleados.py 192.168.1.100:8000
+```
+
+**3. Verifica en:** `http://tu-ip:8000/usuarios/qr/`
 
 ### Seguridad en Producción
 
@@ -585,6 +629,71 @@ python scripts/actualizar_mesas.py
 - Distribuye mesas en grid 4x4
 
 **Cuándo usar:** Después de agregar mesas manualmente o si el mapa no muestra posiciones
+
+---
+
+#### 4. `regenerar_qr.py` - Regenerar QR de mesas
+
+Regenera todos los códigos QR de mesas con una nueva IP/dominio.
+
+**Ejecutar:**
+```bash
+python scripts/regenerar_qr.py IP:PUERTO
+```
+
+**Ejemplo:**
+```bash
+python scripts/regenerar_qr.py 192.168.1.100:8000
+```
+
+**Qué hace:**
+- Elimina QR antiguos
+- Genera nuevos QR con la IP especificada
+- Actualiza la base de datos
+- Guarda en `media/qrcodes/`
+
+**Cuándo usar:** Cuando cambies de red o IP del servidor
+
+---
+
+#### 5. `regenerar_qr_empleados.py` - Regenerar QR de empleados
+
+Regenera códigos QR de meseros y cocineros para login automático.
+
+**Ejecutar:**
+```bash
+python scripts/regenerar_qr_empleados.py IP:PUERTO
+```
+
+**Ejemplo:**
+```bash
+python scripts/regenerar_qr_empleados.py 192.168.1.100:8000
+```
+
+**Qué hace:**
+- Genera QR con tokens de autenticación
+- Guarda en `media/qr_empleados/`
+- Los empleados pueden escanear para login sin contraseña
+
+**Cuándo usar:** Cuando cambies de red o agregues nuevos empleados
+
+---
+
+#### 6. `verificar_qr_empleados.py` - Verificar tokens QR
+
+Verifica que los tokens QR de empleados sean válidos.
+
+**Ejecutar:**
+```bash
+python scripts/verificar_qr_empleados.py
+```
+
+**Qué muestra:**
+- Usuarios con QR habilitado
+- Tokens actuales
+- URLs completas de autenticación
+
+**Cuándo usar:** Para debugging o auditoría de QR
 
 ---
 

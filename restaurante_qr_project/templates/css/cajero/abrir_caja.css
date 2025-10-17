@@ -1,3 +1,8 @@
+/* ============================================
+   DISEÑO NEGRO DOMINANTE - Tema Oscuro
+   Aplicado automáticamente
+   ============================================ */
+
 * {
             margin: 0;
             padding: 0;
@@ -6,7 +11,7 @@
 
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: #2d2d2d;
             min-height: 100vh;
             padding: 20px;
             display: flex;
@@ -20,10 +25,10 @@
         }
 
         .card {
-            background: white;
+            background: #2d2d2d;
             padding: 40px;
-            border-radius: 15px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            border-radius: 8px;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
         }
 
         .card-header {
@@ -37,18 +42,18 @@
         }
 
         .card-header h1 {
-            color: #333;
+            color: #e0e0e0;
             font-size: 28px;
             margin-bottom: 10px;
         }
 
         .card-header p {
-            color: #666;
+            color: #b0b0b0;
             font-size: 14px;
         }
 
         .user-info-box {
-            background: #f8f9fa;
+            background: #2d2d2d;
             padding: 20px;
             border-radius: 10px;
             margin-bottom: 30px;
@@ -67,12 +72,12 @@
         }
 
         .user-info-box .label {
-            color: #666;
+            color: #b0b0b0;
             font-weight: bold;
         }
 
         .user-info-box .value {
-            color: #333;
+            color: #e0e0e0;
         }
 
         .form-group {
@@ -82,13 +87,13 @@
         .form-group label {
             display: block;
             font-weight: bold;
-            color: #333;
+            color: #e0e0e0;
             margin-bottom: 8px;
         }
 
         .form-group .hint {
             font-size: 12px;
-            color: #666;
+            color: #b0b0b0;
             margin-bottom: 8px;
         }
 
@@ -116,7 +121,7 @@
         }
 
         .money-input .currency {
-            background: #667eea;
+            background: #000000;
             color: white;
             padding: 15px 20px;
             border-radius: 8px;
@@ -140,7 +145,7 @@
         .alert-info {
             background: #d1ecf1;
             border: 1px solid #bee5eb;
-            color: #0c5460;
+            color: #ffffff;
         }
 
         .alert-warning {
@@ -158,7 +163,7 @@
         .alert-success {
             background: #d4edda;
             border: 1px solid #c3e6cb;
-            color: #155724;
+            color: #ffffff;
         }
 
         .buttons {
@@ -182,14 +187,14 @@
         }
 
         .btn-primary {
-            background: #667eea;
+            background: #000000;
             color: white;
         }
 
         .btn-primary:hover {
             background: #5568d3;
             transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
         }
 
         .btn-secondary {
@@ -247,3 +252,30 @@
                 text-align: center;
             }
         }
+
+/* ========================================
+   RESPONSIVE - TODOS LOS DISPOSITIVOS
+   ======================================== */
+
+@media (max-width: 480px) {
+    body { font-size: 14px; }
+    .container { padding: 10px; }
+    h1 { font-size: 1.5em; }
+    h2 { font-size: 1.3em; }
+    h3 { font-size: 1.1em; }
+    button, .btn { width: 100%; margin-bottom: 10px; }
+    .header, .form-section, .card { padding: 15px; }
+    table { font-size: 12px; }
+    .grid { grid-template-columns: 1fr; }
+}
+
+@media (min-width: 481px) and (max-width: 768px) {
+    .container { padding: 15px; }
+    h1 { font-size: 1.8em; }
+    h2 { font-size: 1.5em; }
+}
+
+@media (max-height: 500px) and (orientation: landscape) {
+    .container { padding: 10px; }
+    h1 { font-size: 1.2em; }
+}

@@ -1,3 +1,8 @@
+/* ============================================
+   DISEÑO NEGRO DOMINANTE - Tema Oscuro
+   Aplicado automáticamente
+   ============================================ */
+
 * {
             margin: 0;
             padding: 0;
@@ -6,7 +11,7 @@
 
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: #2d2d2d;
             min-height: 100vh;
             padding: 20px;
         }
@@ -17,7 +22,7 @@
         }
 
         .header {
-            background: white;
+            background: #2d2d2d;
             padding: 20px;
             border-radius: 10px;
             margin-bottom: 20px;
@@ -28,7 +33,7 @@
         }
 
         .header h1 {
-            color: #333;
+            color: #e0e0e0;
             font-size: 24px;
         }
 
@@ -50,7 +55,7 @@
         }
 
         .btn-primary {
-            background: #667eea;
+            background: #000000;
             color: white;
         }
 
@@ -89,7 +94,7 @@
         }
 
         .stat-box {
-            background: white;
+            background: #2d2d2d;
             padding: 20px;
             border-radius: 10px;
             box-shadow: 0 2px 10px rgba(0,0,0,0.1);
@@ -109,12 +114,12 @@
         }
 
         .stat-box .label {
-            color: #666;
+            color: #b0b0b0;
             font-size: 14px;
         }
 
         .card {
-            background: white;
+            background: #2d2d2d;
             padding: 25px;
             border-radius: 10px;
             box-shadow: 0 2px 10px rgba(0,0,0,0.1);
@@ -122,7 +127,7 @@
         }
 
         .card h2 {
-            color: #333;
+            color: #e0e0e0;
             margin-bottom: 20px;
             padding-bottom: 10px;
             border-bottom: 2px solid #667eea;
@@ -136,8 +141,8 @@
         }
 
         .empleado-card {
-            background: #f8f9fa;
-            border: 2px solid #e1e5e9;
+            background: #2d2d2d;
+            border: 2px solid #404040;
             border-radius: 10px;
             padding: 20px;
             transition: all 0.3s;
@@ -145,7 +150,7 @@
 
         .empleado-card:hover {
             transform: translateY(-5px);
-            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
             border-color: #667eea;
         }
 
@@ -160,7 +165,7 @@
             width: 60px;
             height: 60px;
             border-radius: 50%;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: #2d2d2d;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -176,13 +181,13 @@
         .empleado-nombre {
             font-size: 18px;
             font-weight: bold;
-            color: #333;
+            color: #e0e0e0;
             margin-bottom: 5px;
         }
 
         .empleado-rol {
             font-size: 14px;
-            color: #666;
+            color: #b0b0b0;
         }
 
         .empleado-detalles {
@@ -201,12 +206,12 @@
         }
 
         .detalle-label {
-            color: #666;
+            color: #b0b0b0;
             font-size: 14px;
         }
 
         .detalle-value {
-            color: #333;
+            color: #e0e0e0;
             font-weight: 600;
             font-size: 14px;
         }
@@ -214,14 +219,14 @@
         .badge {
             display: inline-block;
             padding: 4px 12px;
-            border-radius: 15px;
+            border-radius: 8px;
             font-size: 12px;
             font-weight: bold;
         }
 
         .badge-success {
             background: #d4edda;
-            color: #155724;
+            color: #ffffff;
         }
 
         .badge-warning {
@@ -257,9 +262,9 @@
         }
 
         .modal-content {
-            background: white;
+            background: #2d2d2d;
             padding: 30px;
-            border-radius: 15px;
+            border-radius: 8px;
             max-width: 500px;
             width: 90%;
             text-align: center;
@@ -270,13 +275,13 @@
         }
 
         .modal-header h3 {
-            color: #333;
+            color: #e0e0e0;
             font-size: 24px;
             margin-bottom: 10px;
         }
 
         .qr-container {
-            background: white;
+            background: #2d2d2d;
             padding: 20px;
             border-radius: 10px;
             display: inline-block;
@@ -291,7 +296,7 @@
         }
 
         .qr-info {
-            background: #f8f9fa;
+            background: #2d2d2d;
             padding: 15px;
             border-radius: 8px;
             margin-top: 20px;
@@ -300,12 +305,12 @@
 
         .qr-info p {
             margin: 8px 0;
-            color: #666;
+            color: #b0b0b0;
             font-size: 14px;
         }
 
         .qr-info strong {
-            color: #333;
+            color: #e0e0e0;
         }
 
         .modal-actions {
@@ -321,7 +326,7 @@
         .no-empleados {
             text-align: center;
             padding: 50px;
-            color: #666;
+            color: #b0b0b0;
         }
 
         .no-empleados .icon {
@@ -355,3 +360,30 @@
                 display: none;
             }
         }
+
+/* ========================================
+   RESPONSIVE - TODOS LOS DISPOSITIVOS
+   ======================================== */
+
+@media (max-width: 480px) {
+    body { font-size: 14px; }
+    .container { padding: 10px; }
+    h1 { font-size: 1.5em; }
+    h2 { font-size: 1.3em; }
+    h3 { font-size: 1.1em; }
+    button, .btn { width: 100%; margin-bottom: 10px; }
+    .header, .form-section, .card { padding: 15px; }
+    table { font-size: 12px; }
+    .grid { grid-template-columns: 1fr; }
+}
+
+@media (min-width: 481px) and (max-width: 768px) {
+    .container { padding: 15px; }
+    h1 { font-size: 1.8em; }
+    h2 { font-size: 1.5em; }
+}
+
+@media (max-height: 500px) and (orientation: landscape) {
+    .container { padding: 10px; }
+    h1 { font-size: 1.2em; }
+}

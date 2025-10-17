@@ -5,6 +5,8 @@ class RestaurantOrderSystem {
                 this.cart = {};
                 this.total = 0;
                 this.activeTab = null;
+                this.modalProduct = null;  // ✅ NUEVO: producto actual en modal
+                this.modalQuantity = 1;    // ✅ NUEVO: cantidad en modal
                 this.init();
             }
 
@@ -32,12 +34,13 @@ class RestaurantOrderSystem {
                 categories.forEach((category, index) => {
                     const isActive = index === 0 ? 'active' : '';
                     const categoryIcon = this.getCategoryIcon(category);
-                    
+
                     tabsHTML += `
-                        <button type="button" class="tab-button ${isActive}" 
-                                onclick="orderSystem.switchTab('${category}')" 
+                        <button type="button" class="tab-button ${isActive}"
+                                onclick="orderSystem.switchTab('${category}')"
                                 data-category="${category}">
-                            ${categoryIcon} ${category}
+                            <span class="tab-icon">${categoryIcon}</span>
+                            <span class="tab-text">${category}</span>
                         </button>
                     `;
                 });
@@ -149,13 +152,13 @@ class RestaurantOrderSystem {
                     
                     html += `
                         <div class="product-card" data-product-id="${product.id}">
-                            <div class="product-image">
-                                <img src="${imageUrl}" 
-                                     alt="${product.nombre}" 
+                            <div class="product-image" onclick="orderSystem.openProductModal(${product.id})" style="cursor: pointer;">
+                                <img src="${imageUrl}"
+                                     alt="${product.nombre}"
                                      loading="lazy"
                                      onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1565299624946-b28f40a0ca4b?w=300&h=200&fit=crop&crop=center';">
                             </div>
-                            <div class="product-info">
+                            <div class="product-info" onclick="orderSystem.openProductModal(${product.id})" style="cursor: pointer;">
                                 <div class="product-name">${product.nombre}</div>
                                 <div class="product-description">${product.descripcion || 'Delicioso producto preparado con ingredientes frescos'}</div>
                                 <div class="product-price">Bs/ ${parseFloat(product.precio).toFixed(2)}</div>
@@ -206,19 +209,24 @@ class RestaurantOrderSystem {
             // ✅ FUNCIÓN EXISTENTE MODIFICADA: Cargar pedido pendiente
             loadPendingOrder() {
                 try {
+                    // Obtener número de mesa desde URL (tiene prioridad)
+                    const urlParams = new URLSearchParams(window.location.search);
+                    const mesaFromUrl = urlParams.get('mesa');
+
                     const pendingOrder = localStorage.getItem('pendingOrder');
                     if (pendingOrder) {
                         const orderData = JSON.parse(pendingOrder);
                         console.log('🔄 Cargando pedido pendiente:', orderData);
-                        
-                        if (orderData.mesa || orderData.mesa_id) {
+
+                        // Si hay mesa en URL, usar esa; sino usar la del localStorage
+                        if (mesaFromUrl) {
+                            document.getElementById('tableNumber').value = mesaFromUrl;
+                            console.log('✅ Número de mesa desde URL:', mesaFromUrl);
+                        } else if (orderData.mesa || orderData.mesa_id) {
                             document.getElementById('tableNumber').value = orderData.mesa || orderData.mesa_id;
                         }
-                        
-                        if (orderData.forma_pago) {
-                            document.getElementById('paymentMethod').value = orderData.forma_pago;
-                        }
-                        
+
+
                         if (orderData.productos && Array.isArray(orderData.productos)) {
                             this.cart = {};
                             orderData.productos.forEach(producto => {
@@ -229,11 +237,15 @@ class RestaurantOrderSystem {
                                 }
                             });
                         }
-                        
+
                         setTimeout(() => {
                             this.renderTabs();
                             this.updateDisplay();
                         }, 500);
+                    } else if (mesaFromUrl) {
+                        // No hay pedido pendiente pero sí hay mesa en URL
+                        document.getElementById('tableNumber').value = mesaFromUrl;
+                        console.log('✅ Número de mesa desde URL (sin pedido previo):', mesaFromUrl);
                     }
                 } catch (error) {
                     console.error('Error cargando pedido pendiente:', error);
@@ -389,18 +401,27 @@ class RestaurantOrderSystem {
                     e.preventDefault();
                     this.submitOrder();
                 });
+
+                // ✅ NUEVO: Cerrar modal al hacer clic fuera
+                const modal = document.getElementById('productModal');
+                if (modal) {
+                    modal.addEventListener('click', (e) => {
+                        if (e.target === modal) {
+                            this.closeProductModal();
+                        }
+                    });
+                }
             }
 
             async submitOrder() {
                 const tableNumber = document.getElementById('tableNumber').value;
-                const paymentMethod = document.getElementById('paymentMethod').value;
                 // ✅ NUEVO: Capturar número de personas
                 const numberOfPeople = document.getElementById('numberOfPeople')?.value;
                 // ✅ NUEVO: Capturar ID del usuario (mesero)
                 const userId = document.getElementById('userId')?.value;
 
-                if (!tableNumber || !paymentMethod) {
-                    alert('❌ Por favor completa el número de mesa y la forma de pago');
+                if (!tableNumber) {
+                    alert('❌ Por favor completa el número de mesa');
                     return;
                 }
 
@@ -444,7 +465,6 @@ class RestaurantOrderSystem {
                         mesa: parseInt(tableNumber),
                         numero_mesa: parseInt(tableNumber),
                         numero_personas: parseInt(numberOfPeople),  // ✅ NUEVO
-                        forma_pago: paymentMethod,
                         productos: productosDetallados,
                         detalles: productosDetallados,
                         total: parseFloat(this.total.toFixed(2))
@@ -532,11 +552,94 @@ class RestaurantOrderSystem {
                 }, 5000);
             }
 
+            // ✅ NUEVO: Abrir modal de producto
+            openProductModal(productId) {
+                console.log('🔍 Abriendo modal para producto ID:', productId);
+                const product = this.findProductById(productId);
+                if (!product) {
+                    console.error('❌ Producto no encontrado:', productId);
+                    return;
+                }
+                console.log('✅ Producto encontrado:', product);
+
+                this.modalProduct = product;
+                this.modalQuantity = this.cart[productId] || 1;
+
+                // Actualizar contenido del modal
+                document.getElementById('modalProductName').textContent = product.nombre;
+                document.getElementById('modalProductDescription').textContent = product.descripcion || 'Delicioso producto preparado con ingredientes frescos';
+                document.getElementById('modalProductPrice').textContent = `Bs/ ${parseFloat(product.precio).toFixed(2)}`;
+
+                const imageUrl = this.getProductImage(product);
+                document.getElementById('modalProductImage').src = imageUrl;
+                document.getElementById('modalProductImage').alt = product.nombre;
+
+                document.getElementById('modalQuantity').textContent = this.modalQuantity;
+                this.updateModalSubtotal();
+
+                // Mostrar modal
+                const modal = document.getElementById('productModal');
+                modal.classList.add('active');
+                document.body.style.overflow = 'hidden'; // Prevenir scroll
+            }
+
+            // ✅ NUEVO: Cerrar modal
+            closeProductModal() {
+                const modal = document.getElementById('productModal');
+                modal.classList.remove('active');
+                document.body.style.overflow = ''; // Restaurar scroll
+                this.modalProduct = null;
+                this.modalQuantity = 1;
+            }
+
+            // ✅ NUEVO: Incrementar cantidad en modal
+            increaseModalQuantity() {
+                this.modalQuantity++;
+                document.getElementById('modalQuantity').textContent = this.modalQuantity;
+                this.updateModalSubtotal();
+            }
+
+            // ✅ NUEVO: Decrementar cantidad en modal
+            decreaseModalQuantity() {
+                if (this.modalQuantity > 1) {
+                    this.modalQuantity--;
+                    document.getElementById('modalQuantity').textContent = this.modalQuantity;
+                    this.updateModalSubtotal();
+                }
+            }
+
+            // ✅ NUEVO: Actualizar subtotal del modal
+            updateModalSubtotal() {
+                if (this.modalProduct) {
+                    const subtotal = parseFloat(this.modalProduct.precio) * this.modalQuantity;
+                    document.getElementById('modalSubtotal').textContent = `Bs/ ${subtotal.toFixed(2)}`;
+                }
+            }
+
+            // ✅ NUEVO: Agregar producto desde el modal
+            addFromModal() {
+                if (!this.modalProduct) return;
+
+                // Agregar o actualizar cantidad en el carrito
+                this.cart[this.modalProduct.id] = this.modalQuantity;
+
+                // Actualizar display principal
+                this.updateDisplay();
+
+                // Actualizar el botón de cantidad en la tarjeta del producto
+                this.updateQuantityButton(this.modalProduct.id);
+
+                // Cerrar modal
+                this.closeProductModal();
+
+                // Mostrar mensaje de éxito
+                this.showSuccess(`✓ ${this.modalProduct.nombre} agregado al pedido`);
+            }
+
             resetForm() {
                 this.cart = {};
                 this.total = 0;
                 document.getElementById('tableNumber').value = '';
-                document.getElementById('paymentMethod').value = '';
                 this.renderTabs();
                 this.updateDisplay();
             }
@@ -545,5 +648,7 @@ class RestaurantOrderSystem {
         // Inicializar el sistema cuando se carga la página
         let orderSystem;
         document.addEventListener('DOMContentLoaded', () => {
+            console.log('🚀 Iniciando sistema de pedidos...');
             orderSystem = new RestaurantOrderSystem();
+            console.log('✅ Sistema de pedidos iniciado:', orderSystem);
         });

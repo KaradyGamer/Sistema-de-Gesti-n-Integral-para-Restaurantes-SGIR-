@@ -1,3 +1,8 @@
+/* ============================================
+   DISEÑO NEGRO DOMINANTE - Tema Oscuro
+   Aplicado automáticamente
+   ============================================ */
+
 * { 
             margin: 0; 
             padding: 0; 
@@ -6,7 +11,7 @@
         
         body { 
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+            background: #2d2d2d; 
             min-height: 100vh; 
             padding: 20px;
         }
@@ -17,8 +22,8 @@
         }
         
         .card { 
-            background: white; 
-            border-radius: 15px; 
+            background: #2d2d2d; 
+            border-radius: 8px; 
             box-shadow: 0 15px 35px rgba(0,0,0,0.1); 
             padding: 30px; 
             margin-top: 20px; 
@@ -30,13 +35,13 @@
         }
         
         .header h1 { 
-            color: #333; 
+            color: #e0e0e0; 
             font-size: 2.2em; 
             margin-bottom: 10px; 
         }
         
         .header p { 
-            color: #666; 
+            color: #b0b0b0; 
             font-size: 1.1em; 
         }
         
@@ -48,13 +53,13 @@
             display: block; 
             margin-bottom: 8px; 
             font-weight: 600; 
-            color: #333; 
+            color: #e0e0e0; 
         }
         
         .form-control { 
             width: 100%; 
             padding: 12px; 
-            border: 2px solid #e1e1e1; 
+            border: 2px solid #404040; 
             border-radius: 8px; 
             font-size: 16px; 
             transition: border-color 0.3s; 
@@ -75,7 +80,7 @@
         }
         
         .btn-primary { 
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+            background: #2d2d2d; 
             color: white; 
             padding: 15px 30px; 
             border: none; 
@@ -105,7 +110,7 @@
         .mesas-disponibles { 
             margin-top: 15px; 
             padding: 15px; 
-            background: #f8f9fa; 
+            background: #2d2d2d; 
             border-radius: 8px; 
         }
         
@@ -127,7 +132,7 @@
         
         .alert-success { 
             background: #d4edda; 
-            color: #155724; 
+            color: #ffffff; 
             border: 1px solid #c3e6cb; 
         }
         
@@ -173,3 +178,30 @@
                 padding: 20px;
             }
         }
+
+/* ========================================
+   RESPONSIVE - TODOS LOS DISPOSITIVOS
+   ======================================== */
+
+@media (max-width: 480px) {
+    body { font-size: 14px; }
+    .container { padding: 10px; }
+    h1 { font-size: 1.5em; }
+    h2 { font-size: 1.3em; }
+    h3 { font-size: 1.1em; }
+    button, .btn { width: 100%; margin-bottom: 10px; }
+    .header, .form-section, .card { padding: 15px; }
+    table { font-size: 12px; }
+    .grid { grid-template-columns: 1fr; }
+}
+
+@media (min-width: 481px) and (max-width: 768px) {
+    .container { padding: 15px; }
+    h1 { font-size: 1.8em; }
+    h2 { font-size: 1.5em; }
+}
+
+@media (max-height: 500px) and (orientation: landscape) {
+    .container { padding: 10px; }
+    h1 { font-size: 1.2em; }
+}

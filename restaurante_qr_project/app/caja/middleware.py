@@ -36,8 +36,11 @@ class JornadaLaboralMiddleware:
 
         # Si el usuario no está autenticado, continuar
         if not request.user.is_authenticated:
+            print(f"[MIDDLEWARE] Usuario NO autenticado en {request.path}")
             response = self.get_response(request)
             return response
+
+        print(f"[MIDDLEWARE] Usuario autenticado: {request.user.username} en {request.path}")
 
         # ✅ MEJORADO: Verificar que el usuario tenga atributo 'rol'
         try:
@@ -60,26 +63,20 @@ class JornadaLaboralMiddleware:
         # SOLO para meseros y cocineros: verificar jornada activa
         if user_rol in ['mesero', 'cocinero']:
             from .models import JornadaLaboral
-            from django.core.cache import cache
 
-            # ✅ OPTIMIZACIÓN: Usar caché para reducir consultas a BD
-            cache_key = 'jornada_activa'
-            jornada_activa = cache.get(cache_key)
-
-            if jornada_activa is None:
-                # No está en caché, consultar BD
-                jornada_activa = JornadaLaboral.hay_jornada_activa()
-                # Cachear por 60 segundos
-                cache.set(cache_key, jornada_activa, 60)
+            # Consultar SIEMPRE la BD (sin caché para evitar problemas)
+            jornada_activa = JornadaLaboral.hay_jornada_activa()
+            print(f"[MIDDLEWARE] Jornada activa: {jornada_activa} para usuario {request.user.username}")
 
             # Verificar si hay jornada activa
             if not jornada_activa:
                 from django.contrib.auth import logout
 
                 # ✅ MEJORADO: Mostrar mensaje más amigable
+                print(f"[MIDDLEWARE] NO hay jornada activa - Cerrando sesion de {request.user.username}")
                 messages.warning(
                     request,
-                    '⏰ La jornada laboral ha finalizado. Tu sesión se ha cerrado automáticamente.'
+                    'La jornada laboral ha finalizado. Tu sesion se ha cerrado automaticamente.'
                 )
 
                 # Cerrar sesión del empleado
@@ -87,6 +84,8 @@ class JornadaLaboralMiddleware:
 
                 # Redirigir al login
                 return redirect('/login/')
+            else:
+                print(f"[MIDDLEWARE] Jornada activa OK - Permitiendo acceso a {request.path}")
 
         # Si todo está bien, continuar
         response = self.get_response(request)
