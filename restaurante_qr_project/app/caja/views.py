@@ -664,3 +664,60 @@ def gestionar_jornada(request):
     }
 
     return render(request, 'cajero/gestionar_jornada.html', context)
+
+
+# ──────────────────────────────────────────────
+# 📊 API - ESTADÍSTICAS DEL DÍA
+# ──────────────────────────────────────────────
+
+@solo_cajero
+def estadisticas_dia_api(request):
+    """
+    API para obtener estadísticas del día en tiempo real
+    Usado por el panel unificado para actualizar datos
+    """
+    from datetime import date
+
+    hoy = date.today()
+
+    # Pedidos del día
+    pedidos_hoy = Pedido.objects.filter(fecha__date=hoy)
+    total_pedidos = pedidos_hoy.count()
+    pedidos_pagados = pedidos_hoy.filter(estado_pago='pagado').count()
+    pedidos_pendientes = pedidos_hoy.filter(estado_pago='pendiente').count()
+
+    # Ingresos del día
+    ingresos_totales = pedidos_hoy.filter(estado_pago='pagado').aggregate(
+        total=Sum('total')
+    )['total'] or 0
+
+    # Pedidos por estado
+    pendientes = pedidos_hoy.filter(estado='pendiente').count()
+    en_preparacion = pedidos_hoy.filter(estado='en_preparacion').count()
+    listos = pedidos_hoy.filter(estado='listo').count()
+    entregados = pedidos_hoy.filter(estado='entregado').count()
+
+    # Mesas ocupadas
+    mesas_ocupadas = Mesa.objects.filter(estado='ocupada').count()
+    mesas_totales = Mesa.objects.count()
+
+    return JsonResponse({
+        'success': True,
+        'estadisticas': {
+            'total_pedidos': total_pedidos,
+            'pedidos_pagados': pedidos_pagados,
+            'pedidos_pendientes': pedidos_pendientes,
+            'ingresos_totales': float(ingresos_totales),
+            'pedidos_por_estado': {
+                'pendientes': pendientes,
+                'en_preparacion': en_preparacion,
+                'listos': listos,
+                'entregados': entregados,
+            },
+            'mesas': {
+                'ocupadas': mesas_ocupadas,
+                'totales': mesas_totales,
+                'porcentaje': round((mesas_ocupadas / mesas_totales * 100) if mesas_totales > 0 else 0, 1)
+            }
+        }
+    })

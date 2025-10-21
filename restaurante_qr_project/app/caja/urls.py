@@ -34,3 +34,13 @@ urlpatterns = [
     # 📅 GESTIÓN DE JORNADA LABORAL (NUEVO)
     path('jornada/', views.gestionar_jornada, name='gestionar_jornada'),
 ]
+
+# API URLs (para AJAX)
+from django.urls import path, include
+from rest_framework.routers import DefaultRouter
+
+api_urlpatterns = [
+    path('api/caja/estadisticas-dia/', views.estadisticas_dia_api, name='estadisticas_dia_api'),
+]
+
+urlpatterns += api_urlpatterns
