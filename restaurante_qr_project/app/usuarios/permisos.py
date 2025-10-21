@@ -15,15 +15,3 @@ class EsCocinero(EsRol):
 # Permiso para mesero
 class EsMesero(EsRol):
     rol = 'mesero'
-
-# Permiso para cajero
-class EsCajero(EsRol):
-    rol = 'cajero'
-
-# Permiso para gerente
-class EsGerente(EsRol):
-    rol = 'gerente'
-
-# Permiso para administrador
-class EsAdministrador(EsRol):
-    rol = 'admin'

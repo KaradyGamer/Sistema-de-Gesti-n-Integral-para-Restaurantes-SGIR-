@@ -3,7 +3,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.http import JsonResponse
 from django.utils import timezone
-from django.db.models import Q, Sum
+from django.db.models import Sum
 from datetime import date, datetime
 
 # Importar decoradores personalizados

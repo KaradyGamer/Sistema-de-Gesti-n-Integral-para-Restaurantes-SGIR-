@@ -5,7 +5,7 @@
 [![Django](https://img.shields.io/badge/Django-5.2-green.svg)](https://www.djangoproject.com/)
 [![Python](https://img.shields.io/badge/Python-3.13-blue.svg)](https://www.python.org/)
 [![SQLite](https://img.shields.io/badge/SQLite-3-lightgrey.svg)](https://www.sqlite.org/)
-[![Version](https://img.shields.io/badge/Version-2.1.0-brightgreen.svg)](#)
+[![Version](https://img.shields.io/badge/Version-2.2.0-brightgreen.svg)](#)
 
 ## 📋 Tabla de Contenidos
 
@@ -755,6 +755,18 @@ Estos scripts son para **desarrollo/testing**. En producción:
 - 📊 **Alertas automáticas de inventario**
 - 🔐 **Validación de jornada laboral**
 - ⚡ **Optimización de rendimiento**
+
+### ✅ Completado (v2.2) - 2025-10-21
+- 🧹 **Auditoría completa de código** (eliminados ~200 líneas de código muerto)
+- 🗑️ **Limpieza profunda**:
+  - Eliminados imports no utilizados (15 líneas)
+  - Eliminado CrearPedidoSerializer no usado (95 líneas)
+  - Eliminadas funciones legacy (login_cocinero, login_mesero, menu_cliente)
+  - Eliminadas clases de permisos no usadas (EsCajero, EsGerente, EsAdministrador)
+  - Eliminado archivo completo app/usuarios/utils.py
+  - Eliminados CSS no enlazados (base_minimalista.css, base_admin_style.css)
+- 📝 **Código optimizado y limpio**
+- ✨ **Mejor mantenibilidad del proyecto**
 
 ### 🔜 Próximas Funcionalidades (v3.0)
 - 📱 App móvil para meseros

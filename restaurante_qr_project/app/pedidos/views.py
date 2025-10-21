@@ -1,14 +1,11 @@
 from django.shortcuts import render, redirect
-from django.contrib import messages
 from django.utils import timezone
 from django.http import JsonResponse
 from django.db import transaction
-from django.views.decorators.csrf import csrf_exempt
 from rest_framework import viewsets, status
 from rest_framework.decorators import api_view, permission_classes, authentication_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
-from rest_framework.views import APIView
 from datetime import date, datetime, timedelta
 import logging
 
@@ -16,7 +13,6 @@ from .models import Pedido, DetallePedido
 from .serializers import PedidoSerializer
 from app.mesas.models import Mesa
 from app.productos.models import Producto
-from app.usuarios.utils import rol_requerido
 from app.usuarios.permisos import EsCocinero, EsMesero
 from app.reservas.models import Reserva
 
@@ -42,9 +38,6 @@ def formulario_cliente(request):
     }
 
     return render(request, 'cliente/formulario.html', context)
-
-def menu_cliente(request):
-    return render(request, 'cliente/formulario.html')
 
 def vista_exito(request):
     return render(request, 'cliente/exito.html')
@@ -280,10 +273,6 @@ def crear_pedido_cliente(request):
 #  Cocinero  Vistas HTML
 # 
 
-#  Login cocinero (pblico)
-def login_cocinero(request):
-    return render(request, 'login.html')
-
 #  Panel cocinero (requiere autenticacin y rol)
 def panel_cocina(request):
     """Panel del cocinero - Sin decoradores Django"""
@@ -301,10 +290,6 @@ def panel_cocina(request):
 # 
 #  Mesero  Vistas HTML protegidas MEJORADAS
 # 
-
-#  Login mesero (pblico)
-def login_mesero(request):
-    return render(request, 'login.html')
 
 #  Panel mesero MEJORADO con pestaas y auto-actualizacin
 def panel_mesero(request):

@@ -1,4 +1,3 @@
-from django.shortcuts import render
 # app/mesas/views.py
 from rest_framework import generics
 from .models import Mesa

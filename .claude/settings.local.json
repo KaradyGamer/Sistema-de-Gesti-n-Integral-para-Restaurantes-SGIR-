@@ -2,7 +2,8 @@
   "permissions": {
     "allow": [
       "Bash(git commit -m \"$(cat <<''EOF''\n🐛 Fix: Resolver errores 404 en consola - API estadísticas + imagen placeholder\n\n## Correcciones\n\n### 1. Error 404 - `/api/caja/estadisticas-dia/`\n**Problema:** JavaScript llamaba a URL incorrecta\n**Solución:**\n- ✅ Actualizada URL en `panel_unificado.js`: `/api/caja/estadisticas/`\n- ✅ Removidas rutas duplicadas de `app/caja/urls.py`\n- 📍 La ruta correcta existe en `app/caja/api_urls.py` (línea 40)\n\n**Archivos modificados:**\n- templates/js/cajero/panel_unificado.js (línea 126)\n- app/caja/urls.py (-10 líneas de código duplicado)\n\n### 2. Error 404 - `/static/images/no-image.png` (cientos de errores)\n**Problema:** Productos sin imagen generaban 404s masivos\n**Solución:**\n- ✅ Creado placeholder SVG minimalista en blanco/negro\n- ✅ Actualizada referencia en `formulario.js` a `.svg`\n- 🎨 Imagen placeholder con diseño minimalista coherente\n\n**Archivos creados:**\n- templates/images/no-image.svg (nuevo placeholder)\n\n**Archivos modificados:**\n- templates/js/cliente/formulario.js (líneas 735, 738)\n\n## Resultado Final\n\n**ANTES:**\n```\n[WARNING] \"GET /static/images/no-image.png HTTP/1.1\" 404 (×500)\n[WARNING] \"GET /api/caja/estadisticas-dia/ HTTP/1.1\" 404\n```\n\n**DESPUÉS:**\n```\n[INFO] \"GET /static/images/no-image.svg HTTP/1.1\" 200\n[INFO] \"GET /api/caja/estadisticas/ HTTP/1.1\" 200\n```\n\n## Estado Final\n- ❌ Errores 404: 0\n- ✅ Consola limpia: Sí\n- ✅ Placeholder minimalista: Implementado\n- ✅ APIs funcionando: 100%\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(git add:*)"
     ],
     "deny": [],
     "ask": []
