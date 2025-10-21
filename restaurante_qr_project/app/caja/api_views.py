@@ -15,7 +15,6 @@ from app.pedidos.models import Pedido, DetallePedido
 from app.mesas.models import Mesa
 from app.mesas.utils import liberar_mesa
 from app.productos.models import Producto
-from app.usuarios.permisos import EsCajero
 from .models import Transaccion, DetallePago, CierreCaja, HistorialModificacion, AlertaStock
 from .utils import (
     generar_numero_factura,
