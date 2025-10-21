@@ -7,7 +7,6 @@ from django.views.generic import TemplateView, RedirectView
 # ✅ IMPORTACIONES BÁSICAS CORREGIDAS
 from app.pedidos.views import (
     formulario_cliente,
-    menu_cliente,
     vista_exito,
     confirmacion_pedido,
     panel_cocina,
@@ -41,7 +40,7 @@ urlpatterns = [
     
     # ✅ RUTAS BÁSICAS DEL SISTEMA
     path('', formulario_cliente, name='formulario_cliente'),
-    path('menu/', menu_cliente, name='menu_cliente'),
+    path('menu/', formulario_cliente, name='menu_cliente'),  # Apunta a formulario_cliente (mismo template)
     path('confirmacion/', confirmacion_pedido, name='confirmacion_pedido'),
     path('exito/', vista_exito, name='vista_exito'),
     path('cocina/', panel_cocina, name='panel_cocina'),
