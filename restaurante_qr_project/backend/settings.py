@@ -43,6 +43,7 @@ INSTALLED_APPS = [
     'app.productos',
     'app.pedidos',
     'app.caja',  # Módulo de caja
+    'app.adminux',  # Panel de administración moderno
 
     #reportes contables
     'app.reportes',
@@ -140,6 +141,16 @@ AUTH_USER_MODEL = 'usuarios.Usuario'
 
 # 🌐 CORS
 CORS_ALLOWED_ORIGINS = config('CORS_ALLOWED_ORIGINS', default='http://localhost:3000,http://127.0.0.1:3000').split(',')
+
+# ✅ Permitir todos los orígenes en desarrollo (para escaneo QR desde celular)
+if DEBUG:
+    CORS_ALLOW_ALL_ORIGINS = True
+    CSRF_TRUSTED_ORIGINS = [
+        'http://192.168.0.179:8000',
+        'http://localhost:8000',
+        'http://127.0.0.1:8000',
+        'http://10.165.187.107:8000',
+    ]
 
 # 🔐 Configuración de DRF y JWT
 REST_FRAMEWORK = {

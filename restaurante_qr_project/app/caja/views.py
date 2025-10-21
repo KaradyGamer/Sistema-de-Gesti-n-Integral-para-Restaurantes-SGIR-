@@ -25,6 +25,38 @@ from .utils import (
 # ──────────────────────────────────────────────
 
 @solo_cajero
+def panel_unificado(request):
+    """
+    Panel unificado moderno con sidebar - Versión SPA
+    """
+    from .models import JornadaLaboral
+
+    # Verificar si hay un turno abierto
+    turno_abierto = CierreCaja.objects.filter(
+        cajero=request.user,
+        estado='abierto',
+        fecha=date.today()
+    ).first()
+
+    # Verificar jornada laboral
+    jornada_activa = JornadaLaboral.jornada_activa()
+
+    # Estadísticas del día
+    estadisticas = obtener_estadisticas_caja_dia()
+
+    context = {
+        'user': request.user,
+        'nombre_usuario': request.user.get_full_name() or request.user.username,
+        'user_role': request.user.rol,
+        'turno_abierto': turno_abierto,
+        'jornada_activa': jornada_activa,
+        'estadisticas': estadisticas,
+    }
+
+    return render(request, 'cajero/panel_unificado.html', context)
+
+
+@solo_cajero
 def panel_caja(request):
     """
     Panel principal del cajero con vista general de pedidos pendientes de pago

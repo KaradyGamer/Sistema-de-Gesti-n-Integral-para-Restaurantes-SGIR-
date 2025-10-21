@@ -1,0 +1,54 @@
+{% extends 'html/adminux/base_form.html' %}
+
+{% block title %}{% if categoria %}Editar Categoría{% else %}Nueva Categoría{% endif %}{% endblock %}
+{% block page_title %}{% if categoria %}Editar Categoría{% else %}Crear Nueva Categoría{% endif %}{% endblock %}
+{% block page_description %}{% if categoria %}Modifique los datos de la categoría{% else %}Complete el formulario para crear una nueva categoría{% endif %}{% endblock %}
+
+{% block breadcrumb %}
+<span>Categorías</span>
+<span>/</span>
+<span>{% if categoria %}Editar{% else %}Nueva{% endif %}</span>
+{% endblock %}
+
+{% block back_url %}{% url 'adminux:categorias' %}{% endblock %}
+{% block cancel_url %}{% url 'adminux:categorias' %}{% endblock %}
+
+{% block form_content %}
+<div class="form-grid">
+    <div class="form-group col-span-2">
+        <label for="nombre" class="required">Nombre de la Categoría</label>
+        <input type="text" id="nombre" name="nombre" class="form-control"
+               value="{{ categoria.nombre|default:'' }}" required>
+        <small class="form-text">Ej: Entradas, Platos Principales, Bebidas, Postres</small>
+    </div>
+
+    <div class="form-group col-span-2">
+        <label for="descripcion">Descripción</label>
+        <textarea id="descripcion" name="descripcion" class="form-control" rows="3">{{ categoria.descripcion|default:'' }}</textarea>
+        <small class="form-text">Descripción opcional de la categoría</small>
+    </div>
+
+    <div class="form-group">
+        <label for="orden">Orden de Visualización</label>
+        <input type="number" id="orden" name="orden" class="form-control"
+               value="{{ categoria.orden|default:'0' }}" min="0">
+        <small class="form-text">Orden en el que aparece en el menú (menor primero)</small>
+    </div>
+</div>
+
+{% if categoria and categoria.productos.count > 0 %}
+<div class="form-section">
+    <h3>Productos en esta Categoría ({{ categoria.productos.count }})</h3>
+    <div class="info-box">
+        <ul>
+            {% for producto in categoria.productos.all|slice:":10" %}
+            <li>{{ producto.nombre }} - S/ {{ producto.precio }}</li>
+            {% endfor %}
+            {% if categoria.productos.count > 10 %}
+            <li class="text-muted">... y {{ categoria.productos.count|add:"-10" }} más</li>
+            {% endif %}
+        </ul>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

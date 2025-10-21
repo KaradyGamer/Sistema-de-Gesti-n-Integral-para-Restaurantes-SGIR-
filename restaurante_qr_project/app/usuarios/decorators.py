@@ -121,3 +121,31 @@ def solo_admin(view_func):
     Decorador específico para administradores
     """
     return rol_requerido('admin', 'gerente')(view_func)
+
+
+def admin_requerido(view_func):
+    """
+    Decorador para vistas de AdminUX (admin, gerente, cajero)
+    NO incluye superusuarios - esos usan Django Admin
+    """
+    return rol_requerido('admin', 'gerente', 'cajero')(view_func)
+
+
+def superusuario_requerido(view_func):
+    """
+    Decorador para Django Admin (solo superusuarios)
+    Este es el nivel más alto de acceso
+    """
+    @wraps(view_func)
+    def wrapper(request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            messages.error(request, 'Debes iniciar sesión para acceder.')
+            return redirect('/login/')
+
+        if not request.user.is_superuser:
+            messages.error(request, 'Solo superusuarios pueden acceder al Admin de Django.')
+            return redirect('/adminux/')
+
+        return view_func(request, *args, **kwargs)
+
+    return wrapper

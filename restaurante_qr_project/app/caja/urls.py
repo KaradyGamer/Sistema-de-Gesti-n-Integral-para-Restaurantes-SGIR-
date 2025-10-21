@@ -4,12 +4,13 @@ from . import views
 app_name = 'caja'
 
 urlpatterns = [
-    # Panel principal
-    path('', views.panel_caja, name='panel_caja'),
+    # Panel principal unificado
+    path('', views.panel_unificado, name='panel_caja'),
+    path('panel/', views.panel_unificado, name='panel_unificado'),
 
     # Pedidos y pagos
-    path('pedido/<int:pedido_id>/', views.detalle_pedido, name='detalle_pedido'),
-    path('pedido/<int:pedido_id>/pagar/', views.procesar_pago, name='procesar_pago'),
+    path('detalle/<int:pedido_id>/', views.detalle_pedido, name='detalle_pedido'),
+    path('procesar-pago/<int:pedido_id>/', views.procesar_pago, name='procesar_pago'),
     path('pedido/<int:pedido_id>/modificar/', views.modificar_pedido, name='modificar_pedido'),
     path('pedido/<int:pedido_id>/reasignar/', views.reasignar_pedido, name='reasignar_pedido'),
 

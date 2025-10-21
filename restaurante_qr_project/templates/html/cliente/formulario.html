@@ -5,23 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Realiza tu Pedido - Restaurante QR</title>
-    <link rel="stylesheet" href="{% static 'css/cliente/formulario.css' %}?v=11.0">
-    <style>
-        /* Estilos adicionales para compatibilidad */
-        .field-hint {
-            display: block;
-            margin-top: 5px;
-            font-size: 12px;
-            color: #666;
-            font-style: italic;
-        }
-
-        #numberOfPeople {
-            font-size: 18px;
-            font-weight: 500;
-            text-align: center;
-        }
-    </style>
+    <link rel="stylesheet" href="{% static 'css/cliente/formulario.css' %}?v=12.0">
 </head>
 <body>
     <div class="container">
@@ -29,6 +13,24 @@
         {% csrf_token %}<div class="header">
             <h1>Menú</h1>
             <p>Selecciona tus productos favoritos</p>
+        </div>
+
+        <!-- ✅ NUEVA: Barra de búsqueda global -->
+        <div class="search-container">
+            <div class="search-box">
+                <svg class="search-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <path d="m21 21-4.35-4.35"></path>
+                </svg>
+                <input
+                    type="text"
+                    id="globalSearch"
+                    class="search-input"
+                    placeholder="Buscar productos... (ej: maní, sopa, bebida)"
+                    autocomplete="off">
+                <button type="button" id="clearSearch" class="clear-search" style="display: none;">×</button>
+            </div>
+            <div id="searchResults" class="search-results" style="display: none;"></div>
         </div>
 
         <form id="orderForm" class="form-section">

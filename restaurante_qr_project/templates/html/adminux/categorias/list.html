@@ -1,0 +1,80 @@
+{% extends 'html/adminux/base_list.html' %}
+
+{% block title %}Categorías{% endblock %}
+{% block page_title %}Gestión de Categorías{% endblock %}
+{% block page_description %}Categorías de productos del menú{% endblock %}
+
+{% block breadcrumb %}
+<span>Categorías</span>
+{% endblock %}
+
+{% block create_url %}{% url 'adminux:categoria_crear' %}{% endblock %}
+
+{% block content %}
+<div class="table-responsive">
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Nombre</th>
+                <th>Descripción</th>
+                <th>Productos</th>
+                <th>Orden</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for categoria in categorias %}
+            <tr>
+                <td>{{ categoria.id }}</td>
+                <td>
+                    <strong>{{ categoria.nombre }}</strong>
+                </td>
+                <td>{{ categoria.descripcion|default:"Sin descripción"|truncatewords:15 }}</td>
+                <td>
+                    <span class="badge badge-info">{{ categoria.productos.count }} producto{{ categoria.productos.count|pluralize }}</span>
+                </td>
+                <td>{{ categoria.orden|default:"N/A" }}</td>
+                <td>
+                    <div class="action-buttons">
+                        <a href="{% url 'adminux:categoria_editar' categoria.id %}" class="btn-icon" title="Editar">
+                            <i class='bx bx-edit'></i>
+                        </a>
+                        {% if categoria.productos.count == 0 %}
+                        <a href="{% url 'adminux:categoria_eliminar' categoria.id %}" class="btn-icon btn-danger" title="Eliminar" onclick="return confirm('¿Eliminar esta categoría?')">
+                            <i class='bx bx-trash'></i>
+                        </a>
+                        {% else %}
+                        <button class="btn-icon" disabled title="No se puede eliminar (tiene productos asociados)">
+                            <i class='bx bx-trash'></i>
+                        </button>
+                        {% endif %}
+                    </div>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="6" class="text-center text-muted">No hay categorías registradas</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const searchInput = document.getElementById('searchInput');
+const table = document.querySelector('.data-table tbody');
+
+searchInput.addEventListener('input', (e) => {
+    const query = e.target.value.toLowerCase();
+    const rows = table.querySelectorAll('tr');
+
+    rows.forEach(row => {
+        const text = row.textContent.toLowerCase();
+        row.style.display = text.includes(query) ? '' : 'none';
+    });
+});
+</script>
+{% endblock %}

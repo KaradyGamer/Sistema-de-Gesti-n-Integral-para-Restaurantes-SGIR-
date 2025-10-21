@@ -1,0 +1,130 @@
+{% extends 'html/adminux/base_list.html' %}
+
+{% block title %}Mesas{% endblock %}
+{% block page_title %}Gestión de Mesas{% endblock %}
+{% block page_description %}Administración de mesas del restaurante{% endblock %}
+
+{% block breadcrumb %}
+<span>Mesas</span>
+{% endblock %}
+
+{% block create_url %}{% url 'adminux:mesa_crear' %}{% endblock %}
+
+{% block filters %}
+<select class="form-select" id="estadoFilter" onchange="filtrarPorEstado()">
+    <option value="">Todos los estados</option>
+    <option value="disponible">Disponibles</option>
+    <option value="ocupada">Ocupadas</option>
+    <option value="reservada">Reservadas</option>
+</select>
+{% endblock %}
+
+{% block content %}
+<div class="table-responsive">
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>Número</th>
+                <th>Capacidad</th>
+                <th>Estado</th>
+                <th>Ubicación</th>
+                <th>Código QR</th>
+                <th>Pedido Actual</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for mesa in mesas %}
+            <tr data-estado="{{ mesa.estado }}">
+                <td>
+                    <strong>Mesa {{ mesa.numero }}</strong>
+                </td>
+                <td>
+                    <i class='bx bx-user'></i> {{ mesa.capacidad }} persona{{ mesa.capacidad|pluralize }}
+                </td>
+                <td>
+                    {% if mesa.estado == 'disponible' %}
+                        <span class="badge badge-success">Disponible</span>
+                    {% elif mesa.estado == 'ocupada' %}
+                        <span class="badge badge-warning">Ocupada</span>
+                    {% elif mesa.estado == 'reservada' %}
+                        <span class="badge badge-info">Reservada</span>
+                    {% else %}
+                        <span class="badge badge-secondary">{{ mesa.estado }}</span>
+                    {% endif %}
+                </td>
+                <td>{{ mesa.ubicacion|default:"No especificada" }}</td>
+                <td>
+                    {% if mesa.qr_code %}
+                    <a href="{{ mesa.qr_code.url }}" target="_blank" class="btn-icon" title="Ver QR">
+                        <i class='bx bx-qr'></i>
+                    </a>
+                    {% else %}
+                    <span class="text-muted">Sin QR</span>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if mesa.pedido_actual %}
+                    <a href="{% url 'adminux:pedido_detalle' mesa.pedido_actual.id %}" class="badge badge-primary">
+                        Pedido #{{ mesa.pedido_actual.id }}
+                    </a>
+                    {% else %}
+                    <span class="text-muted">-</span>
+                    {% endif %}
+                </td>
+                <td>
+                    <div class="action-buttons">
+                        <a href="{% url 'adminux:mesa_editar' mesa.id %}" class="btn-icon" title="Editar">
+                            <i class='bx bx-edit'></i>
+                        </a>
+                        {% if not mesa.pedido_actual %}
+                        <a href="{% url 'adminux:mesa_eliminar' mesa.id %}" class="btn-icon btn-danger" title="Eliminar" onclick="return confirm('¿Eliminar esta mesa?')">
+                            <i class='bx bx-trash'></i>
+                        </a>
+                        {% else %}
+                        <button class="btn-icon" disabled title="No se puede eliminar (tiene pedido activo)">
+                            <i class='bx bx-trash'></i>
+                        </button>
+                        {% endif %}
+                    </div>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="7" class="text-center text-muted">No hay mesas registradas</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const searchInput = document.getElementById('searchInput');
+const table = document.querySelector('.data-table tbody');
+
+searchInput.addEventListener('input', (e) => {
+    const query = e.target.value.toLowerCase();
+    const rows = table.querySelectorAll('tr');
+
+    rows.forEach(row => {
+        const text = row.textContent.toLowerCase();
+        row.style.display = text.includes(query) ? '' : 'none';
+    });
+});
+
+function filtrarPorEstado() {
+    const estado = document.getElementById('estadoFilter').value;
+    const rows = table.querySelectorAll('tr[data-estado]');
+
+    rows.forEach(row => {
+        if (!estado || row.dataset.estado === estado) {
+            row.style.display = '';
+        } else {
+            row.style.display = 'none';
+        }
+    });
+}
+</script>
+{% endblock %}

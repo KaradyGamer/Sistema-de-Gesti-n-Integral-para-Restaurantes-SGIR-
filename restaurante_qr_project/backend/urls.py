@@ -72,6 +72,9 @@ urlpatterns = [
 
     # 👥 PANEL UNIFICADO DE EMPLEADOS (Ya importado arriba)
     path('empleado/', panel_empleado, name='panel_empleado'),
+
+    # 🎨 ADMINUX - Panel de administración moderno
+    path('adminux/', include('app.adminux.urls')),
 ]
 
 # ✅ ARCHIVOS ESTÁTICOS Y MEDIA

@@ -1,0 +1,230 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel de Caja - Sistema Restaurante</title>
+    <link rel="stylesheet" href="{% static 'css/cajero/panel_unificado.css' %}?v=1.0">
+    <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+</head>
+<body>
+    <!-- Sidebar -->
+    <div class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <div class="logo">
+                <i class='bx bx-restaurant'></i>
+                <span>Sistema Caja</span>
+            </div>
+            <button class="toggle-btn" id="toggleSidebar">
+                <i class='bx bx-menu'></i>
+            </button>
+        </div>
+
+        <nav class="sidebar-nav">
+            <a href="#dashboard" class="nav-item active" data-section="dashboard">
+                <i class='bx bx-home-alt'></i>
+                <span>Dashboard</span>
+            </a>
+            <a href="#pedidos" class="nav-item" data-section="pedidos">
+                <i class='bx bx-food-menu'></i>
+                <span>Pedidos Pendientes</span>
+                <span class="badge" id="badgePedidos">0</span>
+            </a>
+            <a href="#cobrar" class="nav-item" data-section="cobrar">
+                <i class='bx bx-money'></i>
+                <span>Procesar Pagos</span>
+            </a>
+            <a href="#mesas" class="nav-item" data-section="mesas">
+                <i class='bx bx-map'></i>
+                <span>Mapa de Mesas</span>
+            </a>
+            <a href="#historial" class="nav-item" data-section="historial">
+                <i class='bx bx-history'></i>
+                <span>Historial</span>
+            </a>
+            <a href="#stock" class="nav-item" data-section="stock">
+                <i class='bx bx-package'></i>
+                <span>Alertas Stock</span>
+                <span class="badge warning" id="badgeStock">0</span>
+            </a>
+            <a href="#personal" class="nav-item" data-section="personal">
+                <i class='bx bx-group'></i>
+                <span>Personal</span>
+            </a>
+            <a href="#jornada" class="nav-item" data-section="jornada">
+                <i class='bx bx-calendar'></i>
+                <span>Jornada Laboral</span>
+            </a>
+        </nav>
+
+        <div class="sidebar-footer">
+            <div class="user-info">
+                <i class='bx bx-user-circle'></i>
+                <div>
+                    <strong>{{ nombre_usuario|default:"Cajero" }}</strong>
+                    <small>{{ user_role|upper|default:"CAJERO" }}</small>
+                </div>
+            </div>
+            <a href="/usuarios/logout/" class="logout-btn">
+                <i class='bx bx-log-out'></i>
+                <span>Cerrar Sesión</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content" id="mainContent">
+        <!-- Top Bar -->
+        <div class="topbar">
+            <div class="topbar-left">
+                <h1 id="pageTitle">Dashboard</h1>
+                <p id="pageSubtitle">Resumen general del sistema</p>
+            </div>
+            <div class="topbar-right">
+                <!-- Estado de Turno -->
+                <div class="turno-status" id="turnoStatus">
+                    {% if turno_abierto %}
+                    <span class="status-badge success">
+                        <i class='bx bx-check-circle'></i>
+                        Turno Abierto
+                    </span>
+                    <span class="turno-info">{{ turno_abierto.get_turno_display }} - {{ turno_abierto.hora_apertura|date:"H:i" }}</span>
+                    {% else %}
+                    <span class="status-badge danger">
+                        <i class='bx bx-x-circle'></i>
+                        Sin Turno
+                    </span>
+                    <button class="btn btn-primary btn-sm" onclick="abrirTurno()">Abrir Turno</button>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Content Sections -->
+        <div class="content-area">
+            <!-- SECCIÓN: DASHBOARD -->
+            <section id="section-dashboard" class="content-section active">
+                <div class="stats-grid">
+                    <div class="stat-card purple">
+                        <div class="stat-icon">
+                            <i class='bx bx-dollar-circle'></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3>Ventas del Día</h3>
+                            <div class="stat-value">Bs/ <span id="totalVentas">0.00</span></div>
+                        </div>
+                    </div>
+                    <div class="stat-card blue">
+                        <div class="stat-icon">
+                            <i class='bx bx-cart'></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3>Pedidos Totales</h3>
+                            <div class="stat-value"><span id="totalPedidos">0</span></div>
+                        </div>
+                    </div>
+                    <div class="stat-card green">
+                        <div class="stat-icon">
+                            <i class='bx bx-check'></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3>Pedidos Pagados</h3>
+                            <div class="stat-value"><span id="pedidosPagados">0</span></div>
+                        </div>
+                    </div>
+                    <div class="stat-card orange">
+                        <div class="stat-icon">
+                            <i class='bx bx-time'></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3>Pendientes</h3>
+                            <div class="stat-value"><span id="pedidosPendientes">0</span></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Gráfico y Acciones Rápidas -->
+                <div class="dashboard-grid">
+                    <div class="card">
+                        <h2>📊 Ventas por Método de Pago</h2>
+                        <div id="metodosChart" class="chart-container">
+                            <div class="loading">Cargando datos...</div>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <h2>🚀 Acciones Rápidas</h2>
+                        <div class="quick-actions-grid">
+                            <button class="quick-action-btn" onclick="navigateTo('cobrar')">
+                                <i class='bx bx-money'></i>
+                                <span>Cobrar Pedido</span>
+                            </button>
+                            <button class="quick-action-btn" onclick="navigateTo('mesas')">
+                                <i class='bx bx-map'></i>
+                                <span>Ver Mesas</span>
+                            </button>
+                            <button class="quick-action-btn" onclick="navigateTo('historial')">
+                                <i class='bx bx-history'></i>
+                                <span>Historial</span>
+                            </button>
+                            {% if turno_abierto %}
+                            <button class="quick-action-btn danger" onclick="cerrarCaja()">
+                                <i class='bx bx-lock'></i>
+                                <span>Cerrar Caja</span>
+                            </button>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECCIÓN: PEDIDOS PENDIENTES -->
+            <section id="section-pedidos" class="content-section">
+                <div class="section-header">
+                    <h2>Pedidos Pendientes de Pago</h2>
+                    <button class="btn btn-primary" onclick="recargarPedidos()">
+                        <i class='bx bx-refresh'></i> Actualizar
+                    </button>
+                </div>
+                <div id="pedidosList" class="pedidos-grid">
+                    <div class="loading">Cargando pedidos...</div>
+                </div>
+            </section>
+
+            <!-- SECCIÓN: PROCESAR PAGOS -->
+            <section id="section-cobrar" class="content-section">
+                <h2>Procesar Pago</h2>
+                <p>Selecciona un pedido de la lista de pendientes para procesar el pago</p>
+                <div id="pagoForm"></div>
+            </section>
+
+            <!-- SECCIÓN: MAPA MESAS -->
+            <section id="section-mesas" class="content-section">
+                <iframe src="{% url 'caja:mapa_mesas' %}" frameborder="0" class="iframe-full"></iframe>
+            </section>
+
+            <!-- SECCIÓN: HISTORIAL -->
+            <section id="section-historial" class="content-section">
+                <iframe src="{% url 'caja:historial' %}" frameborder="0" class="iframe-full"></iframe>
+            </section>
+
+            <!-- SECCIÓN: ALERTAS STOCK -->
+            <section id="section-stock" class="content-section">
+                <iframe src="{% url 'caja:alertas_stock' %}" frameborder="0" class="iframe-full"></iframe>
+            </section>
+
+            <!-- SECCIÓN: PERSONAL -->
+            <section id="section-personal" class="content-section">
+                <iframe src="{% url 'caja:personal_panel' %}" frameborder="0" class="iframe-full"></iframe>
+            </section>
+
+            <!-- SECCIÓN: JORNADA LABORAL -->
+            <section id="section-jornada" class="content-section">
+                <iframe src="{% url 'caja:gestionar_jornada' %}" frameborder="0" class="iframe-full"></iframe>
+            </section>
+        </div>
+    </div>
+
+    <script src="{% static 'js/cajero/panel_unificado.js' %}?v=1.0"></script>
+</body>
+</html>

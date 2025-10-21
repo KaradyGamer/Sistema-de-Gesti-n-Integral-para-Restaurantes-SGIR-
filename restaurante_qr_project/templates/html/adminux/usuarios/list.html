@@ -1,0 +1,131 @@
+{% extends 'html/adminux/base_list.html' %}
+
+{% block title %}Usuarios{% endblock %}
+{% block page_title %}Gestión de Usuarios{% endblock %}
+{% block page_description %}Lista de todos los usuarios del sistema{% endblock %}
+
+{% block breadcrumb %}
+<span>Usuarios</span>
+{% endblock %}
+
+{% block create_url %}{% url 'adminux:usuario_crear' %}{% endblock %}
+
+{% block filters %}
+<select class="form-select" id="rolFilter" onchange="filtrarPorRol()">
+    <option value="">Todos los roles</option>
+    <option value="admin">Administrador</option>
+    <option value="gerente">Gerente</option>
+    <option value="cajero">Cajero</option>
+    <option value="mesero">Mesero</option>
+    <option value="cocinero">Cocinero</option>
+</select>
+<select class="form-select" id="estadoFilter" onchange="filtrarPorEstado()">
+    <option value="">Todos los estados</option>
+    <option value="activo">Activos</option>
+    <option value="inactivo">Inactivos</option>
+</select>
+{% endblock %}
+
+{% block content %}
+<div class="table-responsive">
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Usuario</th>
+                <th>Nombre Completo</th>
+                <th>Email</th>
+                <th>Rol</th>
+                <th>Estado</th>
+                <th>Último Acceso</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for usuario in usuarios %}
+            <tr>
+                <td>{{ usuario.id }}</td>
+                <td>
+                    <div class="user-info">
+                        <i class='bx bx-user-circle' style="font-size: 24px;"></i>
+                        <strong>{{ usuario.username }}</strong>
+                    </div>
+                </td>
+                <td>{{ usuario.first_name }} {{ usuario.last_name }}</td>
+                <td>{{ usuario.email|default:"No especificado" }}</td>
+                <td>
+                    <span class="badge badge-{{ usuario.rol }}">
+                        {{ usuario.get_rol_display|default:usuario.rol }}
+                    </span>
+                </td>
+                <td>
+                    {% if usuario.is_active %}
+                        <span class="badge badge-success">Activo</span>
+                    {% else %}
+                        <span class="badge badge-danger">Inactivo</span>
+                    {% endif %}
+                </td>
+                <td>{{ usuario.last_login|date:"d/m/Y H:i"|default:"Nunca" }}</td>
+                <td>
+                    <div class="action-buttons">
+                        <a href="{% url 'adminux:usuario_editar' usuario.id %}" class="btn-icon" title="Editar">
+                            <i class='bx bx-edit'></i>
+                        </a>
+                        <a href="{% url 'adminux:usuario_eliminar' usuario.id %}" class="btn-icon btn-danger" title="Eliminar" data-action="delete">
+                            <i class='bx bx-trash'></i>
+                        </a>
+                    </div>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="8" class="text-center text-muted">No hay usuarios registrados</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const searchInput = document.getElementById('searchInput');
+const table = document.querySelector('.data-table tbody');
+
+searchInput.addEventListener('input', (e) => {
+    const query = e.target.value.toLowerCase();
+    const rows = table.querySelectorAll('tr');
+
+    rows.forEach(row => {
+        const text = row.textContent.toLowerCase();
+        row.style.display = text.includes(query) ? '' : 'none';
+    });
+});
+
+function filtrarPorRol() {
+    const rol = document.getElementById('rolFilter').value.toLowerCase();
+    const rows = table.querySelectorAll('tr');
+
+    rows.forEach(row => {
+        if (!rol || row.textContent.toLowerCase().includes(rol)) {
+            row.style.display = '';
+        } else {
+            row.style.display = 'none';
+        }
+    });
+}
+
+function filtrarPorEstado() {
+    const estado = document.getElementById('estadoFilter').value.toLowerCase();
+    const rows = table.querySelectorAll('tr');
+
+    rows.forEach(row => {
+        if (!estado || row.textContent.toLowerCase().includes(estado)) {
+            row.style.display = '';
+        } else {
+            row.style.display = 'none';
+        }
+    });
+}
+</script>
+{% endblock %}

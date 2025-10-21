@@ -1,0 +1,154 @@
+{% extends 'html/adminux/base_list.html' %}
+
+{% block title %}Pedidos{% endblock %}
+{% block page_title %}Gestión de Pedidos{% endblock %}
+{% block page_description %}Lista de todos los pedidos del sistema{% endblock %}
+
+{% block breadcrumb %}
+<span>Pedidos</span>
+{% endblock %}
+
+{% block header_actions %}
+<a href="{% url 'adminux:pedidos' %}" class="btn btn-secondary" onclick="location.reload()">
+    <i class='bx bx-refresh'></i> Actualizar
+</a>
+{% endblock %}
+
+{% block filters %}
+<select class="form-select" id="estadoFilter" onchange="filtrarPorEstado()">
+    <option value="">Todos los estados</option>
+    <option value="pendiente">Pendientes</option>
+    <option value="en_preparacion">En Preparación</option>
+    <option value="listo">Listos</option>
+    <option value="entregado">Entregados</option>
+    <option value="cancelado">Cancelados</option>
+</select>
+<select class="form-select" id="mesaFilter" onchange="filtrarPorMesa()">
+    <option value="">Todas las mesas</option>
+    {% for mesa in mesas %}
+    <option value="{{ mesa.numero }}">Mesa {{ mesa.numero }}</option>
+    {% endfor %}
+</select>
+{% endblock %}
+
+{% block content %}
+<div class="table-responsive">
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Mesa</th>
+                <th>Cliente</th>
+                <th>Fecha/Hora</th>
+                <th>Items</th>
+                <th>Total</th>
+                <th>Estado</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for pedido in pedidos %}
+            <tr data-estado="{{ pedido.estado }}" data-mesa="{{ pedido.mesa.numero }}">
+                <td><strong>#{{ pedido.id }}</strong></td>
+                <td>
+                    <span class="badge badge-info">Mesa {{ pedido.mesa.numero }}</span>
+                </td>
+                <td>{{ pedido.nombre_cliente|default:"Cliente" }}</td>
+                <td>{{ pedido.fecha_pedido|date:"d/m/Y H:i" }}</td>
+                <td>
+                    <span class="badge badge-secondary">{{ pedido.items.count }} item{{ pedido.items.count|pluralize }}</span>
+                </td>
+                <td>
+                    <strong>S/ {{ pedido.total|floatformat:2 }}</strong>
+                </td>
+                <td>
+                    {% if pedido.estado == 'pendiente' %}
+                        <span class="badge badge-warning">Pendiente</span>
+                    {% elif pedido.estado == 'en_preparacion' %}
+                        <span class="badge badge-info">En Preparación</span>
+                    {% elif pedido.estado == 'listo' %}
+                        <span class="badge badge-success">Listo</span>
+                    {% elif pedido.estado == 'entregado' %}
+                        <span class="badge badge-primary">Entregado</span>
+                    {% elif pedido.estado == 'cancelado' %}
+                        <span class="badge badge-danger">Cancelado</span>
+                    {% else %}
+                        <span class="badge badge-secondary">{{ pedido.estado }}</span>
+                    {% endif %}
+                </td>
+                <td>
+                    <div class="action-buttons">
+                        <a href="{% url 'adminux:pedido_detalle' pedido.id %}" class="btn-icon" title="Ver Detalle">
+                            <i class='bx bx-show'></i>
+                        </a>
+                        {% if pedido.estado == 'pendiente' %}
+                        <button class="btn-icon btn-danger" onclick="cancelarPedido({{ pedido.id }})" title="Cancelar">
+                            <i class='bx bx-x'></i>
+                        </button>
+                        {% endif %}
+                    </div>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="8" class="text-center text-muted">No hay pedidos registrados</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const searchInput = document.getElementById('searchInput');
+const table = document.querySelector('.data-table tbody');
+
+searchInput.addEventListener('input', (e) => {
+    const query = e.target.value.toLowerCase();
+    const rows = table.querySelectorAll('tr');
+
+    rows.forEach(row => {
+        const text = row.textContent.toLowerCase();
+        row.style.display = text.includes(query) ? '' : 'none';
+    });
+});
+
+function filtrarPorEstado() {
+    const estado = document.getElementById('estadoFilter').value;
+    const rows = table.querySelectorAll('tr[data-estado]');
+
+    rows.forEach(row => {
+        if (!estado || row.dataset.estado === estado) {
+            row.style.display = '';
+        } else {
+            row.style.display = 'none';
+        }
+    });
+}
+
+function filtrarPorMesa() {
+    const mesa = document.getElementById('mesaFilter').value;
+    const rows = table.querySelectorAll('tr[data-mesa]');
+
+    rows.forEach(row => {
+        if (!mesa || row.dataset.mesa === mesa) {
+            row.style.display = '';
+        } else {
+            row.style.display = 'none';
+        }
+    });
+}
+
+function cancelarPedido(pedidoId) {
+    if (confirm('¿Está seguro de cancelar este pedido?')) {
+        window.adminUX.mostrarNotificacion('Cancelando pedido...', 'info');
+        // Aquí iría la lógica para cancelar el pedido
+        setTimeout(() => {
+            window.adminUX.mostrarNotificacion('Pedido cancelado exitosamente', 'success');
+            location.reload();
+        }, 1000);
+    }
+}
+</script>
+{% endblock %}

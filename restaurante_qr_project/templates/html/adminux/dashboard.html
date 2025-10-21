@@ -1,0 +1,212 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AdminUX - Dashboard</title>
+    <link rel="stylesheet" href="{% static 'css/adminux/main.css' %}?v=1.0">
+    <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+</head>
+<body>
+    <!-- Sidebar -->
+    {% include 'html/adminux/components/sidebar.html' %}
+
+    <!-- Main Content -->
+    <div class="main-wrapper" id="mainContent">
+        <!-- Topbar -->
+        {% include 'html/adminux/components/topbar.html' %}
+
+        <!-- Content Area -->
+        <div class="content-area">
+            <!-- Welcome Banner -->
+            <div class="welcome-banner">
+                <div class="welcome-text">
+                    <h1>¡Bienvenido, {{ request.user.get_full_name|default:request.user.username }}!</h1>
+                    <p>Panel de Administración - Sistema de Gestión Integral</p>
+                </div>
+                <div class="welcome-illustration">
+                    <i class='bx bxs-dashboard'></i>
+                </div>
+            </div>
+
+            <!-- Stats Cards -->
+            <div class="stats-grid">
+                <div class="stat-card blue">
+                    <div class="stat-icon">
+                        <i class='bx bx-user'></i>
+                    </div>
+                    <div class="stat-info">
+                        <h3>Usuarios Activos</h3>
+                        <div class="stat-value">{{ total_usuarios }}</div>
+                        <span class="stat-change positive"><i class='bx bx-up-arrow-alt'></i> 12% vs mes anterior</span>
+                    </div>
+                </div>
+
+                <div class="stat-card green">
+                    <div class="stat-icon">
+                        <i class='bx bx-package'></i>
+                    </div>
+                    <div class="stat-info">
+                        <h3>Productos</h3>
+                        <div class="stat-value">{{ total_productos }}</div>
+                        {% if productos_stock_bajo > 0 %}
+                        <span class="stat-change negative"><i class='bx bx-error'></i> {{ productos_stock_bajo }} con stock bajo</span>
+                        {% else %}
+                        <span class="stat-change positive"><i class='bx bx-check'></i> Stock saludable</span>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="stat-card purple">
+                    <div class="stat-icon">
+                        <i class='bx bx-food-menu'></i>
+                    </div>
+                    <div class="stat-info">
+                        <h3>Pedidos Hoy</h3>
+                        <div class="stat-value">{{ total_pedidos_hoy }}</div>
+                        <span class="stat-change positive"><i class='bx bx-trending-up'></i> En curso</span>
+                    </div>
+                </div>
+
+                <div class="stat-card orange">
+                    <div class="stat-icon">
+                        <i class='bx bx-dollar-circle'></i>
+                    </div>
+                    <div class="stat-info">
+                        <h3>Ventas Hoy</h3>
+                        <div class="stat-value">Bs/ {{ ventas_hoy|floatformat:2 }}</div>
+                        <span class="stat-change positive"><i class='bx bx-up-arrow-alt'></i> +8% vs ayer</span>
+                    </div>
+                </div>
+
+                <div class="stat-card teal">
+                    <div class="stat-icon">
+                        <i class='bx bx-table'></i>
+                    </div>
+                    <div class="stat-info">
+                        <h3>Mesas Totales</h3>
+                        <div class="stat-value">{{ total_mesas }}</div>
+                        <span class="stat-change neutral"><i class='bx bx-info-circle'></i> Capacidad total</span>
+                    </div>
+                </div>
+
+                <div class="stat-card red">
+                    <div class="stat-icon">
+                        <i class='bx bx-calendar-check'></i>
+                    </div>
+                    <div class="stat-info">
+                        <h3>Reservas Activas</h3>
+                        <div class="stat-value">{{ reservas_activas }}</div>
+                        <span class="stat-change neutral"><i class='bx bx-time'></i> Próximas</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Main Grid -->
+            <div class="dashboard-grid">
+                <!-- Recent Orders -->
+                <div class="card">
+                    <div class="card-header">
+                        <h2><i class='bx bx-receipt'></i> Últimos Pedidos</h2>
+                        <a href="{% url 'adminux:pedidos_list' %}" class="btn-link">Ver todos <i class='bx bx-right-arrow-alt'></i></a>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Mesa</th>
+                                        <th>Estado</th>
+                                        <th>Total</th>
+                                        <th>Hora</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for pedido in ultimos_pedidos %}
+                                    <tr>
+                                        <td>#{{ pedido.id }}</td>
+                                        <td>Mesa {{ pedido.mesa.numero }}</td>
+                                        <td><span class="badge badge-{{ pedido.estado }}">{{ pedido.get_estado_display }}</span></td>
+                                        <td>Bs/ {{ pedido.total|floatformat:2 }}</td>
+                                        <td>{{ pedido.fecha|date:"H:i" }}</td>
+                                    </tr>
+                                    {% empty %}
+                                    <tr>
+                                        <td colspan="5" class="text-center">No hay pedidos recientes</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recent Reservations -->
+                <div class="card">
+                    <div class="card-header">
+                        <h2><i class='bx bx-calendar'></i> Últimas Reservas</h2>
+                        <a href="{% url 'adminux:reservas_list' %}" class="btn-link">Ver todas <i class='bx bx-right-arrow-alt'></i></a>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Cliente</th>
+                                        <th>Fecha</th>
+                                        <th>Hora</th>
+                                        <th>Personas</th>
+                                        <th>Estado</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for reserva in ultimas_reservas %}
+                                    <tr>
+                                        <td>{{ reserva.nombre_completo }}</td>
+                                        <td>{{ reserva.fecha_reserva|date:"d/m/Y" }}</td>
+                                        <td>{{ reserva.hora_reserva|date:"H:i" }}</td>
+                                        <td>{{ reserva.numero_personas }}</td>
+                                        <td><span class="badge badge-{{ reserva.estado }}">{{ reserva.get_estado_display }}</span></td>
+                                    </tr>
+                                    {% empty %}
+                                    <tr>
+                                        <td colspan="5" class="text-center">No hay reservas recientes</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="quick-actions-section">
+                <h2>Acciones Rápidas</h2>
+                <div class="quick-actions-grid">
+                    <a href="{% url 'adminux:usuarios_crear' %}" class="quick-action-card">
+                        <i class='bx bx-user-plus'></i>
+                        <span>Crear Usuario</span>
+                    </a>
+                    <a href="{% url 'adminux:productos_crear' %}" class="quick-action-card">
+                        <i class='bx bx-plus-circle'></i>
+                        <span>Nuevo Producto</span>
+                    </a>
+                    <a href="{% url 'adminux:mesas_crear' %}" class="quick-action-card">
+                        <i class='bx bx-table'></i>
+                        <span>Agregar Mesa</span>
+                    </a>
+                    <a href="{% url 'adminux:reportes' %}" class="quick-action-card">
+                        <i class='bx bx-bar-chart-alt-2'></i>
+                        <span>Ver Reportes</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="{% static 'js/adminux/main.js' %}?v=1.0"></script>
+</body>
+</html>

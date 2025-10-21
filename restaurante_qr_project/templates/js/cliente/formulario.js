@@ -636,6 +636,155 @@ class RestaurantOrderSystem {
                 this.showSuccess(`✓ ${this.modalProduct.nombre} agregado al pedido`);
             }
 
+            // ✅ NUEVO: Búsqueda global de productos
+            setupGlobalSearch() {
+                const searchInput = document.getElementById('globalSearch');
+                const clearBtn = document.getElementById('clearSearch');
+                const resultsContainer = document.getElementById('searchResults');
+
+                if (!searchInput) return;
+
+                let searchTimeout;
+
+                searchInput.addEventListener('input', (e) => {
+                    const query = e.target.value.trim().toLowerCase();
+
+                    // Mostrar/ocultar botón limpiar
+                    clearBtn.style.display = query ? 'flex' : 'none';
+
+                    // Limpiar timeout anterior
+                    clearTimeout(searchTimeout);
+
+                    if (!query) {
+                        resultsContainer.style.display = 'none';
+                        return;
+                    }
+
+                    // Buscar después de 300ms (debounce)
+                    searchTimeout = setTimeout(() => {
+                        this.performSearch(query, resultsContainer);
+                    }, 300);
+                });
+
+                // Botón limpiar búsqueda
+                clearBtn.addEventListener('click', () => {
+                    searchInput.value = '';
+                    clearBtn.style.display = 'none';
+                    resultsContainer.style.display = 'none';
+                    searchInput.focus();
+                });
+
+                // Cerrar resultados al hacer clic fuera
+                document.addEventListener('click', (e) => {
+                    if (!e.target.closest('.search-container')) {
+                        resultsContainer.style.display = 'none';
+                    }
+                });
+            }
+
+            // ✅ NUEVO: Realizar búsqueda con coincidencias parciales
+            performSearch(query, resultsContainer) {
+                const results = [];
+
+                // Buscar en todos los productos de todas las categorías
+                Object.keys(this.products).forEach(category => {
+                    this.products[category].forEach(product => {
+                        if (!product.disponible) return; // Ignorar no disponibles
+
+                        const nombre = product.nombre.toLowerCase();
+                        const descripcion = (product.descripcion || '').toLowerCase();
+
+                        // Búsqueda por coincidencia parcial
+                        if (nombre.includes(query) || descripcion.includes(query)) {
+                            results.push({
+                                ...product,
+                                category,
+                                matchInName: nombre.includes(query),
+                                matchInDescription: descripcion.includes(query)
+                            });
+                        }
+                    });
+                });
+
+                this.displaySearchResults(results, query, resultsContainer);
+            }
+
+            // ✅ NUEVO: Mostrar resultados de búsqueda
+            displaySearchResults(results, query, container) {
+                if (results.length === 0) {
+                    container.innerHTML = `
+                        <div class="search-no-results">
+                            <div class="search-no-results-icon">🔍</div>
+                            <div class="search-no-results-text">No se encontraron productos</div>
+                            <div class="search-no-results-hint">Intenta con: "${query.charAt(0).toUpperCase() + query.slice(1)}", o busca por categoría</div>
+                        </div>
+                    `;
+                    container.style.display = 'block';
+                    return;
+                }
+
+                const html = results.map(product => {
+                    // Resaltar coincidencias
+                    const highlightedName = this.highlightMatch(product.nombre, query);
+                    const highlightedDesc = product.descripcion ?
+                        this.highlightMatch(product.descripcion, query) :
+                        `Categoría: ${product.category}`;
+
+                    return `
+                        <div class="search-result-item" onclick="orderSystem.selectSearchResult(${product.id})">
+                            <img src="${product.imagen || '/static/images/no-image.png'}"
+                                 alt="${product.nombre}"
+                                 class="search-result-image"
+                                 onerror="this.src='/static/images/no-image.png'">
+                            <div class="search-result-info">
+                                <div class="search-result-name">${highlightedName}</div>
+                                <div class="search-result-description">${highlightedDesc}</div>
+                            </div>
+                            <div class="search-result-price">Bs/ ${parseFloat(product.precio).toFixed(2)}</div>
+                        </div>
+                    `;
+                }).join('');
+
+                container.innerHTML = html;
+                container.style.display = 'block';
+            }
+
+            // ✅ NUEVO: Resaltar coincidencias en texto
+            highlightMatch(text, query) {
+                const regex = new RegExp(`(${query})`, 'gi');
+                return text.replace(regex, '<mark>$1</mark>');
+            }
+
+            // ✅ NUEVO: Seleccionar producto desde resultados de búsqueda
+            selectSearchResult(productId) {
+                // Buscar el producto en todas las categorías
+                let foundProduct = null;
+                let foundCategory = null;
+
+                Object.keys(this.products).forEach(category => {
+                    const product = this.products[category].find(p => p.id === productId);
+                    if (product) {
+                        foundProduct = product;
+                        foundCategory = category;
+                    }
+                });
+
+                if (foundProduct) {
+                    // Cerrar búsqueda
+                    document.getElementById('globalSearch').value = '';
+                    document.getElementById('clearSearch').style.display = 'none';
+                    document.getElementById('searchResults').style.display = 'none';
+
+                    // Cambiar a la pestaña de la categoría del producto
+                    this.switchTab(foundCategory);
+
+                    // Abrir modal del producto
+                    setTimeout(() => {
+                        this.openProductModal(foundProduct);
+                    }, 300);
+                }
+            }
+
             resetForm() {
                 this.cart = {};
                 this.total = 0;
@@ -651,4 +800,8 @@ class RestaurantOrderSystem {
             console.log('🚀 Iniciando sistema de pedidos...');
             orderSystem = new RestaurantOrderSystem();
             console.log('✅ Sistema de pedidos iniciado:', orderSystem);
+
+            // ✅ Inicializar búsqueda global
+            orderSystem.setupGlobalSearch();
+            console.log('🔍 Búsqueda global activada');
         });

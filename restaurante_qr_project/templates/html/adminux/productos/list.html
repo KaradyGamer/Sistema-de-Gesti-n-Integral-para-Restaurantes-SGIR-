@@ -1,0 +1,143 @@
+{% extends 'html/adminux/base_list.html' %}
+
+{% block title %}Productos{% endblock %}
+{% block page_title %}Gestión de Productos{% endblock %}
+{% block page_description %}Lista de productos disponibles en el menú{% endblock %}
+
+{% block breadcrumb %}
+<span>Productos</span>
+{% endblock %}
+
+{% block create_url %}{% url 'adminux:producto_crear' %}{% endblock %}
+
+{% block filters %}
+<select class="form-select" id="categoriaFilter" onchange="filtrarPorCategoria()">
+    <option value="">Todas las categorías</option>
+    {% for categoria in categorias %}
+    <option value="{{ categoria.id }}">{{ categoria.nombre }}</option>
+    {% endfor %}
+</select>
+<select class="form-select" id="disponibleFilter" onchange="filtrarPorDisponibilidad()">
+    <option value="">Todos</option>
+    <option value="disponible">Disponibles</option>
+    <option value="agotado">Agotados</option>
+</select>
+{% endblock %}
+
+{% block content %}
+<div class="table-responsive">
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Imagen</th>
+                <th>Nombre</th>
+                <th>Categoría</th>
+                <th>Precio</th>
+                <th>Stock</th>
+                <th>Estado</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for producto in productos %}
+            <tr data-categoria="{{ producto.categoria.id }}" data-disponible="{{ producto.disponible|yesno:'disponible,agotado' }}">
+                <td>{{ producto.id }}</td>
+                <td>
+                    {% if producto.imagen %}
+                    <img src="{{ producto.imagen.url }}" alt="{{ producto.nombre }}" class="product-thumb">
+                    {% else %}
+                    <div class="product-thumb-placeholder">
+                        <i class='bx bx-food-menu'></i>
+                    </div>
+                    {% endif %}
+                </td>
+                <td>
+                    <strong>{{ producto.nombre }}</strong>
+                    {% if producto.descripcion %}
+                    <br><small class="text-muted">{{ producto.descripcion|truncatewords:10 }}</small>
+                    {% endif %}
+                </td>
+                <td>
+                    <span class="badge badge-info">{{ producto.categoria.nombre }}</span>
+                </td>
+                <td>S/ {{ producto.precio|floatformat:2 }}</td>
+                <td>
+                    {% if producto.stock <= 5 %}
+                    <span class="badge badge-warning">{{ producto.stock }} unid.</span>
+                    {% elif producto.stock == 0 %}
+                    <span class="badge badge-danger">Agotado</span>
+                    {% else %}
+                    <span class="badge badge-success">{{ producto.stock }} unid.</span>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if producto.disponible %}
+                        <span class="badge badge-success">Disponible</span>
+                    {% else %}
+                        <span class="badge badge-danger">No disponible</span>
+                    {% endif %}
+                </td>
+                <td>
+                    <div class="action-buttons">
+                        <a href="{% url 'adminux:producto_editar' producto.id %}" class="btn-icon" title="Editar">
+                            <i class='bx bx-edit'></i>
+                        </a>
+                        <a href="{% url 'adminux:producto_eliminar' producto.id %}" class="btn-icon btn-danger" title="Eliminar" onclick="return confirm('¿Eliminar este producto?')">
+                            <i class='bx bx-trash'></i>
+                        </a>
+                    </div>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="8" class="text-center text-muted">No hay productos registrados</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const searchInput = document.getElementById('searchInput');
+const table = document.querySelector('.data-table tbody');
+
+searchInput.addEventListener('input', (e) => {
+    const query = e.target.value.toLowerCase();
+    const rows = table.querySelectorAll('tr');
+
+    rows.forEach(row => {
+        const text = row.textContent.toLowerCase();
+        row.style.display = text.includes(query) ? '' : 'none';
+    });
+});
+
+function filtrarPorCategoria() {
+    const categoriaId = document.getElementById('categoriaFilter').value;
+    const rows = table.querySelectorAll('tr[data-categoria]');
+
+    rows.forEach(row => {
+        if (!categoriaId || row.dataset.categoria === categoriaId) {
+            row.style.display = '';
+        } else {
+            row.style.display = 'none';
+        }
+    });
+}
+
+function filtrarPorDisponibilidad() {
+    const disponible = document.getElementById('disponibleFilter').value;
+    const rows = table.querySelectorAll('tr[data-disponible]');
+
+    rows.forEach(row => {
+        if (!disponible || row.dataset.disponible === disponible) {
+            row.style.display = '';
+        } else {
+            row.style.display = 'none';
+        }
+    });
+}
+</script>
+{% endblock %}

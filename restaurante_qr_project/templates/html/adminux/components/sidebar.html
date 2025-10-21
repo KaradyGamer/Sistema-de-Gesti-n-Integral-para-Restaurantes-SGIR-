@@ -1,0 +1,97 @@
+{% load static %}
+<div class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+        <div class="logo">
+            <i class='bx bxs-dashboard'></i>
+            <span>AdminUX</span>
+        </div>
+        <button class="toggle-btn" id="toggleSidebar">
+            <i class='bx bx-menu'></i>
+        </button>
+    </div>
+
+    <nav class="sidebar-nav">
+        <a href="{% url 'adminux:dashboard' %}" class="nav-item {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
+            <i class='bx bx-home-alt'></i>
+            <span>Dashboard</span>
+        </a>
+
+        <div class="nav-section">
+            <span class="nav-section-title">Gestión</span>
+        </div>
+
+        <a href="{% url 'adminux:usuarios' %}" class="nav-item {% if 'usuarios' in request.path %}active{% endif %}">
+            <i class='bx bx-user'></i>
+            <span>Usuarios</span>
+        </a>
+
+        <a href="{% url 'adminux:productos' %}" class="nav-item {% if 'productos' in request.path %}active{% endif %}">
+            <i class='bx bx-package'></i>
+            <span>Productos</span>
+        </a>
+
+        <a href="{% url 'adminux:categorias' %}" class="nav-item {% if 'categorias' in request.path %}active{% endif %}">
+            <i class='bx bx-category'></i>
+            <span>Categorías</span>
+        </a>
+
+        <a href="{% url 'adminux:mesas' %}" class="nav-item {% if 'mesas' in request.path %}active{% endif %}">
+            <i class='bx bx-table'></i>
+            <span>Mesas</span>
+        </a>
+
+        <div class="nav-section">
+            <span class="nav-section-title">Operaciones</span>
+        </div>
+
+        <a href="{% url 'adminux:pedidos' %}" class="nav-item {% if 'pedidos' in request.path %}active{% endif %}">
+            <i class='bx bx-receipt'></i>
+            <span>Pedidos</span>
+        </a>
+
+        <a href="{% url 'adminux:reservas' %}" class="nav-item {% if 'reservas' in request.path %}active{% endif %}">
+            <i class='bx bx-calendar-check'></i>
+            <span>Reservas</span>
+        </a>
+
+        <div class="nav-section">
+            <span class="nav-section-title">Análisis</span>
+        </div>
+
+        <a href="{% url 'adminux:reportes' %}" class="nav-item {% if 'reportes' in request.path %}active{% endif %}">
+            <i class='bx bx-bar-chart-alt-2'></i>
+            <span>Reportes</span>
+        </a>
+
+        <div class="nav-section">
+            <span class="nav-section-title">Sistema</span>
+        </div>
+
+        <a href="{% url 'adminux:configuracion' %}" class="nav-item {% if 'configuracion' in request.path %}active{% endif %}">
+            <i class='bx bx-cog'></i>
+            <span>Configuración</span>
+        </a>
+
+        {% if request.user.is_superuser %}
+        <a href="/admin/" class="nav-item nav-item-danger" target="_blank">
+            <i class='bx bx-shield'></i>
+            <span>Django Admin</span>
+            <i class='bx bx-link-external' style="margin-left: auto; font-size: 0.9em;"></i>
+        </a>
+        {% endif %}
+    </nav>
+
+    <div class="sidebar-footer">
+        <div class="user-info">
+            <i class='bx bx-user-circle'></i>
+            <div>
+                <strong>{{ request.user.get_full_name|default:request.user.username }}</strong>
+                <small>{{ request.user.rol|upper|default:"ADMIN" }}</small>
+            </div>
+        </div>
+        <a href="/usuarios/logout/" class="logout-btn">
+            <i class='bx bx-log-out'></i>
+            <span>Cerrar Sesión</span>
+        </a>
+    </div>
+</div>
