@@ -271,12 +271,165 @@ function recargarPedidos() {
     mostrarNotificacion('Pedidos actualizados', 'success');
 }
 
-function verDetallePedido(id) {
-    window.open(`/caja/detalle/${id}/`, '_blank');
+async function verDetallePedido(id) {
+    const modal = document.getElementById('modalDetallePedido');
+    const modalBody = document.getElementById('modalBody');
+
+    modalBody.innerHTML = '<div class="loading">Cargando detalle...</div>';
+    modal.style.display = 'flex';
+
+    try {
+        const response = await fetch(`/api/caja/pedidos/${id}/`, {
+            headers: { 'X-CSRFToken': getCookie('csrftoken') }
+        });
+
+        if (!response.ok) throw new Error('Error al cargar pedido');
+
+        const data = await response.json();
+        const pedido = data.pedido;
+
+        modalBody.innerHTML = `
+            <div class="pedido-detalle">
+                <div class="detalle-header">
+                    <h3>Pedido #${pedido.id} - Mesa ${pedido.mesa}</h3>
+                    <span class="badge" style="background: #ffc107;">${pedido.estado}</span>
+                </div>
+
+                <div class="detalle-info">
+                    <p><strong>🕐 Fecha:</strong> ${pedido.fecha}</p>
+                    <p><strong>👥 Personas:</strong> ${pedido.numero_personas || 1}</p>
+                    <p><strong>👨‍🍳 Mesero:</strong> ${pedido.mesero || 'Cliente directo'}</p>
+                </div>
+
+                <div class="detalle-productos">
+                    <h4>Productos</h4>
+                    <table style="width: 100%; margin-top: 10px;">
+                        <thead>
+                            <tr>
+                                <th>Producto</th>
+                                <th>Cantidad</th>
+                                <th>Precio Unit.</th>
+                                <th>Subtotal</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${pedido.productos.map(p => `
+                                <tr>
+                                    <td>${p.nombre}</td>
+                                    <td>${p.cantidad}</td>
+                                    <td>Bs/ ${p.precio_unitario.toFixed(2)}</td>
+                                    <td>Bs/ ${p.subtotal.toFixed(2)}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="detalle-totales">
+                    <p><strong>Subtotal:</strong> Bs/ ${pedido.subtotal.toFixed(2)}</p>
+                    ${pedido.descuento > 0 ? `<p><strong>Descuento:</strong> -Bs/ ${pedido.descuento.toFixed(2)}</p>` : ''}
+                    ${pedido.propina > 0 ? `<p><strong>Propina:</strong> +Bs/ ${pedido.propina.toFixed(2)}</p>` : ''}
+                    <h3><strong>TOTAL:</strong> Bs/ ${pedido.total_final.toFixed(2)}</h3>
+                </div>
+
+                <div class="detalle-acciones">
+                    <button class="btn btn-success btn-lg" onclick="procesarPago(${id})">
+                        <i class='bx bx-money'></i> Procesar Pago
+                    </button>
+                    <button class="btn btn-secondary" onclick="cerrarModal()">
+                        <i class='bx bx-x'></i> Cerrar
+                    </button>
+                </div>
+            </div>
+        `;
+
+    } catch (error) {
+        modalBody.innerHTML = `
+            <p style="color: red; text-align: center;">Error al cargar el pedido</p>
+            <button class="btn btn-primary" onclick="cerrarModal()">Cerrar</button>
+        `;
+    }
+}
+
+function cerrarModal() {
+    document.getElementById('modalDetallePedido').style.display = 'none';
+}
+
+async function procesarPago(id) {
+    // Mostrar formulario de pago en el modal
+    const modalBody = document.getElementById('modalBody');
+    modalBody.innerHTML = `
+        <div class="form-pago">
+            <h3>Procesar Pago - Pedido #${id}</h3>
+
+            <div class="form-group">
+                <label>Método de Pago:</label>
+                <select id="metodoPago" class="form-control">
+                    <option value="efectivo">Efectivo</option>
+                    <option value="tarjeta">Tarjeta</option>
+                    <option value="qr">QR</option>
+                    <option value="mixto">Mixto</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>Monto Recibido:</label>
+                <input type="number" id="montoRecibido" class="form-control" step="0.01" min="0">
+            </div>
+
+            <div class="form-actions">
+                <button class="btn btn-success btn-lg" onclick="confirmarPago(${id})">
+                    <i class='bx bx-check'></i> Confirmar Pago
+                </button>
+                <button class="btn btn-secondary" onclick="verDetallePedido(${id})">
+                    <i class='bx bx-arrow-back'></i> Volver
+                </button>
+            </div>
+        </div>
+    `;
+}
+
+async function confirmarPago(id) {
+    const metodo = document.getElementById('metodoPago').value;
+    const monto = parseFloat(document.getElementById('montoRecibido').value);
+
+    if (!monto || monto <= 0) {
+        mostrarNotificacion('Ingrese un monto válido', 'error');
+        return;
+    }
+
+    try {
+        const response = await fetch('/api/caja/pago/simple/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify({
+                pedido_id: id,
+                metodo_pago: metodo,
+                monto_recibido: monto
+            })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            mostrarNotificacion('✅ Pago procesado correctamente', 'success');
+            cerrarModal();
+            cargarPedidos(); // Recargar lista
+            cargarDashboard(); // Actualizar dashboard
+        } else {
+            mostrarNotificacion('❌ Error: ' + (data.error || 'Error al procesar pago'), 'error');
+        }
+
+    } catch (error) {
+        mostrarNotificacion('❌ Error al procesar pago', 'error');
+    }
 }
 
 function cobrarPedido(id) {
-    window.location.href = `/caja/procesar-pago/${id}/`;
+    verDetallePedido(id);
 }
 
 function abrirTurno() {

@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Panel de Caja - Sistema Restaurante</title>
-    <link rel="stylesheet" href="{% static 'css/cajero/panel_unificado.css' %}?v=4.0">
+    <link rel="stylesheet" href="{% static 'css/cajero/panel_unificado.css' %}?v=6.0">
     <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
 </head>
 <body>
@@ -230,6 +230,19 @@
         </div>
     </div>
 
-    <script src="{% static 'js/cajero/panel_unificado.js' %}?v=5.0"></script>
+    <!-- Modal Detalle de Pedido -->
+    <div id="modalDetallePedido" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Detalle del Pedido</h2>
+                <button class="modal-close" onclick="cerrarModal()">&times;</button>
+            </div>
+            <div class="modal-body" id="modalBody">
+                <!-- Contenido dinámico -->
+            </div>
+        </div>
+    </div>
+
+    <script src="{% static 'js/cajero/panel_unificado.js' %}?v=6.0"></script>
 </body>
 </html>
