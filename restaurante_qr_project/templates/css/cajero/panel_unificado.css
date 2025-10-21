@@ -863,3 +863,196 @@ body {
         opacity: 1;
     }
 }
+
+/* ============================================
+   MENSAJES DE CAMBIO Y VALIDACIÓN
+   ============================================ */
+.total-a-pagar {
+    background: var(--hover-bg);
+    padding: 20px;
+    border-radius: 8px;
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.total-a-pagar h2 {
+    margin: 0;
+    font-size: 28px;
+}
+
+.mensaje-cambio {
+    margin: 20px 0;
+    padding: 0;
+}
+
+.alerta {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    padding: 25px;
+    border-radius: 12px;
+    animation: slideDown 0.3s ease;
+}
+
+.alerta i {
+    font-size: 48px;
+}
+
+.alerta h3 {
+    margin: 0 0 10px 0;
+    font-size: 24px;
+}
+
+.alerta p {
+    margin: 0;
+    font-size: 18px;
+}
+
+.alerta-error {
+    background: #fee;
+    border: 3px solid var(--danger-color);
+    color: var(--danger-color);
+}
+
+.alerta-success {
+    background: #efe;
+    border: 3px solid var(--success-color);
+    color: var(--success-color);
+}
+
+.alerta-exact {
+    background: #eff6ff;
+    border: 3px solid var(--primary-color);
+    color: var(--primary-color);
+}
+
+.cambio-grande {
+    font-size: 42px !important;
+    font-weight: bold;
+    margin-top: 10px !important;
+}
+
+/* ============================================
+   MODIFICAR PEDIDO
+   ============================================ */
+.modificar-pedido {
+    display: flex;
+    flex-direction: column;
+    gap: 25px;
+}
+
+.productos-actuales,
+.agregar-producto {
+    padding: 20px;
+    background: var(--hover-bg);
+    border-radius: 8px;
+}
+
+.productos-actuales h4,
+.agregar-producto h4 {
+    margin: 0 0 15px 0;
+    color: var(--text-primary);
+}
+
+.producto-item {
+    display: grid;
+    grid-template-columns: 2fr 1.5fr 1fr auto;
+    align-items: center;
+    gap: 15px;
+    padding: 15px;
+    background: white;
+    border-radius: 8px;
+    margin-bottom: 10px;
+}
+
+.cantidad-controls {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.btn-cantidad {
+    width: 35px;
+    height: 35px;
+    border: 2px solid var(--border-color);
+    background: white;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 18px;
+    font-weight: bold;
+    transition: all 0.2s;
+}
+
+.btn-cantidad:hover {
+    background: var(--primary-color);
+    color: white;
+    border-color: var(--primary-color);
+}
+
+.input-cantidad {
+    width: 60px;
+    text-align: center;
+    padding: 8px;
+    border: 2px solid var(--border-color);
+    border-radius: 6px;
+    font-size: 16px;
+}
+
+.btn-eliminar {
+    background: var(--danger-color);
+    color: white;
+    border: none;
+    width: 40px;
+    height: 40px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+.btn-eliminar:hover {
+    background: #dc2626;
+    transform: scale(1.1);
+}
+
+.agregar-producto {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.total-modificado {
+    background: var(--primary-color);
+    color: white;
+    padding: 20px;
+    border-radius: 8px;
+    text-align: center;
+}
+
+.total-modificado h3 {
+    margin: 0;
+    font-size: 28px;
+}
+
+.btn-warning {
+    background: var(--warning-color);
+    color: white;
+}
+
+.btn-warning:hover {
+    background: #d97706;
+}
+
+@keyframes slideDown {
+    from {
+        transform: translateY(-20px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}

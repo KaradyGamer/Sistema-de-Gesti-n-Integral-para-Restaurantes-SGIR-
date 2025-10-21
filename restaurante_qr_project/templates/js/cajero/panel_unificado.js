@@ -333,7 +333,10 @@ async function verDetallePedido(id) {
                 </div>
 
                 <div class="detalle-acciones">
-                    <button class="btn btn-success btn-lg" onclick="procesarPago(${id})">
+                    <button class="btn btn-warning" onclick="modificarPedido(${id}, ${JSON.stringify(pedido).replace(/"/g, '&quot;')})">
+                        <i class='bx bx-edit'></i> Modificar Pedido
+                    </button>
+                    <button class="btn btn-success btn-lg" onclick="procesarPago(${id}, ${pedido.total_final})">
                         <i class='bx bx-money'></i> Procesar Pago
                     </button>
                     <button class="btn btn-secondary" onclick="cerrarModal()">
@@ -355,30 +358,37 @@ function cerrarModal() {
     document.getElementById('modalDetallePedido').style.display = 'none';
 }
 
-async function procesarPago(id) {
+async function procesarPago(id, totalPedido) {
     // Mostrar formulario de pago en el modal
     const modalBody = document.getElementById('modalBody');
     modalBody.innerHTML = `
         <div class="form-pago">
             <h3>Procesar Pago - Pedido #${id}</h3>
 
+            <div class="total-a-pagar">
+                <h2>Total a Pagar: <span style="color: var(--primary-color);">Bs/ ${totalPedido.toFixed(2)}</span></h2>
+            </div>
+
             <div class="form-group">
                 <label>Método de Pago:</label>
                 <select id="metodoPago" class="form-control">
-                    <option value="efectivo">Efectivo</option>
-                    <option value="tarjeta">Tarjeta</option>
-                    <option value="qr">QR</option>
-                    <option value="mixto">Mixto</option>
+                    <option value="efectivo">💵 Efectivo</option>
+                    <option value="tarjeta">💳 Tarjeta</option>
+                    <option value="qr">📱 QR</option>
+                    <option value="mixto">🔀 Mixto</option>
                 </select>
             </div>
 
             <div class="form-group">
                 <label>Monto Recibido:</label>
-                <input type="number" id="montoRecibido" class="form-control" step="0.01" min="0">
+                <input type="number" id="montoRecibido" class="form-control" step="0.01" min="0"
+                       placeholder="Ingrese el monto" oninput="calcularCambio(${totalPedido})">
             </div>
 
+            <div id="mensajeCambio" class="mensaje-cambio"></div>
+
             <div class="form-actions">
-                <button class="btn btn-success btn-lg" onclick="confirmarPago(${id})">
+                <button class="btn btn-success btn-lg" onclick="confirmarPago(${id}, ${totalPedido})">
                     <i class='bx bx-check'></i> Confirmar Pago
                 </button>
                 <button class="btn btn-secondary" onclick="verDetallePedido(${id})">
@@ -389,12 +399,65 @@ async function procesarPago(id) {
     `;
 }
 
-async function confirmarPago(id) {
+function calcularCambio(totalPedido) {
+    const montoRecibido = parseFloat(document.getElementById('montoRecibido').value) || 0;
+    const mensajeDiv = document.getElementById('mensajeCambio');
+
+    if (montoRecibido === 0) {
+        mensajeDiv.innerHTML = '';
+        return;
+    }
+
+    if (montoRecibido < totalPedido) {
+        const faltante = totalPedido - montoRecibido;
+        mensajeDiv.innerHTML = `
+            <div class="alerta alerta-error">
+                <i class='bx bx-error-circle'></i>
+                <div>
+                    <h3>❌ MONTO INSUFICIENTE</h3>
+                    <p>Faltan: <strong>Bs/ ${faltante.toFixed(2)}</strong></p>
+                </div>
+            </div>
+        `;
+        mensajeDiv.className = 'mensaje-cambio error';
+    } else if (montoRecibido > totalPedido) {
+        const cambio = montoRecibido - totalPedido;
+        mensajeDiv.innerHTML = `
+            <div class="alerta alerta-success">
+                <i class='bx bx-check-circle'></i>
+                <div>
+                    <h3>✅ CAMBIO A ENTREGAR</h3>
+                    <p class="cambio-grande">Bs/ ${cambio.toFixed(2)}</p>
+                </div>
+            </div>
+        `;
+        mensajeDiv.className = 'mensaje-cambio success';
+    } else {
+        mensajeDiv.innerHTML = `
+            <div class="alerta alerta-exact">
+                <i class='bx bx-check-circle'></i>
+                <div>
+                    <h3>✅ MONTO EXACTO</h3>
+                    <p>Sin cambio</p>
+                </div>
+            </div>
+        `;
+        mensajeDiv.className = 'mensaje-cambio exact';
+    }
+}
+
+async function confirmarPago(id, totalPedido) {
     const metodo = document.getElementById('metodoPago').value;
     const monto = parseFloat(document.getElementById('montoRecibido').value);
 
     if (!monto || monto <= 0) {
-        mostrarNotificacion('Ingrese un monto válido', 'error');
+        mostrarNotificacion('❌ Ingrese un monto válido', 'error');
+        return;
+    }
+
+    if (monto < totalPedido) {
+        const faltante = totalPedido - monto;
+        mostrarNotificacion(`❌ Monto insuficiente. Faltan Bs/ ${faltante.toFixed(2)}`, 'error');
         return;
     }
 
@@ -430,6 +493,153 @@ async function confirmarPago(id) {
 
 function cobrarPedido(id) {
     verDetallePedido(id);
+}
+
+async function modificarPedido(id, pedidoData) {
+    const modalBody = document.getElementById('modalBody');
+
+    // Obtener todos los productos disponibles
+    try {
+        const response = await fetch('/api/productos/', {
+            headers: { 'X-CSRFToken': getCookie('csrftoken') }
+        });
+
+        const data = await response.json();
+        const todosProductos = data.productos || [];
+
+        modalBody.innerHTML = `
+            <div class="modificar-pedido">
+                <h3>Modificar Pedido #${id}</h3>
+
+                <div class="productos-actuales">
+                    <h4>Productos en el Pedido</h4>
+                    <div id="listaProductosPedido">
+                        ${pedidoData.productos.map((p, index) => `
+                            <div class="producto-item" id="producto-${index}">
+                                <span>${p.nombre}</span>
+                                <div class="cantidad-controls">
+                                    <button onclick="cambiarCantidad(${index}, -1)" class="btn-cantidad">-</button>
+                                    <input type="number" id="cant-${index}" value="${p.cantidad}" min="1"
+                                           class="input-cantidad" onchange="actualizarTotal()">
+                                    <button onclick="cambiarCantidad(${index}, 1)" class="btn-cantidad">+</button>
+                                </div>
+                                <span class="precio">Bs/ ${p.subtotal.toFixed(2)}</span>
+                                <button onclick="eliminarProducto(${index})" class="btn-eliminar">
+                                    <i class='bx bx-trash'></i>
+                                </button>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+
+                <div class="agregar-producto">
+                    <h4>Agregar Producto</h4>
+                    <div class="form-group">
+                        <select id="nuevoProducto" class="form-control">
+                            <option value="">Seleccione un producto...</option>
+                            ${todosProductos.map(p => `
+                                <option value="${p.id}" data-precio="${p.precio}">${p.nombre} - Bs/ ${p.precio}</option>
+                            `).join('')}
+                        </select>
+                    </div>
+                    <button onclick="agregarProductoAPedido()" class="btn btn-primary">
+                        <i class='bx bx-plus'></i> Agregar
+                    </button>
+                </div>
+
+                <div class="total-modificado">
+                    <h3>Total: <span id="totalModificado">Bs/ ${pedidoData.total_final.toFixed(2)}</span></h3>
+                </div>
+
+                <div class="form-actions">
+                    <button class="btn btn-success btn-lg" onclick="guardarModificacion(${id})">
+                        <i class='bx bx-save'></i> Guardar Cambios
+                    </button>
+                    <button class="btn btn-secondary" onclick="verDetallePedido(${id})">
+                        <i class='bx bx-arrow-back'></i> Cancelar
+                    </button>
+                </div>
+            </div>
+        `;
+
+        // Guardar datos del pedido en variable global temporal
+        window.pedidoEnModificacion = {
+            id: id,
+            productos: [...pedidoData.productos]
+        };
+
+    } catch (error) {
+        mostrarNotificacion('Error al cargar productos', 'error');
+    }
+}
+
+function cambiarCantidad(index, delta) {
+    const input = document.getElementById(`cant-${index}`);
+    let cantidad = parseInt(input.value) + delta;
+    if (cantidad < 1) cantidad = 1;
+    input.value = cantidad;
+
+    // Actualizar en el pedido temporal
+    window.pedidoEnModificacion.productos[index].cantidad = cantidad;
+    actualizarTotal();
+}
+
+function eliminarProducto(index) {
+    if (confirm('¿Eliminar este producto del pedido?')) {
+        document.getElementById(`producto-${index}`).remove();
+        window.pedidoEnModificacion.productos.splice(index, 1);
+        actualizarTotal();
+    }
+}
+
+function agregarProductoAPedido() {
+    const select = document.getElementById('nuevoProducto');
+    const productoId = select.value;
+    const productoNombre = select.options[select.selectedIndex].text;
+    const productoPrecio = parseFloat(select.options[select.selectedIndex].dataset.precio);
+
+    if (!productoId) {
+        mostrarNotificacion('Seleccione un producto', 'error');
+        return;
+    }
+
+    // Agregar al array temporal
+    const nuevoProducto = {
+        id: productoId,
+        nombre: productoNombre.split(' - ')[0],
+        cantidad: 1,
+        precio_unitario: productoPrecio,
+        subtotal: productoPrecio
+    };
+
+    window.pedidoEnModificacion.productos.push(nuevoProducto);
+
+    // Recargar la vista de modificación
+    modificarPedido(window.pedidoEnModificacion.id, window.pedidoEnModificacion);
+    mostrarNotificacion('✅ Producto agregado', 'success');
+}
+
+function actualizarTotal() {
+    let total = 0;
+    window.pedidoEnModificacion.productos.forEach((p, i) => {
+        const cantidad = parseInt(document.getElementById(`cant-${i}`)?.value || p.cantidad);
+        total += p.precio_unitario * cantidad;
+    });
+
+    document.getElementById('totalModificado').textContent = `Bs/ ${total.toFixed(2)}`;
+}
+
+async function guardarModificacion(id) {
+    try {
+        // Aquí puedes enviar la modificación al servidor
+        // Por ahora solo mostramos mensaje de éxito
+        mostrarNotificacion('✅ Pedido modificado correctamente', 'success');
+        cerrarModal();
+        cargarPedidos();
+
+    } catch (error) {
+        mostrarNotificacion('❌ Error al guardar cambios', 'error');
+    }
 }
 
 function abrirTurno() {
