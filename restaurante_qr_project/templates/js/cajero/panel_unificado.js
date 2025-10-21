@@ -507,6 +507,16 @@ async function modificarPedido(id, pedidoData) {
         const data = await response.json();
         const todosProductos = data.productos || [];
 
+        // Agrupar productos por categoría
+        const productosPorCategoria = {};
+        todosProductos.forEach(p => {
+            const cat = p.categoria_nombre || 'Sin Categoría';
+            if (!productosPorCategoria[cat]) {
+                productosPorCategoria[cat] = [];
+            }
+            productosPorCategoria[cat].push(p);
+        });
+
         modalBody.innerHTML = `
             <div class="modificar-pedido">
                 <h3>Modificar Pedido #${id}</h3>
@@ -533,18 +543,39 @@ async function modificarPedido(id, pedidoData) {
                 </div>
 
                 <div class="agregar-producto">
-                    <h4>Agregar Producto</h4>
-                    <div class="form-group">
-                        <select id="nuevoProducto" class="form-control">
-                            <option value="">Seleccione un producto...</option>
-                            ${todosProductos.map(p => `
-                                <option value="${p.id}" data-precio="${p.precio}">${p.nombre} - Bs/ ${p.precio}</option>
-                            `).join('')}
-                        </select>
+                    <h4><i class='bx bx-plus-circle'></i> Agregar Producto</h4>
+
+                    <!-- Buscador -->
+                    <div class="buscador-productos">
+                        <i class='bx bx-search'></i>
+                        <input type="text" id="buscarProducto" placeholder="Buscar producto..."
+                               onkeyup="filtrarProductos()" class="input-buscar">
                     </div>
-                    <button onclick="agregarProductoAPedido()" class="btn btn-primary">
-                        <i class='bx bx-plus'></i> Agregar
-                    </button>
+
+                    <!-- Lista de productos por categoría -->
+                    <div class="lista-productos-menu" id="listaProductosMenu">
+                        ${Object.keys(productosPorCategoria).map(categoria => `
+                            <div class="categoria-grupo">
+                                <div class="categoria-header" onclick="toggleCategoria('${categoria.replace(/\s+/g, '_')}')">
+                                    <i class='bx bx-folder'></i>
+                                    <span>${categoria}</span>
+                                    <i class='bx bx-chevron-down toggle-icon'></i>
+                                </div>
+                                <div class="categoria-items" id="cat_${categoria.replace(/\s+/g, '_')}">
+                                    ${productosPorCategoria[categoria].map(p => `
+                                        <div class="producto-menu-item" data-nombre="${p.nombre.toLowerCase()}"
+                                             data-categoria="${categoria}" onclick="seleccionarProductoMenu(${p.id}, '${p.nombre}', ${p.precio})">
+                                            <div class="producto-info">
+                                                <i class='bx bx-dish'></i>
+                                                <span class="nombre">${p.nombre}</span>
+                                            </div>
+                                            <span class="precio">Bs/ ${p.precio}</span>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
                 </div>
 
                 <div class="total-modificado">
@@ -592,31 +623,69 @@ function eliminarProducto(index) {
     }
 }
 
-function agregarProductoAPedido() {
-    const select = document.getElementById('nuevoProducto');
-    const productoId = select.value;
-    const productoNombre = select.options[select.selectedIndex].text;
-    const productoPrecio = parseFloat(select.options[select.selectedIndex].dataset.precio);
+// Toggle categoría (expandir/colapsar)
+function toggleCategoria(categoriaId) {
+    const items = document.getElementById(`cat_${categoriaId}`);
+    const header = items.previousElementSibling;
+    const icon = header.querySelector('.toggle-icon');
 
-    if (!productoId) {
-        mostrarNotificacion('Seleccione un producto', 'error');
-        return;
+    if (items.style.display === 'none') {
+        items.style.display = 'block';
+        icon.style.transform = 'rotate(0deg)';
+    } else {
+        items.style.display = 'none';
+        icon.style.transform = 'rotate(-90deg)';
     }
+}
 
+// Filtrar productos por búsqueda
+function filtrarProductos() {
+    const busqueda = document.getElementById('buscarProducto').value.toLowerCase();
+    const items = document.querySelectorAll('.producto-menu-item');
+    const categorias = document.querySelectorAll('.categoria-grupo');
+
+    items.forEach(item => {
+        const nombre = item.dataset.nombre;
+        if (nombre.includes(busqueda)) {
+            item.style.display = 'flex';
+        } else {
+            item.style.display = 'none';
+        }
+    });
+
+    // Si hay búsqueda, expandir todas las categorías que tengan resultados
+    if (busqueda.length > 0) {
+        categorias.forEach(cat => {
+            const itemsVisibles = cat.querySelectorAll('.producto-menu-item[style="display: flex;"]');
+            const catItems = cat.querySelector('.categoria-items');
+            const icon = cat.querySelector('.toggle-icon');
+
+            if (itemsVisibles.length > 0) {
+                catItems.style.display = 'block';
+                icon.style.transform = 'rotate(0deg)';
+            } else {
+                catItems.style.display = 'none';
+            }
+        });
+    }
+}
+
+// Seleccionar producto del menú
+function seleccionarProductoMenu(id, nombre, precio) {
     // Agregar al array temporal
     const nuevoProducto = {
-        id: productoId,
-        nombre: productoNombre.split(' - ')[0],
+        id: id,
+        nombre: nombre,
         cantidad: 1,
-        precio_unitario: productoPrecio,
-        subtotal: productoPrecio
+        precio_unitario: precio,
+        subtotal: precio
     };
 
     window.pedidoEnModificacion.productos.push(nuevoProducto);
 
     // Recargar la vista de modificación
     modificarPedido(window.pedidoEnModificacion.id, window.pedidoEnModificacion);
-    mostrarNotificacion('✅ Producto agregado', 'success');
+    mostrarNotificacion(`✅ ${nombre} agregado`, 'success');
 }
 
 function actualizarTotal() {
