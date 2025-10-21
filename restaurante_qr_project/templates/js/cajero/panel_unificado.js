@@ -189,11 +189,40 @@ async function cargarPedidos() {
         }
 
         // Renderizar pedidos
-        container.innerHTML = data.pedidos.map(pedido => `
+        container.innerHTML = data.pedidos.map(pedido => {
+            // Determinar badge de estado
+            let estadoBadge = '';
+            let estadoColor = '';
+            switch(pedido.estado) {
+                case 'pendiente':
+                    estadoBadge = '⏳ Pendiente';
+                    estadoColor = '#ffc107';
+                    break;
+                case 'en_preparacion':
+                    estadoBadge = '🍳 En Preparación';
+                    estadoColor = '#17a2b8';
+                    break;
+                case 'listo':
+                    estadoBadge = '✅ Listo';
+                    estadoColor = '#28a745';
+                    break;
+                case 'entregado':
+                    estadoBadge = '🍽️ Entregado';
+                    estadoColor = '#6c757d';
+                    break;
+                default:
+                    estadoBadge = pedido.estado;
+                    estadoColor = '#6c757d';
+            }
+
+            return `
             <div class="pedido-card">
                 <div class="pedido-header">
                     <h3>Pedido #${pedido.id}</h3>
-                    <span class="pedido-badge">Mesa ${pedido.mesa}</span>
+                    <div style="display: flex; gap: 8px;">
+                        <span class="pedido-badge" style="background: ${estadoColor};">${estadoBadge}</span>
+                        <span class="pedido-badge">Mesa ${pedido.mesa}</span>
+                    </div>
                 </div>
                 <div class="pedido-body">
                     <p><strong>🕐 Hora:</strong> ${pedido.fecha}</p>
@@ -218,7 +247,8 @@ async function cargarPedidos() {
                     </button>
                 </div>
             </div>
-        `).join('');
+        `;
+        }).join('');
 
     } catch (error) {
         console.error('Error:', error);

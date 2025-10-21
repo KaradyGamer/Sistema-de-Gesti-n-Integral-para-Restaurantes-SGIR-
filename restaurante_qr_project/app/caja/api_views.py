@@ -48,9 +48,11 @@ def api_pedidos_pendientes_pago(request):
     try:
         print(f"🧾 API Pedidos Pendientes - Usuario: {request.user}")
 
+        # Mostrar pedidos pendientes de pago (cualquier estado excepto cancelado)
         pedidos = Pedido.objects.filter(
-            estado='entregado',
             estado_pago='pendiente'
+        ).exclude(
+            estado='cancelado'
         ).select_related('mesa').prefetch_related('detalles__producto').order_by('fecha')
 
         pedidos_data = []
@@ -78,6 +80,8 @@ def api_pedidos_pendientes_pago(request):
                 'mesa': pedido.mesa.numero if pedido.mesa else 'N/A',
                 'mesa_id': pedido.mesa.id if pedido.mesa else None,
                 'fecha': pedido.fecha.strftime('%H:%M'),
+                'estado': pedido.estado,  # ✅ Agregado: Estado del pedido
+                'estado_pago': pedido.estado_pago,  # ✅ Agregado: Estado del pago
                 'productos': productos,
                 'subtotal': float(pedido.total),
                 'descuento': float(pedido.descuento),
