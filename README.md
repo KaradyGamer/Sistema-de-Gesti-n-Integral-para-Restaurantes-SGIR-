@@ -5,7 +5,7 @@
 [![Django](https://img.shields.io/badge/Django-5.2-green.svg)](https://www.djangoproject.com/)
 [![Python](https://img.shields.io/badge/Python-3.13-blue.svg)](https://www.python.org/)
 [![SQLite](https://img.shields.io/badge/SQLite-3-lightgrey.svg)](https://www.sqlite.org/)
-[![Version](https://img.shields.io/badge/Version-2.0.0-brightgreen.svg)](./CHANGELOG.md)
+[![Version](https://img.shields.io/badge/Version-2.1.0-brightgreen.svg)](#)
 
 ## 📋 Tabla de Contenidos
 
@@ -44,12 +44,24 @@
    - Combinación de mesas si es necesario
    - Estados: Pendiente, Confirmada, En Uso, Completada, Cancelada
 
-4. **Módulo de Caja Completo**
+4. **Panel Unificado de Caja (NUEVO v2.1)**
+   - Interface moderna con sidebar lateral
+   - Navegación SPA (Single Page Application)
+   - Dashboard con estadísticas en tiempo real
+   - 8 secciones integradas en un solo panel
+   - **Modal de detalle/pago** (sin salir del panel)
+   - **Modificar pedidos**: agregar/eliminar productos
+   - **Validación inteligente de pago**:
+     - Monto insuficiente (mensaje rojo)
+     - Cambio a entregar (mensaje verde 42px)
+     - Monto exacto (mensaje azul)
+     - Cálculo en tiempo real
    - Pagos mixtos (efectivo + tarjeta + QR + móvil)
    - Turnos de caja con apertura/cierre
    - Descuentos y propinas
    - Historial de transacciones
    - Alertas de stock bajo
+   - Gestión de personal y jornada laboral
 
 5. **Panel de Cocina**
    - Vista en tiempo real de pedidos

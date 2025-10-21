@@ -954,6 +954,17 @@ body {
     color: var(--text-primary);
 }
 
+.agregar-producto {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.agregar-producto button {
+    width: fit-content;
+    padding: 12px 30px;
+}
+
 .producto-item {
     display: grid;
     grid-template-columns: 2fr 1.5fr 1fr auto;
@@ -1016,12 +1027,6 @@ body {
 .btn-eliminar:hover {
     background: #dc2626;
     transform: scale(1.1);
-}
-
-.agregar-producto {
-    display: flex;
-    flex-direction: column;
-    gap: 15px;
 }
 
 .total-modificado {
