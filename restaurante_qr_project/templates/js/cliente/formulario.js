@@ -732,10 +732,10 @@ class RestaurantOrderSystem {
 
                     return `
                         <div class="search-result-item" onclick="orderSystem.selectSearchResult(${product.id})">
-                            <img src="${product.imagen || '/static/images/no-image.png'}"
+                            <img src="${product.imagen || '/static/images/no-image.svg'}"
                                  alt="${product.nombre}"
                                  class="search-result-image"
-                                 onerror="this.src='/static/images/no-image.png'">
+                                 onerror="this.src='/static/images/no-image.svg'">
                             <div class="search-result-info">
                                 <div class="search-result-name">${highlightedName}</div>
                                 <div class="search-result-description">${highlightedDesc}</div>

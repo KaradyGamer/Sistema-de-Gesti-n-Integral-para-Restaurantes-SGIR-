@@ -123,7 +123,7 @@ window.addEventListener('load', () => {
 // ============================================
 async function cargarDashboard() {
     try {
-        const response = await fetch('/api/caja/estadisticas-dia/', {
+        const response = await fetch('/api/caja/estadisticas/', {
             headers: {
                 'X-CSRFToken': getCookie('csrftoken')
             }
