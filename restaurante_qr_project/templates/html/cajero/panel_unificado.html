@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Panel de Caja - Sistema Restaurante</title>
-    <link rel="stylesheet" href="{% static 'css/cajero/panel_unificado.css' %}?v=2.0">
+    <link rel="stylesheet" href="{% static 'css/cajero/panel_unificado.css' %}?v=4.0">
     <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
 </head>
 <body>
@@ -200,31 +200,36 @@
 
             <!-- SECCIÓN: MAPA MESAS -->
             <section id="section-mesas" class="content-section">
-                <iframe src="{% url 'caja:mapa_mesas' %}" frameborder="0" class="iframe-full"></iframe>
+                <h2>Mapa de Mesas</h2>
+                <div id="mapaMesasContainer" class="loading">Cargando mapa de mesas...</div>
             </section>
 
             <!-- SECCIÓN: HISTORIAL -->
             <section id="section-historial" class="content-section">
-                <iframe src="{% url 'caja:historial' %}" frameborder="0" class="iframe-full"></iframe>
+                <h2>Historial de Transacciones</h2>
+                <div id="historialContainer" class="loading">Cargando historial...</div>
             </section>
 
             <!-- SECCIÓN: ALERTAS STOCK -->
             <section id="section-stock" class="content-section">
-                <iframe src="{% url 'caja:alertas_stock' %}" frameborder="0" class="iframe-full"></iframe>
+                <h2>Alertas de Stock</h2>
+                <div id="alertasStockContainer" class="loading">Cargando alertas...</div>
             </section>
 
             <!-- SECCIÓN: PERSONAL -->
             <section id="section-personal" class="content-section">
-                <iframe src="{% url 'caja:personal_panel' %}" frameborder="0" class="iframe-full"></iframe>
+                <h2>Gestión de Personal</h2>
+                <div id="personalContainer" class="loading">Cargando personal...</div>
             </section>
 
             <!-- SECCIÓN: JORNADA LABORAL -->
             <section id="section-jornada" class="content-section">
-                <iframe src="{% url 'caja:gestionar_jornada' %}" frameborder="0" class="iframe-full"></iframe>
+                <h2>Jornada Laboral</h2>
+                <div id="jornadaContainer" class="loading">Cargando jornada...</div>
             </section>
         </div>
     </div>
 
-    <script src="{% static 'js/cajero/panel_unificado.js' %}?v=3.0"></script>
+    <script src="{% static 'js/cajero/panel_unificado.js' %}?v=4.0"></script>
 </body>
 </html>

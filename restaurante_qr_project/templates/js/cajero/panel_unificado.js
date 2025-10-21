@@ -89,6 +89,16 @@ function navigateTo(sectionName) {
         cargarDashboard();
     } else if (sectionName === 'pedidos') {
         cargarPedidos();
+    } else if (sectionName === 'mesas') {
+        cargarMapaMesas();
+    } else if (sectionName === 'historial') {
+        cargarHistorial();
+    } else if (sectionName === 'stock') {
+        cargarAlertasStock();
+    } else if (sectionName === 'personal') {
+        cargarPersonal();
+    } else if (sectionName === 'jornada') {
+        cargarJornada();
     }
 }
 
@@ -157,7 +167,7 @@ async function cargarPedidos() {
     container.innerHTML = '<div class="loading">Cargando pedidos...</div>';
 
     try {
-        const response = await fetch('/api/caja/pedidos-pendientes/', {
+        const response = await fetch('/api/caja/pedidos/pendientes/', {
             headers: {
                 'X-CSRFToken': getCookie('csrftoken')
             }
@@ -291,6 +301,46 @@ function mostrarNotificacion(mensaje, tipo = 'info') {
         toast.style.animation = 'slideOut 0.3s ease-in';
         setTimeout(() => toast.remove(), 300);
     }, 3000);
+}
+
+// ============================================
+// CARGAR MAPA DE MESAS
+// ============================================
+async function cargarMapaMesas() {
+    const container = document.getElementById('mapaMesasContainer');
+    container.innerHTML = '<div class="loading">Cargando mapa de mesas...</div>';
+
+    try {
+        const response = await fetch('/api/caja/mapa-mesas/', {
+            headers: { 'X-CSRFToken': getCookie('csrftoken') }
+        });
+
+        if (!response.ok) throw new Error('Error al cargar mapa');
+
+        const data = await response.json();
+        container.innerHTML = '<p>🗺️ Funcionalidad de mapa de mesas próximamente</p>';
+    } catch (error) {
+        container.innerHTML = '<p style="color: red;">Error al cargar mapa de mesas</p>';
+    }
+}
+
+// ============================================
+// CARGAR OTRAS SECCIONES (PLACEHOLDER)
+// ============================================
+function cargarHistorial() {
+    document.getElementById('historialContainer').innerHTML = '<p>📋 Historial próximamente</p>';
+}
+
+function cargarAlertasStock() {
+    document.getElementById('alertasStockContainer').innerHTML = '<p>⚠️ Alertas de stock próximamente</p>';
+}
+
+function cargarPersonal() {
+    document.getElementById('personalContainer').innerHTML = '<p>👥 Gestión de personal próximamente</p>';
+}
+
+function cargarJornada() {
+    document.getElementById('jornadaContainer').innerHTML = '<p>📅 Jornada laboral próximamente</p>';
 }
 
 // Auto-actualización cada 30 segundos
