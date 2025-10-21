@@ -132,15 +132,16 @@ async function cargarDashboard() {
         if (!response.ok) throw new Error('Error al cargar estadísticas');
 
         const data = await response.json();
+        const stats = data.estadisticas || {};
 
         // Actualizar estadísticas
-        document.getElementById('totalVentas').textContent = parseFloat(data.total_ventas || 0).toFixed(2);
-        document.getElementById('totalPedidos').textContent = data.total_pedidos || 0;
-        document.getElementById('pedidosPagados').textContent = data.pedidos_pagados || 0;
-        document.getElementById('pedidosPendientes').textContent = data.pedidos_pendientes || 0;
+        document.getElementById('totalVentas').textContent = parseFloat(stats.totales?.total || 0).toFixed(2);
+        document.getElementById('totalPedidos').textContent = stats.total_pedidos || 0;
+        document.getElementById('pedidosPagados').textContent = stats.pedidos_pagados || 0;
+        document.getElementById('pedidosPendientes').textContent = stats.pedidos_pendientes || 0;
 
         // Actualizar badges
-        document.getElementById('badgePedidos').textContent = data.pedidos_pendientes || 0;
+        document.getElementById('badgePedidos').textContent = stats.pedidos_pendientes || 0;
 
     } catch (error) {
         console.error('Error:', error);
