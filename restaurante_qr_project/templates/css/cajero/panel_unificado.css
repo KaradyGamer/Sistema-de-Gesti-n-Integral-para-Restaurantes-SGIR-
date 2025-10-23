@@ -1247,3 +1247,242 @@ body {
         max-height: 500px;
     }
 }
+
+/* ============================================
+   TARJETAS DE PRODUCTOS - MODAL DE MODIFICACIÓN
+   ============================================ */
+
+.producto-menu-card {
+    background: white;
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    overflow: hidden;
+    transition: all 0.3s ease;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+.producto-menu-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+    border-color: var(--primary-color);
+}
+
+.producto-imagen {
+    position: relative;
+    width: 100%;
+    height: 160px;
+    overflow: hidden;
+    background: #f8fafc;
+}
+
+.producto-imagen img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.3s ease;
+}
+
+.producto-menu-card:hover .producto-imagen img {
+    transform: scale(1.05);
+}
+
+.badge-agotado,
+.badge-bajo-stock {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.badge-agotado {
+    background: var(--danger-color);
+    color: white;
+}
+
+.badge-bajo-stock {
+    background: var(--warning-color);
+    color: white;
+}
+
+.badge-count {
+    background: var(--primary-color);
+    color: white;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
+    margin-left: auto;
+    margin-right: 8px;
+}
+
+.producto-contenido {
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+}
+
+.producto-nombre {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 8px;
+    line-height: 1.3;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+}
+
+.producto-descripcion {
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin-bottom: 12px;
+    line-height: 1.4;
+    flex-grow: 1;
+}
+
+.producto-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: auto;
+}
+
+.producto-precio {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--primary-color);
+}
+
+.btn-agregar-producto {
+    background: var(--primary-color);
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.btn-agregar-producto:hover {
+    background: var(--secondary-color);
+    transform: translateX(2px);
+}
+
+.btn-agregar-producto i {
+    font-size: 16px;
+}
+
+.categoria-items {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 16px;
+    padding: 16px 0;
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease;
+}
+
+.categoria-items[style*="display: grid"] {
+    max-height: 2000px;
+}
+
+.categoria-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 16px;
+    background: var(--hover-bg);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    margin-bottom: 8px;
+}
+
+.categoria-header:hover {
+    background: #e2e8f0;
+}
+
+.categoria-header i {
+    font-size: 20px;
+}
+
+.categoria-header span {
+    font-weight: 600;
+    font-size: 14px;
+}
+
+.toggle-icon {
+    margin-left: auto;
+    transition: transform 0.3s ease;
+}
+
+.lista-productos-menu {
+    max-height: 500px;
+    overflow-y: auto;
+    padding: 8px;
+    background: #f8fafc;
+    border-radius: 8px;
+}
+
+/* Scrollbar personalizado */
+.lista-productos-menu::-webkit-scrollbar {
+    width: 8px;
+}
+
+.lista-productos-menu::-webkit-scrollbar-track {
+    background: #e2e8f0;
+    border-radius: 4px;
+}
+
+.lista-productos-menu::-webkit-scrollbar-thumb {
+    background: var(--primary-color);
+    border-radius: 4px;
+}
+
+.lista-productos-menu::-webkit-scrollbar-thumb:hover {
+    background: var(--secondary-color);
+}
+
+/* Responsive para tarjetas */
+@media (max-width: 768px) {
+    .categoria-items {
+        grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+        gap: 12px;
+    }
+
+    .producto-imagen {
+        height: 120px;
+    }
+
+    .producto-contenido {
+        padding: 12px;
+    }
+
+    .producto-nombre {
+        font-size: 14px;
+    }
+
+    .producto-descripcion {
+        font-size: 12px;
+    }
+
+    .producto-precio {
+        font-size: 16px;
+    }
+}

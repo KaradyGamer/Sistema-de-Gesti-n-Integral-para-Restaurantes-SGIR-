@@ -1012,8 +1012,8 @@ def modificar_pedido_api(request, pedido_id):
             int(k): int(v) for k, v in productos_nuevos.items()
         }
 
-        # Llamar a la funcin de modificacin
-        resultado = modificar_pedido_con_stock(pedido_id, productos_nuevos)
+        # Llamar a la funcin de modificacin con el usuario actual
+        resultado = modificar_pedido_con_stock(pedido_id, productos_nuevos, usuario=request.user)
 
         return Response({
             'success': True,

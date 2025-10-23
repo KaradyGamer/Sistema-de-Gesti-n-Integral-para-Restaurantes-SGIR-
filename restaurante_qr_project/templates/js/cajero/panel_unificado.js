@@ -228,6 +228,11 @@ async function cargarPedidos() {
                     <p><strong>🕐 Hora:</strong> ${pedido.fecha}</p>
                     <p><strong>👥 Personas:</strong> ${pedido.numero_personas || 1}</p>
                     <p><strong>👨‍🍳 Mesero:</strong> ${pedido.mesero || 'Cliente directo'}</p>
+                    ${pedido.modificado && pedido.modificado_por ? `
+                        <div style="background: #fff3cd; border-left: 3px solid #ffc107; padding: 8px 12px; margin: 8px 0; border-radius: 4px;">
+                            <small><i class='bx bx-edit'></i> <strong>Modificado por:</strong> ${pedido.modificado_por}</small>
+                        </div>
+                    ` : ''}
                     <p><strong>Productos:</strong></p>
                     <ul style="margin-left: 20px; margin-top: 8px;">
                         ${pedido.productos.map(p => `
@@ -530,10 +535,12 @@ async function modificarPedido(id, pedidoData) {
                                 <div class="cantidad-controls">
                                     <button onclick="cambiarCantidad(${index}, -1)" class="btn-cantidad">-</button>
                                     <input type="number" id="cant-${index}" value="${p.cantidad}" min="1"
-                                           class="input-cantidad" onchange="actualizarTotal()">
+                                           class="input-cantidad"
+                                           oninput="validarCantidadInput(${index})"
+                                           onblur="validarCantidadInput(${index})">
                                     <button onclick="cambiarCantidad(${index}, 1)" class="btn-cantidad">+</button>
                                 </div>
-                                <span class="precio">Bs/ ${p.subtotal.toFixed(2)}</span>
+                                <span class="precio">Bs/ ${parseFloat(p.subtotal).toFixed(2)}</span>
                                 <button onclick="eliminarProducto(${index})" class="btn-eliminar">
                                     <i class='bx bx-trash'></i>
                                 </button>
@@ -552,29 +559,54 @@ async function modificarPedido(id, pedidoData) {
                                onkeyup="filtrarProductos()" class="input-buscar">
                     </div>
 
-                    <!-- Lista de productos por categoría -->
+                    <!-- Lista de productos por categoría con miniaturas -->
                     <div class="lista-productos-menu" id="listaProductosMenu">
                         ${Object.keys(productosPorCategoria).map(categoria => `
                             <div class="categoria-grupo">
                                 <div class="categoria-header" onclick="toggleCategoria('${categoria.replace(/\s+/g, '_')}')">
                                     <i class='bx bx-folder'></i>
                                     <span>${categoria}</span>
+                                    <span class="badge-count">${productosPorCategoria[categoria].length}</span>
                                     <i class='bx bx-chevron-down toggle-icon'></i>
                                 </div>
                                 <div class="categoria-items" id="cat_${categoria.replace(/\s+/g, '_')}">
-                                    ${productosPorCategoria[categoria].map(p => `
-                                        <div class="producto-menu-item" data-nombre="${p.nombre.toLowerCase()}"
-                                             data-categoria="${categoria}" onclick="seleccionarProductoMenu(${p.id}, '${p.nombre}', ${p.precio})">
-                                            <div class="producto-info">
-                                                <i class='bx bx-dish'></i>
-                                                <span class="nombre">${p.nombre}</span>
+                                    ${productosPorCategoria[categoria].map(p => {
+                                        const imagenUrl = p.imagen || '/static/images/no-image.svg';
+                                        const descripcion = p.descripcion || 'Producto disponible';
+                                        return `
+                                        <div class="producto-menu-card"
+                                             data-nombre="${p.nombre.toLowerCase()}"
+                                             data-descripcion="${descripcion.toLowerCase()}"
+                                             data-categoria="${categoria}"
+                                             onclick="seleccionarProductoMenu(${p.id}, '${p.nombre.replace(/'/g, "\\'")}', ${p.precio})">
+                                            <div class="producto-imagen">
+                                                <img src="${imagenUrl}" alt="${p.nombre}"
+                                                     onerror="this.src='/static/images/no-image.svg'">
+                                                ${p.stock_actual <= 0 && p.requiere_inventario ?
+                                                    '<div class="badge-agotado">Agotado</div>' :
+                                                    p.stock_actual <= p.stock_minimo && p.requiere_inventario ?
+                                                    '<div class="badge-bajo-stock">Bajo stock</div>' : ''}
                                             </div>
-                                            <span class="precio">Bs/ ${p.precio}</span>
+                                            <div class="producto-contenido">
+                                                <h5 class="producto-nombre">${p.nombre}</h5>
+                                                <p class="producto-descripcion">${descripcion.substring(0, 60)}${descripcion.length > 60 ? '...' : ''}</p>
+                                                <div class="producto-footer">
+                                                    <span class="producto-precio">Bs/ ${parseFloat(p.precio).toFixed(2)}</span>
+                                                    <button type="button" class="btn-agregar-producto">
+                                                        <i class='bx bx-plus'></i> Agregar
+                                                    </button>
+                                                </div>
+                                            </div>
                                         </div>
-                                    `).join('')}
+                                        `;
+                                    }).join('')}
                                 </div>
                             </div>
                         `).join('')}
+                        <div id="noResultados" style="display: none; text-align: center; padding: 20px; color: #666;">
+                            <i class='bx bx-search-alt' style='font-size: 48px;'></i>
+                            <p>No se encontraron productos</p>
+                        </div>
                     </div>
                 </div>
 
@@ -607,10 +639,30 @@ async function modificarPedido(id, pedidoData) {
 function cambiarCantidad(index, delta) {
     const input = document.getElementById(`cant-${index}`);
     let cantidad = parseInt(input.value) + delta;
+
+    // Validar que sea un número positivo
+    if (isNaN(cantidad)) cantidad = 1;
+    cantidad = Math.abs(cantidad); // Convertir negativos a positivos
     if (cantidad < 1) cantidad = 1;
+
     input.value = cantidad;
 
     // Actualizar en el pedido temporal
+    window.pedidoEnModificacion.productos[index].cantidad = cantidad;
+    actualizarTotal();
+}
+
+// Validar cantidad cuando se escribe manualmente
+function validarCantidadInput(index) {
+    const input = document.getElementById(`cant-${index}`);
+    let cantidad = parseInt(input.value);
+
+    // Validar y corregir
+    if (isNaN(cantidad)) cantidad = 1;
+    cantidad = Math.abs(cantidad); // Convertir negativos a positivos
+    if (cantidad < 1) cantidad = 1;
+
+    input.value = cantidad;
     window.pedidoEnModificacion.productos[index].cantidad = cantidad;
     actualizarTotal();
 }
@@ -640,14 +692,19 @@ function toggleCategoria(categoriaId) {
 
 // Filtrar productos por búsqueda
 function filtrarProductos() {
-    const busqueda = document.getElementById('buscarProducto').value.toLowerCase();
-    const items = document.querySelectorAll('.producto-menu-item');
+    const busqueda = document.getElementById('buscarProducto').value.toLowerCase().trim();
+    const items = document.querySelectorAll('.producto-menu-card');
     const categorias = document.querySelectorAll('.categoria-grupo');
 
+    let hayResultados = false;
+
     items.forEach(item => {
-        const nombre = item.dataset.nombre;
-        if (nombre.includes(busqueda)) {
-            item.style.display = 'flex';
+        const nombre = item.dataset.nombre.toLowerCase();
+        const descripcion = item.dataset.descripcion ? item.dataset.descripcion.toLowerCase() : '';
+
+        if (nombre.includes(busqueda) || descripcion.includes(busqueda)) {
+            item.style.display = 'block';
+            hayResultados = true;
         } else {
             item.style.display = 'none';
         }
@@ -656,17 +713,29 @@ function filtrarProductos() {
     // Si hay búsqueda, expandir todas las categorías que tengan resultados
     if (busqueda.length > 0) {
         categorias.forEach(cat => {
-            const itemsVisibles = cat.querySelectorAll('.producto-menu-item[style="display: flex;"]');
+            const itemsVisibles = cat.querySelectorAll('.producto-menu-card:not([style*="display: none"])');
             const catItems = cat.querySelector('.categoria-items');
             const icon = cat.querySelector('.toggle-icon');
 
             if (itemsVisibles.length > 0) {
-                catItems.style.display = 'block';
+                catItems.style.display = 'grid';
                 icon.style.transform = 'rotate(0deg)';
             } else {
                 catItems.style.display = 'none';
             }
         });
+
+        // Mostrar mensaje si no hay resultados
+        const noResultados = document.getElementById('noResultados');
+        if (noResultados) {
+            noResultados.style.display = hayResultados ? 'none' : 'block';
+        }
+    } else {
+        // Sin búsqueda, mostrar todo
+        const noResultados = document.getElementById('noResultados');
+        if (noResultados) {
+            noResultados.style.display = 'none';
+        }
     }
 }
 
@@ -699,16 +768,50 @@ function actualizarTotal() {
 }
 
 async function guardarModificacion(id) {
-    try {
-        // Aquí puedes enviar la modificación al servidor
-        // Por ahora solo mostramos mensaje de éxito
-        mostrarNotificacion('✅ Pedido modificado correctamente', 'success');
-        cerrarModal();
-        cargarPedidos();
+  try {
+    // Actualizar cantidades desde los inputs antes de enviar
+    (window.pedidoEnModificacion.productos || []).forEach((p, index) => {
+      const input = document.getElementById(`cant-${index}`);
+      if (input) {
+        let cantidad = parseInt(input.value);
+        // Validar y convertir negativos a positivos
+        if (isNaN(cantidad)) cantidad = 1;
+        cantidad = Math.abs(cantidad);
+        if (cantidad < 1) cantidad = 1;
+        p.cantidad = cantidad;
+      }
+    });
 
-    } catch (error) {
-        mostrarNotificacion('❌ Error al guardar cambios', 'error');
+    // Armar el payload con las cantidades actualizadas
+    const productosMap = {};
+    (window.pedidoEnModificacion.productos || []).forEach(p => {
+      productosMap[p.id] = parseInt(p.cantidad) || 1;
+    });
+
+    const resp = await fetch(`/api/pedidos/${id}/modificar/`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': getCookie('csrftoken')
+      },
+      body: JSON.stringify({ productos: productosMap })
+    });
+
+    if (!resp.ok) {
+      const errorData = await resp.json();
+      throw new Error(errorData.error || 'Error al guardar modificaciones');
     }
+
+    const data = await resp.json();
+
+    mostrarNotificacion('Pedido modificado correctamente', 'success');
+    cerrarModal();
+    cargarPedidos(); // refresca la lista
+    cargarDashboard(); // actualizar dashboard
+  } catch (e) {
+    console.error(e);
+    mostrarNotificacion('Error: ' + e.message, 'error');
+  }
 }
 
 function abrirTurno() {

@@ -10,7 +10,7 @@ logger = logging.getLogger('app.pedidos')
 
 
 @transaction.atomic
-def modificar_pedido_con_stock(pedido_id, productos_nuevos):
+def modificar_pedido_con_stock(pedido_id, productos_nuevos, usuario=None):
     """
     Modifica un pedido existente restaurando stock de productos eliminados
     y descontando stock de productos nuevos/aumentados.
@@ -18,6 +18,7 @@ def modificar_pedido_con_stock(pedido_id, productos_nuevos):
     Args:
         pedido_id: ID del pedido a modificar
         productos_nuevos: Dict con formato {producto_id: cantidad_nueva}
+        usuario: Usuario que realiza la modificación (opcional)
 
     Returns:
         dict: {'success': True/False, 'mensaje': str, 'pedido': Pedido}
@@ -28,6 +29,20 @@ def modificar_pedido_con_stock(pedido_id, productos_nuevos):
     try:
         # 1. Obtener el pedido
         pedido = Pedido.objects.get(id=pedido_id)
+
+        # Guardar estado anterior para el historial
+        detalle_anterior = {
+            'total': float(pedido.total),
+            'productos': [
+                {
+                    'producto_id': d.producto.id,
+                    'nombre': d.producto.nombre,
+                    'cantidad': d.cantidad,
+                    'precio_unitario': float(d.precio_unitario)
+                }
+                for d in pedido.detalles.all()
+            ]
+        }
 
         # 2. Validar que el pedido se pueda modificar
         if pedido.estado in ['pagado', 'cancelado']:
@@ -51,7 +66,7 @@ def modificar_pedido_con_stock(pedido_id, productos_nuevos):
                 if cantidad_a_restaurar > 0:
                     detalle_actual.producto.agregar_stock(cantidad_a_restaurar)
                     logger.info(
-                        f"  ✅ Producto '{detalle_actual.producto.nombre}' eliminado - "
+                        f"  [OK] Producto '{detalle_actual.producto.nombre}' eliminado - "
                         f"Stock restaurado: {cantidad_a_restaurar} unidades"
                     )
 
@@ -66,7 +81,7 @@ def modificar_pedido_con_stock(pedido_id, productos_nuevos):
                 if cantidad_a_restaurar > 0:
                     detalle_actual.producto.agregar_stock(cantidad_a_restaurar)
                     logger.info(
-                        f"  ✅ Cantidad reducida de '{detalle_actual.producto.nombre}' - "
+                        f"  [OK] Cantidad reducida de '{detalle_actual.producto.nombre}' - "
                         f"Stock restaurado: {cantidad_a_restaurar} unidades"
                     )
 
@@ -74,7 +89,10 @@ def modificar_pedido_con_stock(pedido_id, productos_nuevos):
         errores_stock = []
 
         for producto_id, cantidad_nueva in productos_nuevos.items():
-            producto = Producto.objects.get(id=producto_id)
+            try:
+                producto = Producto.objects.get(id=producto_id, activo=True)
+            except Producto.DoesNotExist:
+                raise ValueError(f"Producto con ID {producto_id} no encontrado o no está disponible")
 
             if producto_id not in detalles_actuales:
                 # Producto NUEVO - descontar todo el stock
@@ -85,7 +103,7 @@ def modificar_pedido_con_stock(pedido_id, productos_nuevos):
                     )
                 else:
                     logger.info(
-                        f"  ✅ Producto nuevo '{producto.nombre}' agregado - "
+                        f"  [OK] Producto nuevo '{producto.nombre}' agregado - "
                         f"Stock descontado: {cantidad_nueva} unidades"
                     )
 
@@ -109,7 +127,7 @@ def modificar_pedido_con_stock(pedido_id, productos_nuevos):
                     )
                 else:
                     logger.info(
-                        f"  ✅ Cantidad aumentada de '{producto.nombre}' - "
+                        f"  [OK] Cantidad aumentada de '{producto.nombre}' - "
                         f"Stock descontado: {diferencia} unidades"
                     )
 
@@ -121,7 +139,7 @@ def modificar_pedido_con_stock(pedido_id, productos_nuevos):
 
             else:
                 # Cantidad sin cambios - no hacer nada con el stock
-                logger.info(f"  ℹ️ Producto '{producto.nombre}' sin cambios de cantidad")
+                logger.info(f"  [INFO] Producto '{producto.nombre}' sin cambios de cantidad")
 
         # 6. Si hubo errores de stock, hacer rollback
         if errores_stock:
@@ -132,7 +150,37 @@ def modificar_pedido_con_stock(pedido_id, productos_nuevos):
         pedido.modificado = True  # Marcar como modificado
         pedido.save()
 
-        logger.info(f"✅ Pedido #{pedido_id} modificado exitosamente. Nuevo total: Bs/ {pedido.total}")
+        # 8. Guardar historial de modificación
+        if usuario:
+            try:
+                from app.caja.models import HistorialModificacion
+
+                detalle_nuevo = {
+                    'total': float(pedido.total),
+                    'productos': [
+                        {
+                            'producto_id': d.producto.id,
+                            'nombre': d.producto.nombre,
+                            'cantidad': d.cantidad,
+                            'precio_unitario': float(d.precio_unitario)
+                        }
+                        for d in pedido.detalles.all()
+                    ]
+                }
+
+                HistorialModificacion.objects.create(
+                    pedido=pedido,
+                    usuario=usuario,
+                    tipo_cambio='modificar_cantidad',
+                    detalle_anterior=detalle_anterior,
+                    detalle_nuevo=detalle_nuevo,
+                    motivo='Modificación de productos desde panel de caja'
+                )
+                logger.info(f"Historial de modificación registrado para pedido #{pedido_id}")
+            except Exception as e:
+                logger.warning(f"No se pudo guardar historial de modificación: {e}")
+
+        logger.info(f"[OK] Pedido #{pedido_id} modificado exitosamente. Nuevo total: Bs/ {pedido.total}")
 
         return {
             'success': True,
@@ -207,7 +255,7 @@ def eliminar_producto_de_pedido(pedido_id, producto_id):
         pedido.modificado = True
         pedido.save()
 
-        logger.info(f"✅ {mensaje}. Nuevo total: Bs/ {pedido.total}")
+        logger.info(f"[OK] {mensaje}. Nuevo total: Bs/ {pedido.total}")
 
         return {
             'success': True,

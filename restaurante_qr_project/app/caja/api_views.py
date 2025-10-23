@@ -74,6 +74,13 @@ def api_pedidos_pendientes_pago(request):
             if pedido.mesero_comanda:
                 mesero_nombre = f"{pedido.mesero_comanda.first_name} {pedido.mesero_comanda.last_name}".strip() or pedido.mesero_comanda.username
 
+            # ✅ NUEVO: Información de quién modificó el pedido
+            modificado_por = None
+            if pedido.modificado:
+                ultima_modificacion = pedido.historial_modificaciones.order_by('-fecha_hora').first()
+                if ultima_modificacion and ultima_modificacion.usuario:
+                    modificado_por = f"{ultima_modificacion.usuario.first_name} {ultima_modificacion.usuario.last_name}".strip() or ultima_modificacion.usuario.username
+
             pedidos_data.append({
                 'id': pedido.id,
                 'mesa': pedido.mesa.numero if pedido.mesa else 'N/A',
@@ -89,7 +96,9 @@ def api_pedidos_pendientes_pago(request):
                 'forma_pago': pedido.forma_pago,
                 'observaciones': pedido.observaciones or '',
                 'numero_personas': pedido.numero_personas,
-                'mesero': mesero_nombre
+                'mesero': mesero_nombre,
+                'modificado': pedido.modificado,
+                'modificado_por': modificado_por
             })
 
         return Response({
