@@ -1212,7 +1212,69 @@ def api_historial_modificaciones(request, pedido_id):
         })
 
     except Exception as e:
-        print(f"❌ Error en api_historial_modificaciones: {str(e)}")
+        print(f"[ERROR] Error en api_historial_modificaciones: {str(e)}")
+        return Response({
+            'success': False,
+            'error': str(e)
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def api_lista_empleados(request):
+    """
+    Obtiene la lista de empleados (meseros, cocineros, cajeros) con sus QR codes
+    """
+    try:
+        from app.usuarios.models import Usuario
+        from django.conf import settings
+        from pathlib import Path
+
+        print(f"[API] Obteniendo lista de empleados - Usuario: {request.user}")
+
+        # Obtener empleados activos (meseros, cocineros, cajeros)
+        empleados = Usuario.objects.filter(
+            rol__in=['mesero', 'cocinero', 'cajero'],
+            activo=True
+        ).order_by('rol', 'username')
+
+        empleados_data = []
+        for empleado in empleados:
+            # Ruta al QR code del empleado
+            qr_filename = f"{empleado.rol}-{empleado.username}-qr.png"
+            qr_path = Path(settings.MEDIA_ROOT) / 'qr_empleados' / qr_filename
+
+            # URL del QR code
+            qr_url = None
+            if qr_path.exists():
+                qr_url = f"{settings.MEDIA_URL}qr_empleados/{qr_filename}"
+
+            # Token QR
+            qr_token = empleado.qr_token if empleado.qr_token else None
+
+            empleados_data.append({
+                'id': empleado.id,
+                'username': empleado.username,
+                'nombre_completo': f"{empleado.first_name} {empleado.last_name}".strip() or empleado.username,
+                'rol': empleado.rol,
+                'rol_display': empleado.get_rol_display(),
+                'qr_url': qr_url,
+                'qr_token': str(qr_token) if qr_token else None,
+                'activo': empleado.activo,
+                'areas_permitidas': empleado.areas_permitidas
+            })
+
+        return Response({
+            'success': True,
+            'empleados': empleados_data,
+            'total': len(empleados_data)
+        })
+
+    except Exception as e:
+        print(f"[ERROR] Error en api_lista_empleados: {str(e)}")
+        import traceback
+        traceback.print_exc()
+
         return Response({
             'success': False,
             'error': str(e)

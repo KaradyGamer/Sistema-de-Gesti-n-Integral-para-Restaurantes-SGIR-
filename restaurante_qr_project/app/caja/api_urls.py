@@ -40,4 +40,9 @@ urlpatterns = [
     path('estadisticas/', api_views.api_estadisticas_dia, name='estadisticas'),
     path('alertas-stock/', api_views.api_alertas_stock, name='alertas_stock'),
     path('alertas-stock/<int:alerta_id>/resolver/', api_views.api_resolver_alerta_stock, name='resolver_alerta'),
+
+    # ═══════════════════════════════════════════
+    # GESTIÓN DE PERSONAL
+    # ═══════════════════════════════════════════
+    path('empleados/', api_views.api_lista_empleados, name='lista_empleados'),
 ]

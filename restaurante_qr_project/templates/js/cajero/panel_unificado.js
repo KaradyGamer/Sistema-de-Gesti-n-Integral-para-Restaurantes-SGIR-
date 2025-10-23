@@ -900,8 +900,109 @@ function cargarAlertasStock() {
     document.getElementById('alertasStockContainer').innerHTML = '<p>⚠️ Alertas de stock próximamente</p>';
 }
 
-function cargarPersonal() {
-    document.getElementById('personalContainer').innerHTML = '<p>👥 Gestión de personal próximamente</p>';
+async function cargarPersonal() {
+    const container = document.getElementById('personalContainer');
+    container.innerHTML = '<div class="loading">Cargando empleados...</div>';
+
+    try {
+        const response = await fetch('/api/caja/empleados/', {
+            headers: { 'X-CSRFToken': getCookie('csrftoken') }
+        });
+
+        if (!response.ok) throw new Error('Error al cargar empleados');
+
+        const data = await response.json();
+
+        if (!data.empleados || data.empleados.length === 0) {
+            container.innerHTML = `
+                <div class="card" style="text-align: center; padding: 60px;">
+                    <i class='bx bx-user' style="font-size: 4em; color: var(--text-secondary);"></i>
+                    <h3 style="margin-top: 20px;">No hay empleados registrados</h3>
+                    <p style="color: var(--text-secondary);">Contacta al administrador para crear empleados</p>
+                </div>
+            `;
+            return;
+        }
+
+        // Agrupar empleados por rol
+        const empleadosPorRol = {
+            'cajero': [],
+            'mesero': [],
+            'cocinero': []
+        };
+
+        data.empleados.forEach(emp => {
+            if (empleadosPorRol[emp.rol]) {
+                empleadosPorRol[emp.rol].push(emp);
+            }
+        });
+
+        // Renderizar empleados agrupados por rol
+        let html = '<div class="empleados-grid">';
+
+        for (const [rol, empleados] of Object.entries(empleadosPorRol)) {
+            if (empleados.length === 0) continue;
+
+            const iconos = {
+                'cajero': 'bx-dollar',
+                'mesero': 'bx-dish',
+                'cocinero': 'bx-food-menu'
+            };
+
+            const colores = {
+                'cajero': '#10b981',
+                'mesero': '#6366f1',
+                'cocinero': '#f59e0b'
+            };
+
+            html += `
+                <div class="rol-grupo">
+                    <h3 class="rol-titulo" style="color: ${colores[rol]};">
+                        <i class='bx ${iconos[rol]}'></i>
+                        ${empleados[0].rol_display}s (${empleados.length})
+                    </h3>
+                    <div class="empleados-rol-grid">
+                        ${empleados.map(emp => `
+                            <div class="empleado-card">
+                                <div class="empleado-header">
+                                    <i class='bx ${iconos[rol]}' style="font-size: 24px; color: ${colores[rol]};"></i>
+                                    <div class="empleado-info">
+                                        <h4>${emp.nombre_completo}</h4>
+                                        <p class="empleado-username">@${emp.username}</p>
+                                    </div>
+                                </div>
+                                <div class="empleado-qr">
+                                    ${emp.qr_url ? `
+                                        <img src="${emp.qr_url}" alt="QR ${emp.username}" class="qr-image">
+                                        <p class="qr-instruccion">Escanea para iniciar sesion</p>
+                                    ` : `
+                                        <div class="qr-placeholder">
+                                            <i class='bx bx-qr' style="font-size: 48px; color: #ccc;"></i>
+                                            <p>QR no disponible</p>
+                                        </div>
+                                    `}
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+        }
+
+        html += '</div>';
+        container.innerHTML = html;
+
+    } catch (error) {
+        console.error('Error:', error);
+        container.innerHTML = `
+            <div class="card" style="text-align: center; padding: 40px;">
+                <p style="color: var(--danger-color);">Error al cargar empleados</p>
+                <button class="btn btn-primary" onclick="cargarPersonal()" style="margin-top: 20px;">
+                    <i class='bx bx-refresh'></i> Reintentar
+                </button>
+            </div>
+        `;
+    }
 }
 
 function cargarJornada() {
