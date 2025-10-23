@@ -150,9 +150,6 @@ async function cargarDashboard() {
         document.getElementById('pedidosPagados').textContent = stats.pedidos_pagados || 0;
         document.getElementById('pedidosPendientes').textContent = stats.pedidos_pendientes || 0;
 
-        // Actualizar badges
-        document.getElementById('badgePedidos').textContent = stats.pedidos_pendientes || 0;
-
         // Cargar tablero Kanban
         await cargarKanban();
 
