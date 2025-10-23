@@ -6,7 +6,10 @@
       "Bash(git add:*)",
       "Bash(git push:*)",
       "Bash(envScriptspython.exe manage.py check)",
-      "Bash(\"env/Scripts/python.exe\" manage.py check)"
+      "Bash(\"env/Scripts/python.exe\" manage.py check)",
+      "Bash(dir:*)",
+      "Bash(env/Scripts/python.exe:*)",
+      "Bash(node --check:*)"
     ],
     "deny": [],
     "ask": []

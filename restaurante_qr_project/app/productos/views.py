@@ -99,13 +99,20 @@ def productos_agrupados(request):
 @permission_classes([AllowAny])
 def lista_productos(request):
     """
-    API simple para obtener todos los productos activos
+    API simple para obtener todos los productos activos y disponibles
+    Incluye información de stock y categoría para el selector visual
     """
     try:
-        productos = Producto.objects.filter(activo=True)
+        # Filtrar solo productos activos Y disponibles
+        productos = Producto.objects.filter(
+            activo=True,
+            disponible=True
+        ).select_related('categoria').order_by('categoria__nombre', 'nombre')
+
         productos_data = []
-        
+
         for producto in productos:
+            # Procesar imagen
             imagen_url = ''
             if hasattr(producto, 'imagen') and producto.imagen:
                 try:
@@ -123,20 +130,34 @@ def lista_productos(request):
                 except Exception as e:
                     logger.warning(f"Error obteniendo imagen para {producto.nombre}: {e}")
                     imagen_url = ''
-            
+
+            # Obtener nombre de categoría
+            categoria_nombre = 'Sin Categoría'
+            if producto.categoria:
+                categoria_nombre = producto.categoria.nombre
+
             productos_data.append({
                 'id': producto.id,
                 'nombre': str(producto.nombre),
                 'precio': float(producto.precio),
                 'descripcion': str(getattr(producto, 'descripcion', '')),
                 'imagen': imagen_url,
-                'disponible': bool(getattr(producto, 'disponible', True)),
+                'disponible': bool(producto.disponible),
+                'categoria_nombre': categoria_nombre,
+                'stock_actual': int(producto.stock_actual) if producto.requiere_inventario else None,
+                'stock_minimo': int(producto.stock_minimo) if producto.requiere_inventario else None,
+                'requiere_inventario': bool(producto.requiere_inventario),
             })
-        
-        return Response(productos_data, status=status.HTTP_200_OK)
+
+        return Response({
+            'productos': productos_data,
+            'total': len(productos_data)
+        }, status=status.HTTP_200_OK)
 
     except Exception as e:
         logger.exception(f"Error en lista_productos: {str(e)}")
         return Response({
-            'error': str(e)
+            'error': str(e),
+            'productos': [],
+            'total': 0
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

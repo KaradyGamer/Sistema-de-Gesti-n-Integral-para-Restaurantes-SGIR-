@@ -512,6 +512,13 @@ async function modificarPedido(id, pedidoData) {
         const data = await response.json();
         const todosProductos = data.productos || [];
 
+        // DEBUG: Ver que productos devuelve la API
+        console.log('=== DEBUG: Productos de la API ===');
+        console.log('Total productos:', todosProductos.length);
+        todosProductos.forEach(p => {
+            console.log(`ID: ${p.id}, Nombre: ${p.nombre}, Categoria: ${p.categoria_nombre}`);
+        });
+
         // Agrupar productos por categoría
         const productosPorCategoria = {};
         todosProductos.forEach(p => {
@@ -522,6 +529,12 @@ async function modificarPedido(id, pedidoData) {
             productosPorCategoria[cat].push(p);
         });
 
+        // Calcular total actual
+        const totalActual = pedidoData.productos.reduce((sum, p) => {
+            const subtotal = parseFloat(p.subtotal) || 0;
+            return sum + subtotal;
+        }, 0);
+
         modalBody.innerHTML = `
             <div class="modificar-pedido">
                 <h3>Modificar Pedido #${id}</h3>
@@ -529,23 +542,33 @@ async function modificarPedido(id, pedidoData) {
                 <div class="productos-actuales">
                     <h4>Productos en el Pedido</h4>
                     <div id="listaProductosPedido">
-                        ${pedidoData.productos.map((p, index) => `
+                        ${pedidoData.productos.map((p, index) => {
+                            const precioUnit = parseFloat(p.precio_unitario) || 0;
+                            let cantidad = parseInt(p.cantidad) || 1;
+
+                            // Validar que la cantidad sea >= 1
+                            if (cantidad < 1) cantidad = 1;
+
+                            const subtotal = precioUnit * cantidad;
+
+                            return `
                             <div class="producto-item" id="producto-${index}">
                                 <span>${p.nombre}</span>
                                 <div class="cantidad-controls">
                                     <button onclick="cambiarCantidad(${index}, -1)" class="btn-cantidad">-</button>
-                                    <input type="number" id="cant-${index}" value="${p.cantidad}" min="1"
+                                    <input type="number" id="cant-${index}" value="${cantidad}" min="1" step="1"
                                            class="input-cantidad"
                                            oninput="validarCantidadInput(${index})"
                                            onblur="validarCantidadInput(${index})">
                                     <button onclick="cambiarCantidad(${index}, 1)" class="btn-cantidad">+</button>
                                 </div>
-                                <span class="precio">Bs/ ${parseFloat(p.subtotal).toFixed(2)}</span>
+                                <span class="precio" id="subtotal-${index}">Bs/ ${subtotal.toFixed(2)}</span>
                                 <button onclick="eliminarProducto(${index})" class="btn-eliminar">
                                     <i class='bx bx-trash'></i>
                                 </button>
                             </div>
-                        `).join('')}
+                        `;
+                        }).join('')}
                     </div>
                 </div>
 
@@ -559,7 +582,7 @@ async function modificarPedido(id, pedidoData) {
                                onkeyup="filtrarProductos()" class="input-buscar">
                     </div>
 
-                    <!-- Lista de productos por categoría con miniaturas -->
+                    <!-- Lista simple de productos -->
                     <div class="lista-productos-menu" id="listaProductosMenu">
                         ${Object.keys(productosPorCategoria).map(categoria => `
                             <div class="categoria-grupo">
@@ -571,32 +594,14 @@ async function modificarPedido(id, pedidoData) {
                                 </div>
                                 <div class="categoria-items" id="cat_${categoria.replace(/\s+/g, '_')}">
                                     ${productosPorCategoria[categoria].map(p => {
-                                        const imagenUrl = p.imagen || '/static/images/no-image.svg';
-                                        const descripcion = p.descripcion || 'Producto disponible';
+                                        const precio = parseFloat(p.precio) || 0;
                                         return `
-                                        <div class="producto-menu-card"
-                                             data-nombre="${p.nombre.toLowerCase()}"
-                                             data-descripcion="${descripcion.toLowerCase()}"
-                                             data-categoria="${categoria}"
-                                             onclick="seleccionarProductoMenu(${p.id}, '${p.nombre.replace(/'/g, "\\'")}', ${p.precio})">
-                                            <div class="producto-imagen">
-                                                <img src="${imagenUrl}" alt="${p.nombre}"
-                                                     onerror="this.src='/static/images/no-image.svg'">
-                                                ${p.stock_actual <= 0 && p.requiere_inventario ?
-                                                    '<div class="badge-agotado">Agotado</div>' :
-                                                    p.stock_actual <= p.stock_minimo && p.requiere_inventario ?
-                                                    '<div class="badge-bajo-stock">Bajo stock</div>' : ''}
-                                            </div>
-                                            <div class="producto-contenido">
-                                                <h5 class="producto-nombre">${p.nombre}</h5>
-                                                <p class="producto-descripcion">${descripcion.substring(0, 60)}${descripcion.length > 60 ? '...' : ''}</p>
-                                                <div class="producto-footer">
-                                                    <span class="producto-precio">Bs/ ${parseFloat(p.precio).toFixed(2)}</span>
-                                                    <button type="button" class="btn-agregar-producto">
-                                                        <i class='bx bx-plus'></i> Agregar
-                                                    </button>
-                                                </div>
-                                            </div>
+                                        <div class="producto-simple-item"
+                                             data-producto-id="${p.id}"
+                                             data-producto-precio="${precio}"
+                                             data-buscar="${p.nombre.toLowerCase()}">
+                                            <span class="nombre-producto">${p.nombre}</span>
+                                            <span class="precio-producto">Bs/ ${precio.toFixed(2)}</span>
                                         </div>
                                         `;
                                     }).join('')}
@@ -611,7 +616,7 @@ async function modificarPedido(id, pedidoData) {
                 </div>
 
                 <div class="total-modificado">
-                    <h3>Total: <span id="totalModificado">Bs/ ${pedidoData.total_final.toFixed(2)}</span></h3>
+                    <h3>Total: <span id="totalModificado">Bs/ ${totalActual.toFixed(2)}</span></h3>
                 </div>
 
                 <div class="form-actions">
@@ -631,8 +636,31 @@ async function modificarPedido(id, pedidoData) {
             productos: [...pedidoData.productos]
         };
 
+        // Agregar event listener para clicks en productos usando delegacion de eventos
+        const listaProductosMenu = document.getElementById('listaProductosMenu');
+        if (listaProductosMenu) {
+            // Remover listeners anteriores si existen
+            listaProductosMenu.replaceWith(listaProductosMenu.cloneNode(true));
+            const listaActualizada = document.getElementById('listaProductosMenu');
+
+            listaActualizada.addEventListener('click', function(e) {
+                const item = e.target.closest('.producto-simple-item');
+                if (item) {
+                    const productoId = parseInt(item.dataset.productoId);
+                    const productoPrecio = parseFloat(item.dataset.productoPrecio);
+                    const productoNombre = item.querySelector('.nombre-producto')?.textContent || 'Producto';
+
+                    console.log('=== DEBUG: Click en producto ===');
+                    console.log('ID:', productoId, 'Nombre:', productoNombre, 'Precio:', productoPrecio);
+
+                    seleccionarProductoMenu(productoId, productoNombre, productoPrecio);
+                }
+            });
+        }
+
     } catch (error) {
-        mostrarNotificacion('Error al cargar productos', 'error');
+        console.error('=== ERROR al cargar productos ===', error);
+        mostrarNotificacion('Error al cargar productos: ' + error.message, 'error');
     }
 }
 
@@ -681,8 +709,8 @@ function toggleCategoria(categoriaId) {
     const header = items.previousElementSibling;
     const icon = header.querySelector('.toggle-icon');
 
-    if (items.style.display === 'none') {
-        items.style.display = 'block';
+    if (items.style.display === 'none' || items.style.display === '') {
+        items.style.display = 'grid';
         icon.style.transform = 'rotate(0deg)';
     } else {
         items.style.display = 'none';
@@ -693,17 +721,16 @@ function toggleCategoria(categoriaId) {
 // Filtrar productos por búsqueda
 function filtrarProductos() {
     const busqueda = document.getElementById('buscarProducto').value.toLowerCase().trim();
-    const items = document.querySelectorAll('.producto-menu-card');
+    const items = document.querySelectorAll('.producto-simple-item');
     const categorias = document.querySelectorAll('.categoria-grupo');
 
     let hayResultados = false;
 
     items.forEach(item => {
-        const nombre = item.dataset.nombre.toLowerCase();
-        const descripcion = item.dataset.descripcion ? item.dataset.descripcion.toLowerCase() : '';
+        const textoBuscar = item.dataset.buscar || '';
 
-        if (nombre.includes(busqueda) || descripcion.includes(busqueda)) {
-            item.style.display = 'block';
+        if (textoBuscar.includes(busqueda)) {
+            item.style.display = 'flex';
             hayResultados = true;
         } else {
             item.style.display = 'none';
@@ -713,7 +740,7 @@ function filtrarProductos() {
     // Si hay búsqueda, expandir todas las categorías que tengan resultados
     if (busqueda.length > 0) {
         categorias.forEach(cat => {
-            const itemsVisibles = cat.querySelectorAll('.producto-menu-card:not([style*="display: none"])');
+            const itemsVisibles = cat.querySelectorAll('.producto-simple-item:not([style*="display: none"])');
             const catItems = cat.querySelector('.categoria-items');
             const icon = cat.querySelector('.toggle-icon');
 
@@ -741,6 +768,12 @@ function filtrarProductos() {
 
 // Seleccionar producto del menú
 function seleccionarProductoMenu(id, nombre, precio) {
+    // DEBUG: Ver que valores llegan a la funcion
+    console.log('=== DEBUG: seleccionarProductoMenu ===');
+    console.log('ID recibido:', id, 'Tipo:', typeof id);
+    console.log('Nombre recibido:', nombre);
+    console.log('Precio recibido:', precio);
+
     // Agregar al array temporal
     const nuevoProducto = {
         id: id,
@@ -750,6 +783,7 @@ function seleccionarProductoMenu(id, nombre, precio) {
         subtotal: precio
     };
 
+    console.log('Producto a agregar:', nuevoProducto);
     window.pedidoEnModificacion.productos.push(nuevoProducto);
 
     // Recargar la vista de modificación
@@ -760,8 +794,27 @@ function seleccionarProductoMenu(id, nombre, precio) {
 function actualizarTotal() {
     let total = 0;
     window.pedidoEnModificacion.productos.forEach((p, i) => {
-        const cantidad = parseInt(document.getElementById(`cant-${i}`)?.value || p.cantidad);
-        total += p.precio_unitario * cantidad;
+        const input = document.getElementById(`cant-${i}`);
+        let cantidad = parseInt(input?.value || p.cantidad);
+
+        // Validar cantidad (debe ser >= 1)
+        if (isNaN(cantidad) || cantidad < 1) {
+            cantidad = 1;
+            if (input) input.value = 1;
+        }
+
+        // Actualizar cantidad en el objeto
+        p.cantidad = cantidad;
+
+        // Calcular subtotal
+        const subtotal = p.precio_unitario * cantidad;
+        total += subtotal;
+
+        // Actualizar subtotal en la interfaz
+        const subtotalElement = document.getElementById(`subtotal-${i}`);
+        if (subtotalElement) {
+            subtotalElement.textContent = `Bs/ ${subtotal.toFixed(2)}`;
+        }
     });
 
     document.getElementById('totalModificado').textContent = `Bs/ ${total.toFixed(2)}`;
@@ -785,8 +838,15 @@ async function guardarModificacion(id) {
     // Armar el payload con las cantidades actualizadas
     const productosMap = {};
     (window.pedidoEnModificacion.productos || []).forEach(p => {
-      productosMap[p.id] = parseInt(p.cantidad) || 1;
+      // Usar producto_id si existe (productos del pedido existente), sino usar id (productos recien agregados)
+      const productoId = p.producto_id || p.id;
+      productosMap[productoId] = parseInt(p.cantidad) || 1;
     });
+
+    // DEBUG: Ver que se va a enviar al backend
+    console.log('=== DEBUG: guardarModificacion ===');
+    console.log('Productos en modificacion:', window.pedidoEnModificacion.productos);
+    console.log('productosMap a enviar:', productosMap);
 
     const resp = await fetch(`/api/pedidos/${id}/modificar/`, {
       method: 'POST',
@@ -883,17 +943,149 @@ async function cargarMapaMesas() {
         if (!response.ok) throw new Error('Error al cargar mapa');
 
         const data = await response.json();
-        container.innerHTML = '<p>🗺️ Funcionalidad de mapa de mesas próximamente</p>';
+
+        if (!data.mesas || data.mesas.length === 0) {
+            container.innerHTML = `
+                <div class="empty-state">
+                    <i class='bx bx-table'></i>
+                    <h3>No hay mesas registradas</h3>
+                    <p>Contacta al administrador para crear mesas</p>
+                </div>
+            `;
+            return;
+        }
+
+        // Renderizar el mapa de mesas
+        let html = `
+            <div class="mapa-header">
+                <h3>Mapa de Mesas</h3>
+                <div class="mapa-leyenda">
+                    <span class="leyenda-item"><div class="color-box verde"></div> Disponible</span>
+                    <span class="leyenda-item"><div class="color-box amarillo"></div> Reservada</span>
+                    <span class="leyenda-item"><div class="color-box rojo"></div> Ocupada</span>
+                    <span class="leyenda-item"><div class="color-box azul"></div> Pagando</span>
+                </div>
+            </div>
+            <div class="mapa-grid">
+        `;
+
+        data.mesas.forEach(mesa => {
+            const estadoTexto = {
+                'disponible': 'Disponible',
+                'ocupada': 'Ocupada',
+                'reservada': 'Reservada',
+                'pagando': 'Procesando Pago'
+            };
+
+            html += `
+                <div class="mesa-card ${mesa.color}" data-mesa-id="${mesa.id}">
+                    <div class="mesa-numero">Mesa ${mesa.numero}</div>
+                    <div class="mesa-info">
+                        <span class="mesa-capacidad">
+                            <i class='bx bx-group'></i> ${mesa.capacidad}
+                        </span>
+                        <span class="mesa-estado">${estadoTexto[mesa.estado] || mesa.estado}</span>
+                    </div>
+                    ${mesa.pedidos_activos > 0 ? `
+                        <div class="mesa-pedidos">
+                            <span><i class='bx bx-receipt'></i> ${mesa.pedidos_activos} pedido(s)</span>
+                            <span class="mesa-total">Bs/ ${parseFloat(mesa.total_pendiente).toFixed(2)}</span>
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+        });
+
+        html += '</div>';
+        container.innerHTML = html;
+
     } catch (error) {
+        console.error('Error cargando mapa de mesas:', error);
         container.innerHTML = '<p style="color: red;">Error al cargar mapa de mesas</p>';
     }
 }
 
 // ============================================
-// CARGAR OTRAS SECCIONES (PLACEHOLDER)
+// CARGAR HISTORIAL
 // ============================================
-function cargarHistorial() {
-    document.getElementById('historialContainer').innerHTML = '<p>📋 Historial próximamente</p>';
+async function cargarHistorial() {
+    const container = document.getElementById('historialContainer');
+    container.innerHTML = '<div class="loading">Cargando historial...</div>';
+
+    try {
+        const response = await fetch('/api/caja/pedidos/pendientes/', {
+            headers: { 'X-CSRFToken': getCookie('csrftoken') }
+        });
+
+        if (!response.ok) throw new Error('Error al cargar historial');
+
+        const data = await response.json();
+
+        // Filtrar solo pedidos pagados
+        const pedidosPagados = (data.pedidos || []).filter(p => p.estado_pago === 'pagado');
+
+        if (pedidosPagados.length === 0) {
+            container.innerHTML = `
+                <div class="empty-state">
+                    <i class='bx bx-history'></i>
+                    <h3>No hay transacciones registradas</h3>
+                    <p>Los pedidos pagados aparecerán aquí</p>
+                </div>
+            `;
+            return;
+        }
+
+        // Renderizar historial
+        let html = `
+            <div class="historial-header">
+                <h3>Historial de Transacciones</h3>
+                <p class="historial-count">Total: ${pedidosPagados.length} transacciones</p>
+            </div>
+            <div class="historial-lista">
+        `;
+
+        pedidosPagados.forEach(pedido => {
+            const fecha = new Date(pedido.fecha);
+            const fechaFormateada = fecha.toLocaleDateString('es-BO', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric'
+            });
+            const horaFormateada = fecha.toLocaleTimeString('es-BO', {
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+
+            html += `
+                <div class="historial-item">
+                    <div class="historial-icon">
+                        <i class='bx bx-check-circle'></i>
+                    </div>
+                    <div class="historial-info">
+                        <div class="historial-titulo">
+                            <strong>Pedido #${pedido.id}</strong>
+                            <span class="historial-mesa">Mesa ${pedido.mesa_numero}</span>
+                        </div>
+                        <div class="historial-detalles">
+                            <span><i class='bx bx-calendar'></i> ${fechaFormateada}</span>
+                            <span><i class='bx bx-time'></i> ${horaFormateada}</span>
+                            <span><i class='bx bx-user'></i> ${pedido.mesero || 'N/A'}</span>
+                        </div>
+                    </div>
+                    <div class="historial-total">
+                        Bs/ ${parseFloat(pedido.total_final || pedido.total).toFixed(2)}
+                    </div>
+                </div>
+            `;
+        });
+
+        html += '</div>';
+        container.innerHTML = html;
+
+    } catch (error) {
+        console.error('Error cargando historial:', error);
+        container.innerHTML = '<p style="color: red;">Error al cargar historial</p>';
+    }
 }
 
 function cargarAlertasStock() {

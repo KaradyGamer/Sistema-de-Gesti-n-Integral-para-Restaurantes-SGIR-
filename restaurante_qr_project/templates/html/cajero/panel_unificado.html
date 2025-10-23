@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Panel de Caja - Sistema Restaurante</title>
-    <link rel="stylesheet" href="{% static 'css/cajero/panel_unificado.css' %}?v=9.0">
+    <link rel="stylesheet" href="{% static 'css/cajero/panel_unificado.css' %}?v=13.0">
     <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
 </head>
 <body>
@@ -30,10 +30,6 @@
                 <i class='bx bx-food-menu'></i>
                 <span>Pedidos Pendientes</span>
                 <span class="badge" id="badgePedidos">0</span>
-            </a>
-            <a href="#cobrar" class="nav-item" data-section="cobrar">
-                <i class='bx bx-money'></i>
-                <span>Procesar Pagos</span>
             </a>
             <a href="#mesas" class="nav-item" data-section="mesas">
                 <i class='bx bx-map'></i>
@@ -191,13 +187,6 @@
                 </div>
             </section>
 
-            <!-- SECCIÓN: PROCESAR PAGOS -->
-            <section id="section-cobrar" class="content-section">
-                <h2>Procesar Pago</h2>
-                <p>Selecciona un pedido de la lista de pendientes para procesar el pago</p>
-                <div id="pagoForm"></div>
-            </section>
-
             <!-- SECCIÓN: MAPA MESAS -->
             <section id="section-mesas" class="content-section">
                 <h2>Mapa de Mesas</h2>
@@ -243,6 +232,6 @@
         </div>
     </div>
 
-    <script src="{% static 'js/cajero/panel_unificado.js' %}?v=9.0"></script>
+    <script src="{% static 'js/cajero/panel_unificado.js' %}?v=15.0"></script>
 </body>
 </html>

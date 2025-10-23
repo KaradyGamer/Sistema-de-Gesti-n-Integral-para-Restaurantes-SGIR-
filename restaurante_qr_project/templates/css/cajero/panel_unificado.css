@@ -1390,9 +1390,9 @@ body {
 
 .categoria-items {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-    gap: 16px;
-    padding: 16px 0;
+    grid-template-columns: 1fr;
+    gap: 8px;
+    padding: 8px;
     max-height: 0;
     overflow: hidden;
     transition: max-height 0.3s ease;
@@ -1598,6 +1598,299 @@ body {
     margin: 0;
     font-size: 13px;
     color: var(--text-secondary);
+}
+
+/* ============================================
+   DISEÑO SIMPLE DE PRODUCTOS - LISTA
+   ============================================ */
+.producto-simple-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px;
+    background: white;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.producto-simple-item:hover {
+    background: var(--hover-bg);
+    border-color: var(--primary-color);
+    transform: translateX(4px);
+}
+
+.producto-simple-item .nombre-producto {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+.producto-simple-item .precio-producto {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--primary-color);
+}
+
+/* ============================================
+   MAPA DE MESAS
+   ============================================ */
+.mapa-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+    gap: 16px;
+}
+
+.mapa-header h3 {
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0;
+}
+
+.mapa-leyenda {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+}
+
+.leyenda-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    color: var(--text-secondary);
+}
+
+.color-box {
+    width: 20px;
+    height: 20px;
+    border-radius: 4px;
+    border: 1px solid rgba(0,0,0,0.1);
+}
+
+.color-box.verde { background: #10b981; }
+.color-box.amarillo { background: #f59e0b; }
+.color-box.rojo { background: #ef4444; }
+.color-box.azul { background: #3b82f6; }
+
+.mapa-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 20px;
+    padding: 20px 0;
+}
+
+.mesa-card {
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    border: 2px solid transparent;
+    transition: all 0.3s ease;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+}
+
+.mesa-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 4px;
+}
+
+.mesa-card.verde::before { background: #10b981; }
+.mesa-card.amarillo::before { background: #f59e0b; }
+.mesa-card.rojo::before { background: #ef4444; }
+.mesa-card.azul::before { background: #3b82f6; }
+
+.mesa-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+}
+
+.mesa-numero {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 12px;
+}
+
+.mesa-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+    font-size: 13px;
+    color: var(--text-secondary);
+}
+
+.mesa-capacidad {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.mesa-estado {
+    font-weight: 500;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+}
+
+.mesa-card.verde .mesa-estado {
+    background: #d1fae5;
+    color: #065f46;
+}
+
+.mesa-card.amarillo .mesa-estado {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+.mesa-card.rojo .mesa-estado {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+.mesa-card.azul .mesa-estado {
+    background: #dbeafe;
+    color: #1e40af;
+}
+
+.mesa-pedidos {
+    border-top: 1px solid var(--border-color);
+    padding-top: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 13px;
+}
+
+.mesa-pedidos span {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    color: var(--text-secondary);
+}
+
+.mesa-total {
+    font-weight: 700;
+    color: var(--primary-color);
+    font-size: 16px;
+}
+
+/* ============================================
+   HISTORIAL
+   ============================================ */
+.historial-header {
+    margin-bottom: 24px;
+}
+
+.historial-header h3 {
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0 0 8px 0;
+}
+
+.historial-count {
+    font-size: 14px;
+    color: var(--text-secondary);
+    margin: 0;
+}
+
+.historial-lista {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.historial-item {
+    background: white;
+    border-radius: 12px;
+    padding: 16px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    border: 1px solid var(--border-color);
+    transition: all 0.2s ease;
+}
+
+.historial-item:hover {
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    transform: translateY(-2px);
+}
+
+.historial-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: #d1fae5;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.historial-icon i {
+    font-size: 24px;
+    color: #10b981;
+}
+
+.historial-info {
+    flex: 1;
+}
+
+.historial-titulo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 8px;
+}
+
+.historial-titulo strong {
+    font-size: 16px;
+    color: var(--text-primary);
+}
+
+.historial-mesa {
+    background: var(--hover-bg);
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+
+.historial-detalles {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.historial-detalles span {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 13px;
+    color: var(--text-secondary);
+}
+
+.historial-detalles i {
+    font-size: 16px;
+}
+
+.historial-total {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--success-color);
+    flex-shrink: 0;
 }
 
 /* Responsive para empleados */
