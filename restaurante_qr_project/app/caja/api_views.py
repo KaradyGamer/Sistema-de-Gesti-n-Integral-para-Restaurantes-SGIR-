@@ -1033,10 +1033,10 @@ def api_cerrar_caja(request):
 def api_mapa_mesas(request):
     """
     Obtiene el estado de todas las mesas para el mapa digital
-    ✅ ACTUALIZADO: Igual que vista de mesero - muestra TODAS las mesas
+    ✅ ACTUALIZADO: Muestra TODOS los productos de cada mesa
     """
     try:
-        # ✅ CORREGIDO: Obtener TODAS las mesas (no solo disponibles)
+        # Obtener TODAS las mesas
         mesas = Mesa.objects.all().order_by('numero')
 
         mesas_data = []
@@ -1045,12 +1045,23 @@ def api_mapa_mesas(request):
             pedidos_activos = Pedido.objects.filter(
                 mesa=mesa,
                 estado_pago='pendiente'
-            )
+            ).exclude(estado='cancelado').prefetch_related('detalles__producto')
 
             total_pendiente = sum(
                 p.total_final if p.total_final > 0 else p.total
                 for p in pedidos_activos
             )
+
+            # Obtener TODOS los productos de esta mesa
+            productos_mesa = []
+            for pedido in pedidos_activos:
+                for detalle in pedido.detalles.all():
+                    productos_mesa.append({
+                        'nombre': detalle.producto.nombre,
+                        'cantidad': detalle.cantidad,
+                        'precio_unitario': float(detalle.precio_unitario),
+                        'subtotal': float(detalle.subtotal)
+                    })
 
             # Determinar color según estado
             if pedidos_activos.exists():
@@ -1071,6 +1082,7 @@ def api_mapa_mesas(request):
                 'color': color,
                 'pedidos_activos': pedidos_activos.count(),
                 'total_pendiente': float(total_pendiente),
+                'productos': productos_mesa,  # ✅ NUEVO: Lista de todos los productos
                 'posicion_x': mesa.posicion_x,
                 'posicion_y': mesa.posicion_y
             })
@@ -1086,6 +1098,7 @@ def api_mapa_mesas(request):
             'success': False,
             'error': str(e)
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 
 
 @api_view(['GET'])
