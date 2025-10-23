@@ -26,11 +26,6 @@
                 <i class='bx bx-home-alt'></i>
                 <span>Dashboard</span>
             </a>
-            <a href="#pedidos" class="nav-item" data-section="pedidos">
-                <i class='bx bx-food-menu'></i>
-                <span>Pedidos Pendientes</span>
-                <span class="badge" id="badgePedidos">0</span>
-            </a>
             <a href="#mesas" class="nav-item" data-section="mesas">
                 <i class='bx bx-map'></i>
                 <span>Mapa de Mesas</span>
@@ -142,11 +137,51 @@
 
                 <!-- Gráfico y Acciones Rápidas -->
                 <div class="dashboard-grid">
-                    <div class="card">
-                        <h2>📊 Ventas por Método de Pago</h2>
-                        <div id="metodosChart" class="chart-container">
-                            <div class="loading">Cargando datos...</div>
+                                        <div class="card" style="grid-column: span 2;">
+                        <h2>🍽️ Estado de Pedidos</h2>
+                        <div id="kanbanBoard" class="kanban-board">
+                            <div class="kanban-column" data-estado="pedido">
+                                <div class="kanban-header pedido">
+                                    <i class='bx bx-receipt'></i>
+                                    <h3>PEDIDO</h3>
+                                    <span class="count" id="count-pedido">0</span>
+                                </div>
+                                <div class="kanban-items" id="items-pedido">
+                                    <div class="loading">Cargando...</div>
+                                </div>
+                            </div>
+                            <div class="kanban-column" data-estado="preparando">
+                                <div class="kanban-header preparando">
+                                    <i class='bx bx-loader-alt'></i>
+                                    <h3>PREPARANDO</h3>
+                                    <span class="count" id="count-preparando">0</span>
+                                </div>
+                                <div class="kanban-items" id="items-preparando">
+                                    <div class="loading">Cargando...</div>
+                                </div>
+                            </div>
+                            <div class="kanban-column" data-estado="listo">
+                                <div class="kanban-header listo">
+                                    <i class='bx bx-check-circle'></i>
+                                    <h3>LISTO</h3>
+                                    <span class="count" id="count-listo">0</span>
+                                </div>
+                                <div class="kanban-items" id="items-listo">
+                                    <div class="loading">Cargando...</div>
+                                </div>
+                            </div>
+                            <div class="kanban-column" data-estado="entregado">
+                                <div class="kanban-header entregado">
+                                    <i class='bx bx-package'></i>
+                                    <h3>ENTREGADO</h3>
+                                    <span class="count" id="count-entregado">0</span>
+                                </div>
+                                <div class="kanban-items" id="items-entregado">
+                                    <div class="loading">Cargando...</div>
+                                </div>
+                            </div>
                         </div>
+                    </div>
                     </div>
                     <div class="card">
                         <h2>🚀 Acciones Rápidas</h2>
@@ -171,19 +206,6 @@
                             {% endif %}
                         </div>
                     </div>
-                </div>
-            </section>
-
-            <!-- SECCIÓN: PEDIDOS PENDIENTES -->
-            <section id="section-pedidos" class="content-section">
-                <div class="section-header">
-                    <h2>Pedidos Pendientes de Pago</h2>
-                    <button class="btn btn-primary" onclick="recargarPedidos()">
-                        <i class='bx bx-refresh'></i> Actualizar
-                    </button>
-                </div>
-                <div id="pedidosList" class="pedidos-grid">
-                    <div class="loading">Cargando pedidos...</div>
                 </div>
             </section>
 

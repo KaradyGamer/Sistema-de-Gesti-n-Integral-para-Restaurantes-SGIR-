@@ -153,6 +153,9 @@ async function cargarDashboard() {
         // Actualizar badges
         document.getElementById('badgePedidos').textContent = stats.pedidos_pendientes || 0;
 
+        // Cargar tablero Kanban
+        await cargarKanban();
+
     } catch (error) {
         console.error('Error:', error);
         mostrarNotificacion('Error al cargar dashboard', 'error');
@@ -1215,3 +1218,171 @@ setInterval(() => {
 cargarDashboard();
 
 console.log('✅ Panel Unificado de Caja cargado correctamente');
+
+// ============================================
+// TABLERO KANBAN - ESTADO DE PEDIDOS
+// ============================================
+async function cargarKanban() {
+    try {
+        const response = await fetch('/api/caja/pedidos/kanban/', {
+            headers: {
+                'X-CSRFToken': getCookie('csrftoken')
+            }
+        });
+
+        if (!response.ok) throw new Error('Error al cargar kanban');
+
+        const data = await response.json();
+
+        // Actualizar cada columna
+        ['pedido', 'preparando', 'listo', 'entregado'].forEach(estado => {
+            const pedidos = data[estado] || [];
+            renderizarColumnaKanban(estado, pedidos);
+        });
+
+    } catch (error) {
+        console.error('[DEBUG] Error al cargar kanban:', error);
+        mostrarNotificacion('Error al cargar estado de pedidos', 'error');
+    }
+}
+
+function renderizarColumnaKanban(estado, pedidos) {
+    const container = document.getElementById(`items-${estado}`);
+    const countElement = document.getElementById(`count-${estado}`);
+
+    // Actualizar contador
+    countElement.textContent = pedidos.length;
+
+    if (pedidos.length === 0) {
+        container.innerHTML = `
+            <div class="empty">
+                <i class='bx bx-package'></i>
+                <p>Sin pedidos</p>
+            </div>
+        `;
+        return;
+    }
+
+    // Ordenar: PEDIDO, PREPARANDO, LISTO usan FIFO (más antiguo primero)
+    // ENTREGADO usa LIFO (más reciente primero)
+    if (estado === 'entregado') {
+        pedidos.reverse(); // Invertir para LIFO
+    }
+
+    container.innerHTML = pedidos.map(pedido => crearTarjetaKanban(pedido, estado)).join('');
+}
+
+function crearTarjetaKanban(pedido, estado) {
+    // Agrupar productos por categoría
+    const productosPorCategoria = {};
+
+    pedido.productos.forEach(p => {
+        const categoria = p.categoria || 'Sin Categoría';
+        if (!productosPorCategoria[categoria]) {
+            productosPorCategoria[categoria] = [];
+        }
+        productosPorCategoria[categoria].push(p);
+    });
+
+    // Iconos por categoría (puedes personalizarlos)
+    const iconosCategoria = {
+        'Bebidas': '🥤',
+        'Comidas': '🍽️',
+        'Postres': '🍰',
+        'Entradas': '🥗',
+        'Platos Principales': '🍲',
+        'Sin Categoría': '📦'
+    };
+
+    // Generar HTML de productos agrupados
+    const productosHTML = Object.entries(productosPorCategoria).map(([categoria, productos]) => `
+        <div class="kanban-categoria">
+            <div class="kanban-categoria-titulo">
+                <span>${iconosCategoria[categoria] || '📦'}</span>
+                <span>${categoria.toUpperCase()}</span>
+            </div>
+            ${productos.map(p => `
+                <div class="kanban-producto-item">• ${p.nombre} x${p.cantidad}</div>
+            `).join('')}
+        </div>
+    `).join('');
+
+    // Botones de navegación
+    const puedeRetroceder = estado !== 'pedido';
+    const puedeAvanzar = estado !== 'entregado';
+
+    const botonesHTML = `
+        <div class="kanban-card-actions">
+            <button class="kanban-btn kanban-btn-prev"
+                    onclick="cambiarEstadoKanban(${pedido.id}, '${estado}', 'prev')"
+                    ${!puedeRetroceder ? 'disabled' : ''}>
+                <i class='bx bx-chevron-left'></i>
+            </button>
+            <button class="kanban-btn kanban-btn-next"
+                    onclick="cambiarEstadoKanban(${pedido.id}, '${estado}', 'next')"
+                    ${!puedeAvanzar ? 'disabled' : ''}>
+                <i class='bx bx-chevron-right'></i>
+            </button>
+        </div>
+    `;
+
+    return `
+        <div class="kanban-card" data-pedido-id="${pedido.id}" data-estado="${estado}">
+            <div class="kanban-card-header">
+                <span class="kanban-card-mesa">Mesa ${pedido.mesa || 'N/A'}</span>
+                <span class="kanban-card-total">Bs/ ${parseFloat(pedido.total).toFixed(2)}</span>
+            </div>
+            <div class="kanban-card-productos">
+                ${productosHTML}
+            </div>
+            <div class="kanban-card-footer">
+                <div class="kanban-mesero">
+                    <i class='bx bx-user'></i>
+                    <span>${pedido.mesero || 'N/A'}</span>
+                </div>
+                <div class="kanban-hora">
+                    <i class='bx bx-time'></i>
+                    <span>${pedido.hora || ''}</span>
+                </div>
+            </div>
+            ${botonesHTML}
+        </div>
+    `;
+}
+
+async function cambiarEstadoKanban(pedidoId, estadoActual, direccion) {
+    const estados = ['pedido', 'preparando', 'listo', 'entregado'];
+    const indexActual = estados.indexOf(estadoActual);
+
+    let nuevoIndex;
+    if (direccion === 'prev') {
+        nuevoIndex = Math.max(0, indexActual - 1);
+    } else {
+        nuevoIndex = Math.min(estados.length - 1, indexActual + 1);
+    }
+
+    const nuevoEstado = estados[nuevoIndex];
+
+    if (nuevoEstado === estadoActual) return;
+
+    try {
+        const response = await fetch(`/api/caja/pedidos/${pedidoId}/cambiar-estado/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify({ estado: nuevoEstado })
+        });
+
+        if (!response.ok) throw new Error('Error al cambiar estado');
+
+        // Recargar kanban
+        await cargarKanban();
+        mostrarNotificacion(`Pedido movido a ${nuevoEstado.toUpperCase()}`, 'success');
+
+    } catch (error) {
+        console.error('[DEBUG] Error al cambiar estado:', error);
+        mostrarNotificacion('Error al cambiar estado del pedido', 'error');
+    }
+}

@@ -1279,3 +1279,140 @@ def api_lista_empleados(request):
             'success': False,
             'error': str(e)
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+# ══════════════════════════════════════════════
+# 🎯 API TABLERO KANBAN
+# ══════════════════════════════════════════════
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def api_pedidos_kanban(request):
+    """
+    Obtiene pedidos agrupados por estado para el tablero Kanban
+    Estados: pedido, preparando, listo, entregado
+    """
+    try:
+        # Mapeo de estados del modelo a estados del Kanban
+        mapeo_estados = {
+            'pendiente': 'pedido',
+            'en preparacion': 'preparando',
+            'listo': 'listo',
+            'entregado': 'entregado'
+        }
+
+        # Inicializar respuesta
+        resultado = {
+            'pedido': [],
+            'preparando': [],
+            'listo': [],
+            'entregado': []
+        }
+
+        # Obtener pedidos pendientes de pago (exceptuando cancelados)
+        pedidos = Pedido.objects.filter(
+            estado_pago='pendiente'
+        ).exclude(
+            estado='cancelado'
+        ).select_related('mesa', 'mesero_comanda').prefetch_related(
+            'detalles__producto__categoria'
+        ).order_by('fecha')
+
+        for pedido in pedidos:
+            # Mapear estado del modelo al estado del Kanban
+            estado_modelo = pedido.estado
+            estado_kanban = mapeo_estados.get(estado_modelo, 'pedido')
+
+            # Preparar productos agrupados por categoría
+            productos = []
+            for detalle in pedido.detalles.all():
+                categoria_nombre = detalle.producto.categoria.nombre if detalle.producto.categoria else 'Sin Categoría'
+                productos.append({
+                    'nombre': detalle.producto.nombre,
+                    'cantidad': detalle.cantidad,
+                    'categoria': categoria_nombre
+                })
+
+            # Obtener información del mesero
+            mesero_nombre = "N/A"
+            if pedido.mesero_comanda:
+                mesero_nombre = f"{pedido.mesero_comanda.first_name} {pedido.mesero_comanda.last_name}".strip()
+                if not mesero_nombre:
+                    mesero_nombre = pedido.mesero_comanda.username
+
+            # Calcular total
+            total = pedido.total_final if pedido.total_final > 0 else pedido.total
+
+            # Agregar pedido al estado correspondiente
+            resultado[estado_kanban].append({
+                'id': pedido.id,
+                'mesa': pedido.mesa.numero if pedido.mesa else 'N/A',
+                'mesa_id': pedido.mesa.id if pedido.mesa else None,
+                'productos': productos,
+                'total': float(total),
+                'mesero': mesero_nombre,
+                'hora': pedido.fecha.strftime('%H:%M'),
+                'estado_actual': estado_modelo
+            })
+
+        return Response({
+            'success': True,
+            'pedido': resultado['pedido'],
+            'preparando': resultado['preparando'],
+            'listo': resultado['listo'],
+            'entregado': resultado['entregado']
+        })
+
+    except Exception as e:
+        print(f"[DEBUG] Error en api_pedidos_kanban: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return Response({
+            'success': False,
+            'error': str(e)
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def api_cambiar_estado_pedido(request, pedido_id):
+    """
+    Cambia el estado de un pedido en el tablero Kanban
+    """
+    try:
+        pedido = get_object_or_404(Pedido, id=pedido_id)
+
+        nuevo_estado_kanban = request.data.get('estado')
+
+        # Mapeo inverso: de estado Kanban a estado del modelo
+        mapeo_kanban_a_modelo = {
+            'pedido': 'pendiente',
+            'preparando': 'en preparacion',
+            'listo': 'listo',
+            'entregado': 'entregado'
+        }
+
+        nuevo_estado_modelo = mapeo_kanban_a_modelo.get(nuevo_estado_kanban)
+
+        if not nuevo_estado_modelo:
+            return Response({
+                'success': False,
+                'error': 'Estado inválido'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        # Actualizar estado
+        pedido.estado = nuevo_estado_modelo
+        pedido.save()
+
+        return Response({
+            'success': True,
+            'message': f'Estado cambiado a {nuevo_estado_kanban}'
+        })
+
+    except Exception as e:
+        print(f"[DEBUG] Error en api_cambiar_estado_pedido: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return Response({
+            'success': False,
+            'error': str(e)
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

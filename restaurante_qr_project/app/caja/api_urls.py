@@ -8,6 +8,8 @@ urlpatterns = [
     # CONSULTAS DE PEDIDOS
     # ═══════════════════════════════════════════
     path('pedidos/pendientes/', api_views.api_pedidos_pendientes_pago, name='pedidos_pendientes'),
+    path('pedidos/kanban/', api_views.api_pedidos_kanban, name='pedidos_kanban'),
+    path('pedidos/<int:pedido_id>/cambiar-estado/', api_views.api_cambiar_estado_pedido, name='cambiar_estado'),
     path('pedidos/<int:pedido_id>/', api_views.api_detalle_pedido, name='detalle_pedido'),
     path('pedidos/<int:pedido_id>/historial/', api_views.api_historial_modificaciones, name='historial_modificaciones'),
 
