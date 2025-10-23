@@ -45,7 +45,7 @@ def api_pedidos_pendientes_pago(request):
     Obtiene todos los pedidos pendientes de pago
     """
     try:
-        print(f"🧾 API Pedidos Pendientes - Usuario: {request.user}")
+        print(f"[DEBUG] API Pedidos Pendientes - Usuario: {request.user}")
 
         # Mostrar pedidos pendientes de pago (cualquier estado excepto cancelado)
         pedidos = Pedido.objects.filter(
@@ -108,7 +108,7 @@ def api_pedidos_pendientes_pago(request):
         })
 
     except Exception as e:
-        print(f"❌ Error en api_pedidos_pendientes_pago: {str(e)}")
+        print(f"[DEBUG] Error en api_pedidos_pendientes_pago: {str(e)}")
         import traceback
         traceback.print_exc()
 
@@ -169,7 +169,7 @@ def api_detalle_pedido(request, pedido_id):
         })
 
     except Exception as e:
-        print(f"❌ Error en api_detalle_pedido: {str(e)}")
+        print(f"[DEBUG] Error en api_detalle_pedido: {str(e)}")
         return Response({
             'success': False,
             'error': str(e)
@@ -293,7 +293,7 @@ def api_procesar_pago_mixto(request):
         pedido_id = request.data.get('pedido_id')
         detalles_pago = request.data.get('detalles_pago', [])  # Lista de {metodo, monto, referencia}
 
-        print(f"💰 Procesando pago mixto - Pedido: {pedido_id}")
+        print(f"[DEBUG] Procesando pago mixto - Pedido: {pedido_id}")
 
         # Validaciones
         if not pedido_id or not detalles_pago:
@@ -372,7 +372,7 @@ def api_procesar_pago_mixto(request):
         # Verificar alertas de stock
         verificar_alertas_stock()
 
-        print(f"✅ Pago mixto procesado - Factura: {numero_factura}")
+        print(f"[DEBUG] Pago mixto procesado - Factura: {numero_factura}")
 
         return Response({
             'success': True,
@@ -389,7 +389,7 @@ def api_procesar_pago_mixto(request):
         })
 
     except Exception as e:
-        print(f"❌ Error en api_procesar_pago_mixto: {str(e)}")
+        print(f"[DEBUG] Error en api_procesar_pago_mixto: {str(e)}")
         import traceback
         traceback.print_exc()
 
@@ -460,7 +460,7 @@ def api_aplicar_descuento(request):
             'error': str(e)
         }, status=status.HTTP_400_BAD_REQUEST)
     except Exception as e:
-        print(f"❌ Error en api_aplicar_descuento: {str(e)}")
+        print(f"[DEBUG] Error en api_aplicar_descuento: {str(e)}")
         return Response({
             'success': False,
             'error': str(e)
@@ -514,7 +514,7 @@ def api_aplicar_propina(request):
         })
 
     except Exception as e:
-        print(f"❌ Error en api_aplicar_propina: {str(e)}")
+        print(f"[DEBUG] Error en api_aplicar_propina: {str(e)}")
         return Response({
             'success': False,
             'error': str(e)
@@ -610,7 +610,7 @@ def api_agregar_producto_pedido(request):
         })
 
     except Exception as e:
-        print(f"❌ Error en api_agregar_producto_pedido: {str(e)}")
+        print(f"[DEBUG] Error en api_agregar_producto_pedido: {str(e)}")
         import traceback
         traceback.print_exc()
 
@@ -687,7 +687,7 @@ def api_eliminar_producto_pedido(request, detalle_id):
         })
 
     except Exception as e:
-        print(f"❌ Error en api_eliminar_producto_pedido: {str(e)}")
+        print(f"[DEBUG] Error en api_eliminar_producto_pedido: {str(e)}")
         return Response({
             'success': False,
             'error': str(e)
@@ -775,7 +775,7 @@ def api_modificar_cantidad_producto(request, detalle_id):
         })
 
     except Exception as e:
-        print(f"❌ Error en api_modificar_cantidad_producto: {str(e)}")
+        print(f"[DEBUG] Error en api_modificar_cantidad_producto: {str(e)}")
         return Response({
             'success': False,
             'error': str(e)
@@ -851,7 +851,7 @@ def api_reasignar_pedido_mesa(request):
         })
 
     except Exception as e:
-        print(f"❌ Error en api_reasignar_pedido_mesa: {str(e)}")
+        print(f"[DEBUG] Error en api_reasignar_pedido_mesa: {str(e)}")
         return Response({
             'success': False,
             'error': str(e)
@@ -896,7 +896,7 @@ def api_abrir_caja(request):
             efectivo_esperado=Decimal(str(efectivo_inicial))
         )
 
-        print(f"✅ Caja abierta - Cajero: {request.user}, Turno: {turno}")
+        print(f"[DEBUG] Caja abierta - Cajero: {request.user}, Turno: {turno}")
 
         return Response({
             'success': True,
@@ -912,7 +912,7 @@ def api_abrir_caja(request):
         })
 
     except Exception as e:
-        print(f"❌ Error en api_abrir_caja: {str(e)}")
+        print(f"[DEBUG] Error en api_abrir_caja: {str(e)}")
         return Response({
             'success': False,
             'error': str(e)
@@ -988,7 +988,7 @@ def api_cerrar_caja(request):
             observaciones=observaciones
         )
 
-        print(f"✅ Caja cerrada - Cajero: {request.user}, Diferencia: {turno.diferencia}")
+        print(f"[DEBUG] Caja cerrada - Cajero: {request.user}, Diferencia: {turno.diferencia}")
 
         return Response({
             'success': True,
@@ -1014,7 +1014,7 @@ def api_cerrar_caja(request):
         })
 
     except Exception as e:
-        print(f"❌ Error en api_cerrar_caja: {str(e)}")
+        print(f"[DEBUG] Error en api_cerrar_caja: {str(e)}")
         import traceback
         traceback.print_exc()
 
@@ -1081,7 +1081,7 @@ def api_mapa_mesas(request):
         })
 
     except Exception as e:
-        print(f"❌ Error en api_mapa_mesas: {str(e)}")
+        print(f"[DEBUG] Error en api_mapa_mesas: {str(e)}")
         return Response({
             'success': False,
             'error': str(e)
@@ -1113,7 +1113,7 @@ def api_estadisticas_dia(request):
         })
 
     except Exception as e:
-        print(f"❌ Error en api_estadisticas_dia: {str(e)}")
+        print(f"[DEBUG] Error en api_estadisticas_dia: {str(e)}")
         return Response({
             'success': False,
             'error': str(e)
@@ -1150,7 +1150,7 @@ def api_alertas_stock(request):
         })
 
     except Exception as e:
-        print(f"❌ Error en api_alertas_stock: {str(e)}")
+        print(f"[DEBUG] Error en api_alertas_stock: {str(e)}")
         return Response({
             'success': False,
             'error': str(e)
@@ -1176,7 +1176,7 @@ def api_resolver_alerta_stock(request, alerta_id):
         })
 
     except Exception as e:
-        print(f"❌ Error en api_resolver_alerta_stock: {str(e)}")
+        print(f"[DEBUG] Error en api_resolver_alerta_stock: {str(e)}")
         return Response({
             'success': False,
             'error': str(e)
