@@ -977,6 +977,42 @@ async function cargarMapaMesas() {
                 'pagando': 'Procesando Pago'
             };
 
+            // Renderizar lista de productos
+            let productosHTML = '';
+            if (mesa.productos && mesa.productos.length > 0) {
+                productosHTML = `
+                    <div class="mesa-productos-lista">
+                        <div class="productos-titulo">Productos:</div>
+                        ${mesa.productos.map(p => `
+                            <div class="producto-item-mesa">
+                                • ${p.nombre} x${p.cantidad}
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+            }
+
+            // Botones de acción
+            let botonesHTML = '';
+            if (mesa.pedidos_activos > 0) {
+                botonesHTML = `
+                    <div class="mesa-acciones">
+                        <button class="btn-mesa btn-pagar" onclick="abrirModalPago(${mesa.id}, false)" title="Pagar todo">
+                            <i class='bx bx-money'></i>
+                        </button>
+                        <button class="btn-mesa btn-separado" onclick="abrirModalPago(${mesa.id}, true)" title="Pago separado">
+                            <i class='bx bx-cut'></i>
+                        </button>
+                        <button class="btn-mesa btn-modificar" onclick="modificarPedidoMesa(${mesa.id})" title="Modificar">
+                            <i class='bx bx-edit'></i>
+                        </button>
+                        <button class="btn-mesa btn-cambiar" onclick="abrirModalCambiarMesa(${mesa.id})" title="Cambiar mesa">
+                            <i class='bx bx-transfer'></i>
+                        </button>
+                    </div>
+                `;
+            }
+
             html += `
                 <div class="mesa-card ${mesa.color}" data-mesa-id="${mesa.id}">
                     <div class="mesa-numero">Mesa ${mesa.numero}</div>
@@ -987,10 +1023,12 @@ async function cargarMapaMesas() {
                         <span class="mesa-estado">${estadoTexto[mesa.estado] || mesa.estado}</span>
                     </div>
                     ${mesa.pedidos_activos > 0 ? `
-                        <div class="mesa-pedidos">
+                        <div class="mesa-resumen">
                             <span><i class='bx bx-receipt'></i> ${mesa.pedidos_activos} pedido(s)</span>
                             <span class="mesa-total">Bs/ ${parseFloat(mesa.total_pendiente).toFixed(2)}</span>
                         </div>
+                        ${productosHTML}
+                        ${botonesHTML}
                     ` : ''}
                 </div>
             `;
@@ -1000,10 +1038,11 @@ async function cargarMapaMesas() {
         container.innerHTML = html;
 
     } catch (error) {
-        console.error('Error cargando mapa de mesas:', error);
+        console.error('[DEBUG] Error cargando mapa de mesas:', error);
         container.innerHTML = '<p style="color: red;">Error al cargar mapa de mesas</p>';
     }
 }
+
 
 // ============================================
 // CARGAR HISTORIAL
@@ -1382,4 +1421,28 @@ async function cambiarEstadoKanban(pedidoId, estadoActual, direccion) {
         console.error('[DEBUG] Error al cambiar estado:', error);
         mostrarNotificacion('Error al cambiar estado del pedido', 'error');
     }
+}
+
+// ============================================
+// FUNCIONES DE MAPA DE MESAS
+// ============================================
+
+function abrirModalPago(mesaId, pagoSeparado) {
+    if (pagoSeparado) {
+        mostrarNotificacion('Función "Pago Separado" en desarrollo', 'info');
+        // TODO: Implementar modal de pago separado
+    } else {
+        mostrarNotificacion('Función "Pagar Todo" en desarrollo', 'info');
+        // TODO: Implementar pago completo
+    }
+}
+
+function modificarPedidoMesa(mesaId) {
+    mostrarNotificacion('Función "Modificar Pedido" en desarrollo', 'info');
+    // TODO: Implementar modificación de pedido
+}
+
+function abrirModalCambiarMesa(mesaId) {
+    mostrarNotificacion('Función "Cambiar Mesa" en desarrollo', 'info');
+    // TODO: Implementar cambio de mesa
 }
