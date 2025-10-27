@@ -24,7 +24,7 @@
         <nav class="sidebar-nav">
             <a href="#dashboard" class="nav-item active" data-section="dashboard">
                 <i class='bx bx-home-alt'></i>
-                <span>Dashboard</span>
+                <span>Inicio</span>
             </a>
             <a href="#mesas" class="nav-item" data-section="mesas">
                 <i class='bx bx-map'></i>
@@ -69,7 +69,7 @@
         <!-- Top Bar -->
         <div class="topbar">
             <div class="topbar-left">
-                <h1 id="pageTitle">Dashboard</h1>
+                <h1 id="pageTitle">Inicio</h1>
                 <p id="pageSubtitle">Resumen general del sistema</p>
             </div>
             <div class="topbar-right">
@@ -183,35 +183,11 @@
                         </div>
                     </div>
                     </div>
-                    <div class="card">
-                        <h2>🚀 Acciones Rápidas</h2>
-                        <div class="quick-actions-grid">
-                            <button class="quick-action-btn" onclick="navigateTo('cobrar')">
-                                <i class='bx bx-money'></i>
-                                <span>Cobrar Pedido</span>
-                            </button>
-                            <button class="quick-action-btn" onclick="navigateTo('mesas')">
-                                <i class='bx bx-map'></i>
-                                <span>Ver Mesas</span>
-                            </button>
-                            <button class="quick-action-btn" onclick="navigateTo('historial')">
-                                <i class='bx bx-history'></i>
-                                <span>Historial</span>
-                            </button>
-                            {% if turno_abierto %}
-                            <button class="quick-action-btn danger" onclick="cerrarCaja()">
-                                <i class='bx bx-lock'></i>
-                                <span>Cerrar Caja</span>
-                            </button>
-                            {% endif %}
-                        </div>
-                    </div>
                 </div>
             </section>
 
             <!-- SECCIÓN: MAPA MESAS -->
             <section id="section-mesas" class="content-section">
-                <h2>Mapa de Mesas</h2>
                 <div id="mapaMesasContainer" class="loading">Cargando mapa de mesas...</div>
             </section>
 
@@ -229,13 +205,11 @@
 
             <!-- SECCIÓN: PERSONAL -->
             <section id="section-personal" class="content-section">
-                <h2>Gestión de Personal</h2>
                 <div id="personalContainer" class="loading">Cargando personal...</div>
             </section>
 
             <!-- SECCIÓN: JORNADA LABORAL -->
             <section id="section-jornada" class="content-section">
-                <h2>Jornada Laboral</h2>
                 <div id="jornadaContainer" class="loading">Cargando jornada...</div>
             </section>
         </div>

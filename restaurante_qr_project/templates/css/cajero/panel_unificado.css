@@ -9,6 +9,11 @@
     box-sizing: border-box;
 }
 
+html {
+    overflow-x: hidden;
+    width: 100%;
+}
+
 :root {
     --sidebar-width: 260px;
     --sidebar-collapsed: 70px;
@@ -30,6 +35,8 @@ body {
     background: #f8fafc;
     color: var(--text-primary);
     overflow-x: hidden;
+    width: 100%;
+    max-width: 100vw;
 }
 
 /* ============================================
@@ -219,10 +226,15 @@ body {
     min-height: 100vh;
     display: flex;
     flex-direction: column;
+    width: calc(100% - var(--sidebar-width));
+    max-width: calc(100% - var(--sidebar-width));
+    overflow-x: hidden;
 }
 
 .sidebar.collapsed ~ .main-content {
     margin-left: var(--sidebar-collapsed);
+    width: calc(100% - var(--sidebar-collapsed));
+    max-width: calc(100% - var(--sidebar-collapsed));
 }
 
 .topbar {

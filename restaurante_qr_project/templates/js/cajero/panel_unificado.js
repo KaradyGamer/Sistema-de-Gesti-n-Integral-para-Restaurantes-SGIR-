@@ -18,7 +18,7 @@ const pageSubtitle = document.getElementById('pageSubtitle');
 
 // Títulos de secciones
 const sectionTitles = {
-    dashboard: { title: 'Dashboard', subtitle: 'Resumen general del sistema' },
+    dashboard: { title: 'Inicio', subtitle: 'Resumen general del sistema' },
     pedidos: { title: 'Pedidos Pendientes', subtitle: 'Gestión de pedidos por cobrar' },
     cobrar: { title: 'Procesar Pagos', subtitle: 'Cobrar pedidos entregados' },
     mesas: { title: 'Mapa de Mesas', subtitle: 'Estado actual de las mesas' },
@@ -962,7 +962,6 @@ async function cargarMapaMesas() {
         // Renderizar el mapa de mesas
         let html = `
             <div class="mapa-header">
-                <h3>Mapa de Mesas</h3>
                 <div class="mapa-leyenda">
                     <span class="leyenda-item"><div class="color-box verde"></div> Disponible</span>
                     <span class="leyenda-item"><div class="color-box amarillo"></div> Reservada</span>
@@ -1656,7 +1655,7 @@ async function cargarPersonal() {
                                     </div>
                                 ` : `
                                     <div class="empleado-info-extra">
-                                        <p class="empleado-rol-desc">Acceso por PIN</p>
+                                        <p class="empleado-rol-desc">Sin QR - Acceso tradicional</p>
                                     </div>
                                 `}
                             </div>
