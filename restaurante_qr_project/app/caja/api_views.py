@@ -1453,9 +1453,14 @@ def api_pedidos_kanban(request):
             total = pedido.total_final if pedido.total_final > 0 else pedido.total
 
             # ✅ NUEVO: Calcular tiempo transcurrido
-            # Calcular tiempo desde que se creó el pedido hasta ahora
-            # Para pedidos entregados, muestra el tiempo total que tomó
-            tiempo_transcurrido_segundos = int((timezone.now() - pedido.fecha).total_seconds())
+            # Para pedidos NO entregados: tiempo desde creación hasta ahora
+            # Para pedidos ENTREGADOS: tiempo desde creación hasta entrega (congelado)
+            if estado_kanban == 'entregado' and hasattr(pedido, 'fecha_pago') and pedido.fecha_pago:
+                # Tiempo congelado al momento de entrega
+                tiempo_transcurrido_segundos = int((pedido.fecha_pago - pedido.fecha).total_seconds())
+            else:
+                # Tiempo en curso (sigue contando)
+                tiempo_transcurrido_segundos = int((timezone.now() - pedido.fecha).total_seconds())
 
             tiempo_minutos = tiempo_transcurrido_segundos // 60
             tiempo_segundos = tiempo_transcurrido_segundos % 60
