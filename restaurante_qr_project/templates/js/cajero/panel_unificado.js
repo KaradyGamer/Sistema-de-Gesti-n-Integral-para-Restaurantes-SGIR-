@@ -1645,7 +1645,7 @@ async function cargarPersonal() {
                                         <p class="empleado-username">@${emp.username}</p>
                                     </div>
                                 </div>
-                                ${rol !== 'cajero' ? `
+                                ${rol.toLowerCase() !== 'cajero' ? `
                                     <div class="empleado-qr-action">
                                         <button class="btn-generar-qr" onclick="generarQREmpleado(${emp.id}, '${emp.nombre_completo}')">
                                             <i class='bx bx-qr-scan'></i>
@@ -2117,7 +2117,7 @@ async function confirmarAbrirTurno() {
         const tipoTurno = document.getElementById('tipoTurno').value;
         const efectivoInicial = document.getElementById('efectivoInicial').value || '0';
 
-        const response = await fetch('/api/caja/abrir/', {
+        const response = await fetch('/api/caja/turno/abrir/', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -2202,7 +2202,7 @@ function iniciarTimerKanban() {
 
     // Actualizar cada segundo
     kanbanTimerInterval = setInterval(() => {
-        const tarjetas = document.querySelectorAll('.kanban-card[data-estado]:not([data-estado="entregado"])');
+        const tarjetas = document.querySelectorAll('.kanban-card[data-estado]');
 
         tarjetas.forEach(tarjeta => {
             const tiempoTotal = parseInt(tarjeta.dataset.tiempoTotal || 0);

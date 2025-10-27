@@ -11,11 +11,17 @@ body {
     justify-content: center;
     align-items: center;
     min-height: 100vh;
+    height: 100vh;
+    width: 100%;
+    max-width: 100vw;
+    overflow-x: hidden;
+    overflow-y: auto;
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     background-image: url('/media/Fondos/interior-del-restaurante.jpg');
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
+    background-attachment: fixed;
     gap: 50px;
     padding: 20px;
 }
