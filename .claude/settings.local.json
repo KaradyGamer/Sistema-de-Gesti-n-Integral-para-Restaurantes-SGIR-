@@ -9,7 +9,17 @@
       "Bash(\"env/Scripts/python.exe\" manage.py check)",
       "Bash(dir:*)",
       "Bash(env/Scripts/python.exe:*)",
-      "Bash(node --check:*)"
+      "Bash(node --check:*)",
+      "Bash(python manage.py check:*)",
+      "Bash(cat:*)",
+      "Bash(python replace_code.py:*)",
+      "Bash(python replace_css.py:*)",
+      "Bash(python manage.py:*)",
+      "Bash(findstr:*)",
+      "Bash(python -m pip:*)",
+      "Bash(locust:*)",
+      "Bash(timeout 3 sleep:*)",
+      "Bash(xargs ls:*)"
     ],
     "deny": [],
     "ask": []

@@ -56,49 +56,6 @@ def panel_unificado(request):
     return render(request, 'cajero/panel_unificado.html', context)
 
 
-@solo_cajero
-def panel_caja(request):
-    """
-    Panel principal del cajero con vista general de pedidos pendientes de pago
-    """
-
-    # Verificar si hay un turno abierto
-    turno_abierto = CierreCaja.objects.filter(
-        cajero=request.user,
-        estado='abierto',
-        fecha=date.today()
-    ).first()
-
-    # Obtener pedidos pendientes de pago (todos los estados excepto cancelados)
-    # El cajero puede ver pedidos en cualquier estado para cobrar y modificar
-    pedidos_pendientes = Pedido.objects.filter(
-        estado_pago='pendiente'
-    ).exclude(
-        estado='cancelado'
-    ).select_related('mesa').prefetch_related('detalles__producto').order_by('-fecha')
-
-    # Obtener alertas de stock activas
-    alertas_stock = AlertaStock.objects.filter(
-        estado='activa'
-    ).select_related('producto').order_by('-fecha_creacion')[:5]
-
-    # Estadísticas del día
-    estadisticas = obtener_estadisticas_caja_dia()
-
-    context = {
-        'user': request.user,
-        'nombre_usuario': request.user.first_name or request.user.username,
-        'title': 'Panel de Caja',
-        'user_role': 'cajero',
-        'turno_abierto': turno_abierto,
-        'pedidos_pendientes': pedidos_pendientes,
-        'alertas_stock': alertas_stock,
-        'estadisticas': estadisticas,
-    }
-
-    return render(request, 'cajero/panel_caja.html', context)
-
-
 # ──────────────────────────────────────────────
 # 💰 DETALLE DE PEDIDO Y PAGO
 # ──────────────────────────────────────────────
