@@ -6,6 +6,12 @@
     font-family: "Poppins", sans-serif;
 }
 
+html {
+    width: 100%;
+    max-width: 100vw;
+    overflow-x: hidden;
+}
+
 body {
     display: flex;
     justify-content: center;
@@ -29,6 +35,7 @@ body {
 /* ========== PANEL DE ACCESO CAJERO (PIN) ========== */
 .welcome-panel {
     width: 480px;
+    max-width: 90vw;
     background: rgba(255, 255, 255, 0.1);
     border: 2px solid rgba(255, 255, 255, .2);
     backdrop-filter: blur(20px);
@@ -36,6 +43,7 @@ body {
     color: white;
     border-radius: 10px;
     padding: 40px;
+    position: relative;
 }
 
 .welcome-content h1 {
@@ -160,6 +168,7 @@ body {
 /* ========== FORMULARIO DE LOGIN TRADICIONAL (ADMIN) ========== */
 .wrapper {
     width: 420px;
+    max-width: 90vw;
     background: transparent;
     border: 2px solid rgba(255, 255, 255, .2);
     backdrop-filter: blur(20px);
@@ -167,6 +176,7 @@ body {
     color: white;
     border-radius: 10px;
     padding: 30px 40px;
+    position: relative;
 }
 
 .wrapper h1 {
@@ -421,11 +431,13 @@ body {
     justify-content: center;
     align-items: center;
     width: 100%;
+    max-width: 100vw;
     height: 100vh;
     position: absolute;
     top: 0;
     left: 0;
     z-index: 100;
+    overflow: hidden;
     transition: opacity var(--animation-speed-normal) var(--cubic-smooth);
 }
 

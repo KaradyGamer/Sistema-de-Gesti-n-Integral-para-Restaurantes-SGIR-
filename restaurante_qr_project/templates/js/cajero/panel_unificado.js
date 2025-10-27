@@ -1598,74 +1598,50 @@ async function cargarPersonal() {
             return;
         }
 
-        // Agrupar empleados por rol
-        const empleadosPorRol = {
-            'cajero': [],
-            'mesero': [],
-            'cocinero': []
-        };
+        // Filtrar solo empleados que necesitan QR (NO cajeros)
+        const empleadosConQR = data.empleados.filter(emp => emp.rol.toLowerCase() !== 'cajero');
 
-        data.empleados.forEach(emp => {
-            if (empleadosPorRol[emp.rol]) {
-                empleadosPorRol[emp.rol].push(emp);
-            }
-        });
-
-        // Renderizar empleados agrupados por rol
-        let html = '<div class="empleados-grid">';
-
-        for (const [rol, empleados] of Object.entries(empleadosPorRol)) {
-            if (empleados.length === 0) continue;
-
-            const iconos = {
-                'cajero': 'bx-dollar',
-                'mesero': 'bx-dish',
-                'cocinero': 'bx-food-menu'
-            };
-
-            const colores = {
-                'cajero': '#10b981',
-                'mesero': '#6366f1',
-                'cocinero': '#f59e0b'
-            };
-
-            html += `
-                <div class="rol-grupo">
-                    <h3 class="rol-titulo" style="color: ${colores[rol]};">
-                        <i class='bx ${iconos[rol]}'></i>
-                        ${empleados[0].rol_display}s (${empleados.length})
-                    </h3>
-                    <div class="empleados-rol-grid">
-                        ${empleados.map(emp => `
-                            <div class="empleado-card">
-                                <div class="empleado-header">
-                                    <i class='bx ${iconos[rol]}' style="font-size: 24px; color: ${colores[rol]};"></i>
-                                    <div class="empleado-info">
-                                        <h4>${emp.nombre_completo}</h4>
-                                        <p class="empleado-username">@${emp.username}</p>
-                                    </div>
-                                </div>
-                                ${rol.toLowerCase() !== 'cajero' ? `
-                                    <div class="empleado-qr-action">
-                                        <button class="btn-generar-qr" onclick="generarQREmpleado(${emp.id}, '${emp.nombre_completo}')">
-                                            <i class='bx bx-qr-scan'></i>
-                                            Generar QR
-                                        </button>
-                                        <p class="qr-nota">Click para generar c\u00f3digo QR</p>
-                                    </div>
-                                ` : `
-                                    <div class="empleado-info-extra">
-                                        <p class="empleado-rol-desc">Sin QR - Acceso tradicional</p>
-                                    </div>
-                                `}
-                            </div>
-                        `).join('')}
-                    </div>
+        if (empleadosConQR.length === 0) {
+            container.innerHTML = `
+                <div class="card" style="text-align: center; padding: 60px;">
+                    <i class='bx bx-qr-scan' style="font-size: 4em; color: var(--text-secondary);"></i>
+                    <h3 style="margin-top: 20px;">No hay personal con acceso QR</h3>
+                    <p style="color: var(--text-secondary);">Los empleados con QR aparecerán aquí</p>
                 </div>
             `;
+            return;
         }
 
-        html += '</div>';
+        // Renderizar empleados sin agrupar por rol
+        let html = `
+            <div class="personal-qr-container">
+                <div class="personal-qr-header">
+                    <i class='bx bx-qr-scan' style="font-size: 32px; color: var(--primary-color);"></i>
+                    <div>
+                        <h3>Personal - Generar QR</h3>
+                        <p>${empleadosConQR.length} empleado${empleadosConQR.length !== 1 ? 's' : ''} con acceso QR</p>
+                    </div>
+                </div>
+                <div class="empleados-qr-grid">
+                    ${empleadosConQR.map(emp => `
+                        <div class="empleado-qr-card">
+                            <div class="empleado-avatar">
+                                <i class='bx bx-user-circle'></i>
+                            </div>
+                            <div class="empleado-nombre">
+                                <h4>${emp.nombre_completo}</h4>
+                                <p class="empleado-username">@${emp.username}</p>
+                            </div>
+                            <button class="btn-generar-qr-simple" onclick="generarQREmpleado(${emp.id}, '${emp.nombre_completo}')">
+                                <i class='bx bx-qr-scan'></i>
+                                Generar QR
+                            </button>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+        `;
+
         container.innerHTML = html;
 
     } catch (error) {
@@ -2200,9 +2176,9 @@ function iniciarTimerKanban() {
         clearInterval(kanbanTimerInterval);
     }
 
-    // Actualizar cada segundo
+    // Actualizar cada segundo (excepto ENTREGADO que ya no cuenta)
     kanbanTimerInterval = setInterval(() => {
-        const tarjetas = document.querySelectorAll('.kanban-card[data-estado]');
+        const tarjetas = document.querySelectorAll('.kanban-card[data-estado]:not([data-estado="entregado"])');
 
         tarjetas.forEach(tarjeta => {
             const tiempoTotal = parseInt(tarjeta.dataset.tiempoTotal || 0);
