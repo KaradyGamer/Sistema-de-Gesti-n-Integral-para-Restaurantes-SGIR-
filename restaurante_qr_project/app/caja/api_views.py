@@ -1542,11 +1542,11 @@ def api_cambiar_estado_pedido(request, pedido_id):
         estado_anterior = pedido.estado
         pedido.estado = nuevo_estado_modelo
 
-        # ✅ NUEVO: Si se marca como entregado, guardar timestamp para detener el timer
-        if nuevo_estado_modelo == 'entregado' and not hasattr(pedido, 'fecha_entregado'):
-            # Por ahora usamos un campo temporal en observaciones_caja
-            # Más adelante crearemos una migración para agregar el campo fecha_entregado
-            pedido.observaciones_caja = (pedido.observaciones_caja or '') + f'\n[ENTREGADO: {timezone.now().strftime("%Y-%m-%d %H:%M:%S")}]'
+        # ✅ NUEVO: Si se marca como entregado, guardar timestamp para congelar el timer
+        if nuevo_estado_modelo == 'entregado':
+            # Guardar fecha_pago como timestamp de entrega (para congelar timer)
+            if not pedido.fecha_pago:
+                pedido.fecha_pago = timezone.now()
 
         pedido.save()
 
