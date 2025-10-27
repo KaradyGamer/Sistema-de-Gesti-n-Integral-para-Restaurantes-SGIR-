@@ -7,7 +7,12 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = config('SECRET_KEY')
 DEBUG = config('DEBUG', default=False, cast=bool)
-ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1').split(',')  # Solo acceso local
+
+# ✅ CORREGIDO: Permitir acceso desde cualquier IP en modo desarrollo (para QR móviles)
+if DEBUG:
+    ALLOWED_HOSTS = ['*']  # Permitir todas las IPs en desarrollo
+else:
+    ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1').split(',')  # Solo acceso local en producción
 
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(hours=8),  # ✅ Token dura 8 horas

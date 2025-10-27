@@ -394,10 +394,184 @@ def ver_qr_simple(request):
         ip_servidor = f"{ip_servidor}:8000"
     except:
         ip_servidor = "localhost:8000"
-    
+
     context = {
         'ip_servidor': ip_servidor,
         'mesas': range(1, 16),
         'total_mesas': 15,
     }
     return render(request, 'admin/qr_simple.html', context)
+
+
+# ✅ NUEVO SISTEMA DE QR REGENERABLE
+from django.contrib.auth.decorators import login_required
+from .models import QRToken
+
+@login_required
+@csrf_protect
+@require_http_methods(["POST"])
+def generar_qr_empleado(request):
+    """
+    Genera un nuevo QR para un empleado
+    SOLO el cajero puede generar QRs
+    """
+    try:
+        # Verificar que el usuario logueado sea cajero
+        if request.user.rol != 'cajero':
+            return JsonResponse({
+                'success': False,
+                'error': 'Solo los cajeros pueden generar códigos QR'
+            }, status=403)
+
+        data = json.loads(request.body)
+        empleado_id = data.get('empleado_id')
+
+        if not empleado_id:
+            return JsonResponse({
+                'success': False,
+                'error': 'ID de empleado requerido'
+            }, status=400)
+
+        # Obtener empleado
+        try:
+            empleado = Usuario.objects.get(id=empleado_id, activo=True)
+        except Usuario.DoesNotExist:
+            return JsonResponse({
+                'success': False,
+                'error': 'Empleado no encontrado'
+            }, status=404)
+
+        # Verificar que el empleado pueda tener QR (mesero o cocinero)
+        if empleado.rol not in ['mesero', 'cocinero']:
+            return JsonResponse({
+                'success': False,
+                'error': 'Solo meseros y cocineros pueden tener códigos QR'
+            }, status=400)
+
+        # Obtener IP actual del servidor
+        import socket
+        try:
+            hostname = socket.gethostname()
+            ip_actual = socket.gethostbyname(hostname)
+        except:
+            ip_actual = '127.0.0.1'
+
+        # Generar nuevo token (invalida anteriores automáticamente)
+        nuevo_token = QRToken.generar_token(empleado, ip_actual)
+
+        # Construir URL del QR
+        url_qr = f"http://{ip_actual}:8000/qr-login/{nuevo_token.token}/"
+
+        return JsonResponse({
+            'success': True,
+            'message': f'Código QR generado para {empleado.get_full_name() or empleado.username}',
+            'qr_url': url_qr,
+            'token': str(nuevo_token.token),
+            'empleado': {
+                'id': empleado.id,
+                'nombre': empleado.get_full_name() or empleado.username,
+                'rol': empleado.get_rol_display()
+            }
+        })
+
+    except Exception as e:
+        print(f"[ERROR] Error en generar_qr_empleado: {str(e)}")
+        import traceback
+        traceback.print_exc()
+
+        return JsonResponse({
+            'success': False,
+            'error': 'Error interno del servidor'
+        }, status=500)
+
+
+def qr_login(request, token):
+    """
+    Login por QR usando el nuevo sistema de tokens regenerables
+    Al hacer login, invalida el token usado y genera uno nuevo
+    """
+    try:
+        from django.utils import timezone
+
+        print("=" * 80)
+        print(f"[QR-LOGIN] Token recibido: {token}")
+
+        # Buscar token activo
+        try:
+            qr_token = QRToken.objects.get(token=token, activo=True)
+            empleado = qr_token.usuario
+            print(f"[QR-LOGIN] ✓ Token válido para: {empleado.username} ({empleado.rol})")
+        except QRToken.DoesNotExist:
+            print(f"[QR-LOGIN] ✗ Token inválido o expirado")
+            messages.error(request, 'Código QR inválido o expirado')
+            return redirect('/login/')
+
+        # Verificar que el empleado esté activo
+        if not empleado.activo or not empleado.is_active:
+            print(f"[QR-LOGIN] ✗ Empleado inactivo")
+            messages.error(request, 'Tu cuenta está desactivada')
+            return redirect('/login/')
+
+        # ✅ Marcar token como usado
+        qr_token.marcar_usado()
+        print(f"[QR-LOGIN] ✓ Token marcado como usado")
+
+        # ✅ Autenticar y crear sesión
+        login(request, empleado, backend='django.contrib.auth.backends.ModelBackend')
+        print(f"[QR-LOGIN] ✓ Login exitoso para: {empleado.username}")
+
+        # ✅ Generar nuevo token automáticamente (invalida el usado)
+        import socket
+        try:
+            hostname = socket.gethostname()
+            ip_actual = socket.gethostbyname(hostname)
+        except:
+            ip_actual = '127.0.0.1'
+
+        nuevo_token = QRToken.generar_token(empleado, ip_actual)
+        print(f"[QR-LOGIN] ✓ Nuevo token generado: {nuevo_token.token}")
+
+        # ✅ CORREGIDO: Redirigir según el rol del empleado
+        messages.success(request, f'Bienvenido {empleado.get_full_name() or empleado.username}')
+
+        # Determinar panel según rol
+        if empleado.rol == 'mesero':
+            panel_url = '/mesero/'
+        elif empleado.rol == 'cocinero':
+            panel_url = '/cocina/'
+        elif empleado.rol == 'cajero':
+            panel_url = '/caja/'
+        else:
+            panel_url = '/empleado/'  # Fallback por si hay otro rol
+
+        print(f"[QR-LOGIN] ✓ Redirigiendo a: {panel_url}")
+        return redirect(panel_url)
+
+    except Exception as e:
+        print(f"[QR-LOGIN] ERROR: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        messages.error(request, 'Error al procesar el código QR')
+        return redirect('/login/')
+
+
+@login_required
+def listar_empleados_qr(request):
+    """
+    Lista empleados para generar QR
+    SOLO accesible por cajeros
+    """
+    if request.user.rol != 'cajero':
+        messages.error(request, 'Acceso denegado')
+        return redirect('/caja/')
+
+    empleados = Usuario.objects.filter(
+        rol__in=['mesero', 'cocinero'],
+        activo=True
+    ).order_by('rol', 'first_name', 'last_name')
+
+    context = {
+        'empleados': empleados
+    }
+
+    return render(request, 'caja/generar_qr.html', context)

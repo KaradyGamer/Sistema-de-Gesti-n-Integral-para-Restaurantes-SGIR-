@@ -164,3 +164,101 @@ class Usuario(AbstractUser):
         verbose_name = 'Usuario'
         verbose_name_plural = 'Usuarios'
         ordering = ['first_name', 'last_name', 'username']
+
+
+class QRToken(models.Model):
+    """
+    Modelo para tokens QR regenerables
+    Permite invalidar tokens anteriores al generar nuevos
+    """
+    usuario = models.ForeignKey(
+        Usuario,
+        on_delete=models.CASCADE,
+        related_name='qr_tokens',
+        help_text='Usuario al que pertenece este token'
+    )
+
+    token = models.UUIDField(
+        default=uuid.uuid4,
+        unique=True,
+        editable=False,
+        help_text='Token único para autenticación vía QR'
+    )
+
+    ip_generacion = models.GenericIPAddressField(
+        null=True,
+        blank=True,
+        help_text='IP del servidor cuando se generó el QR'
+    )
+
+    activo = models.BooleanField(
+        default=True,
+        help_text='Si está activo, el token puede usarse para login'
+    )
+
+    usado = models.BooleanField(
+        default=False,
+        help_text='Si ya se usó para hacer login'
+    )
+
+    fecha_creacion = models.DateTimeField(
+        auto_now_add=True,
+        help_text='Fecha y hora de creación del token'
+    )
+
+    fecha_uso = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text='Fecha y hora en que se usó el token'
+    )
+
+    fecha_invalidacion = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text='Fecha y hora en que se invalidó el token'
+    )
+
+    class Meta:
+        verbose_name = 'Token QR'
+        verbose_name_plural = 'Tokens QR'
+        ordering = ['-fecha_creacion']
+
+    def __str__(self):
+        estado = 'Activo' if self.activo else 'Inactivo'
+        return f"QR Token - {self.usuario.username} ({estado})"
+
+    def invalidar(self):
+        """Invalida este token"""
+        from django.utils import timezone
+        self.activo = False
+        self.fecha_invalidacion = timezone.now()
+        self.save()
+
+    def marcar_usado(self):
+        """Marca el token como usado"""
+        from django.utils import timezone
+        self.usado = True
+        self.fecha_uso = timezone.now()
+        self.save()
+
+    @classmethod
+    def generar_token(cls, usuario, ip_actual):
+        """
+        Genera un nuevo token para el usuario
+        Invalida todos los tokens anteriores
+        """
+        from django.utils import timezone
+
+        # Invalidar todos los tokens anteriores del usuario
+        cls.objects.filter(usuario=usuario, activo=True).update(
+            activo=False,
+            fecha_invalidacion=timezone.now()
+        )
+
+        # Crear nuevo token
+        nuevo_token = cls.objects.create(
+            usuario=usuario,
+            ip_generacion=ip_actual
+        )
+
+        return nuevo_token

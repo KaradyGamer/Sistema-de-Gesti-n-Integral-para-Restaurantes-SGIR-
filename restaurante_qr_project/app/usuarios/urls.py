@@ -8,7 +8,10 @@ from .views import (
     login_admin,
     auth_qr,
     ver_todos_qr,
-    ver_qr_simple
+    ver_qr_simple,
+    generar_qr_empleado,
+    qr_login,
+    listar_empleados_qr
 )
 from .views_empleado import panel_empleado
 
@@ -27,7 +30,12 @@ urlpatterns = [
     # 🆕 NUEVO SISTEMA DE LOGIN
     path('login-pin/', login_pin, name='login_pin'),  # Login con PIN
     path('login-admin/', login_admin, name='login_admin'),  # Login tradicional
-    path('auth-qr/<uuid:token>/', auth_qr, name='auth_qr'),  # Autenticación por QR
+    path('auth-qr/<uuid:token>/', auth_qr, name='auth_qr'),  # Autenticación por QR (antiguo)
+
+    # ✅ NUEVO: Sistema QR Regenerable
+    path('qr-login/<uuid:token>/', qr_login, name='qr_login'),  # Login por QR con auto-invalidación
+    path('generar-qr/', generar_qr_empleado, name='generar_qr'),  # API para generar QR (solo cajero)
+    path('lista-qr/', listar_empleados_qr, name='lista_qr'),  # Lista de empleados para generar QR
 
     # ✅ Logout
     path('logout/', session_logout, name='session_logout'),

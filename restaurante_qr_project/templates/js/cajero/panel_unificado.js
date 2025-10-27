@@ -3,6 +3,9 @@
  * Sistema de navegación SPA con sidebar
  */
 
+// Esperar a que el DOM esté completamente cargado
+document.addEventListener('DOMContentLoaded', function() {
+
 // ============================================
 // VARIABLES GLOBALES
 // ============================================
@@ -487,6 +490,7 @@ async function confirmarPago(id, totalPedido) {
             cerrarModal();
             cargarPedidos(); // Recargar lista
             cargarDashboard(); // Actualizar dashboard
+            cargarMapaMesas(); // ✅ NUEVO: Actualizar mapa de mesas en tiempo real
         } else {
             mostrarNotificacion('❌ Error: ' + (data.error || 'Error al procesar pago'), 'error');
         }
@@ -992,29 +996,16 @@ async function cargarMapaMesas() {
                 `;
             }
 
-            // Botones de acción
-            let botonesHTML = '';
-            if (mesa.pedidos_activos > 0) {
-                botonesHTML = `
-                    <div class="mesa-acciones">
-                        <button class="btn-mesa btn-pagar" onclick="abrirModalPago(${mesa.id}, false)" title="Pagar todo">
-                            <i class='bx bx-money'></i>
-                        </button>
-                        <button class="btn-mesa btn-separado" onclick="abrirModalPago(${mesa.id}, true)" title="Pago separado">
-                            <i class='bx bx-cut'></i>
-                        </button>
-                        <button class="btn-mesa btn-modificar" onclick="modificarPedidoMesa(${mesa.id})" title="Modificar">
-                            <i class='bx bx-edit'></i>
-                        </button>
-                        <button class="btn-mesa btn-cambiar" onclick="abrirModalCambiarMesa(${mesa.id})" title="Cambiar mesa">
-                            <i class='bx bx-transfer'></i>
-                        </button>
-                    </div>
-                `;
-            }
+            // Determinar si la mesa es clickeable
+            const esClickeable = mesa.pedidos_activos > 0;
+            const cursorStyle = esClickeable ? 'cursor: pointer;' : '';
+            const onclickAttr = esClickeable ? `onclick="expandirMesa(${mesa.id})"` : '';
 
             html += `
-                <div class="mesa-card ${mesa.color}" data-mesa-id="${mesa.id}">
+                <div class="mesa-card ${mesa.color} ${esClickeable ? 'mesa-clickeable' : ''}"
+                     data-mesa-id="${mesa.id}"
+                     ${onclickAttr}
+                     style="${cursorStyle}">
                     <div class="mesa-numero">Mesa ${mesa.numero}</div>
                     <div class="mesa-info">
                         <span class="mesa-capacidad">
@@ -1028,7 +1019,6 @@ async function cargarMapaMesas() {
                             <span class="mesa-total">Bs/ ${parseFloat(mesa.total_pendiente).toFixed(2)}</span>
                         </div>
                         ${productosHTML}
-                        ${botonesHTML}
                     ` : ''}
                 </div>
             `;
@@ -1045,6 +1035,461 @@ async function cargarMapaMesas() {
 
 
 // ============================================
+// PANEL LATERAL DE MESA
+// ============================================
+let pedidoActualData = null;
+let productosDisponibles = [];
+
+async function expandirMesa(mesaId) {
+    try {
+        // Obtener pedidos pendientes
+        const response = await fetch(`/api/caja/pedidos/pendientes/`, {
+            headers: { 'X-CSRFToken': getCookie('csrftoken') }
+        });
+
+        if (!response.ok) throw new Error('Error al cargar pedidos');
+
+        const data = await response.json();
+
+        // Buscar pedido de esta mesa
+        const pedidoMesa = data.pedidos.find(p => p.mesa_id === mesaId);
+
+        if (!pedidoMesa) {
+            mostrarNotificacion('No hay pedidos activos en esta mesa', 'warning');
+            return;
+        }
+
+        // Obtener detalle completo del pedido (incluye detalle_id)
+        const detalleResponse = await fetch(`/api/caja/pedidos/${pedidoMesa.id}/`, {
+            headers: { 'X-CSRFToken': getCookie('csrftoken') }
+        });
+        const detalleData = await detalleResponse.json();
+
+        // Obtener productos disponibles
+        const productosResponse = await fetch(`/api/productos/`, {
+            headers: { 'X-CSRFToken': getCookie('csrftoken') }
+        });
+        const productosData = await productosResponse.json();
+        productosDisponibles = productosData.productos || [];
+
+        // Guardar datos del pedido con detalle_id
+        pedidoActualData = {
+            id: pedidoMesa.id,
+            mesaId: mesaId,
+            mesaNumero: pedidoMesa.mesa,
+            productos: detalleData.pedido.productos.map(p => ({
+                detalle_id: p.id,
+                producto_id: p.producto_id,
+                nombre: p.nombre,
+                cantidad: p.cantidad,
+                precio_unitario: p.precio_unitario,
+                subtotal: p.subtotal
+            })),
+            total: pedidoMesa.total_final
+        };
+
+        abrirPanelLateralMesa();
+
+    } catch (error) {
+        console.error('Error abriendo panel de mesa:', error);
+        mostrarNotificacion('Error al cargar datos de mesa', 'error');
+    }
+}
+
+function abrirPanelLateralMesa() {
+    // Cerrar panel anterior si existe
+    const panelAnterior = document.getElementById('panelLateralMesa');
+    if (panelAnterior) {
+        panelAnterior.remove();
+    }
+
+    // Agrupar productos disponibles por categoría
+    const productosPorCategoria = {};
+    productosDisponibles.forEach(p => {
+        const categoria = p.categoria_nombre || 'Sin Categoría';
+        if (!productosPorCategoria[categoria]) {
+            productosPorCategoria[categoria] = [];
+        }
+        productosPorCategoria[categoria].push(p);
+    });
+
+    const total = calcularTotalPedidoActual();
+
+    const panelHTML = `
+        <div class="panel-lateral-overlay" id="panelLateralOverlay" onclick="cerrarPanelLateralMesa()"></div>
+        <div class="panel-lateral-mesa" id="panelLateralMesa">
+            <!-- Header -->
+            <div class="panel-lateral-header">
+                <div>
+                    <h2>Detalle del Pedido</h2>
+                    <p class="panel-subtitle">Modificar Pedido #${pedidoActualData.id}</p>
+                </div>
+                <button type="button" class="panel-close-btn" onclick="cerrarPanelLateralMesa()">
+                    <i class='bx bx-x'></i>
+                </button>
+            </div>
+
+            <!-- Body con scroll -->
+            <div class="panel-lateral-body">
+                <!-- Productos en el Pedido -->
+                <div class="panel-seccion">
+                    <h3 class="panel-seccion-titulo">Productos en el Pedido</h3>
+                    <div id="listaProductosPedido" class="productos-pedido-lista">
+                        ${renderizarProductosPedido()}
+                    </div>
+                </div>
+
+                <!-- Agregar Producto -->
+                <div class="panel-seccion">
+                    <h3 class="panel-seccion-titulo">
+                        <i class='bx bx-plus-circle'></i> Agregar Producto
+                    </h3>
+
+                    <!-- Buscador -->
+                    <div class="buscador-producto">
+                        <i class='bx bx-search'></i>
+                        <input
+                            type="text"
+                            id="buscadorProducto"
+                            placeholder="Buscar producto..."
+                            onkeyup="filtrarProductos(this.value)"
+                        >
+                    </div>
+
+                    <!-- Categorías y productos -->
+                    <div id="listaCategorias" class="categorias-lista">
+                        ${Object.entries(productosPorCategoria).map(([categoria, productos]) => `
+                            <div class="categoria-grupo">
+                                <div class="categoria-header" onclick="toggleCategoria('${categoria.replace(/\s/g, '_')}')">
+                                    <i class='bx bx-folder'></i>
+                                    <span>${categoria}</span>
+                                    <i class='bx bx-chevron-down categoria-arrow'></i>
+                                </div>
+                                <div class="categoria-productos" id="cat_${categoria.replace(/\s/g, '_')}">
+                                    ${productos.map(p => `
+                                        <div class="producto-item-seleccionable" data-nombre="${p.nombre.toLowerCase()}">
+                                            <div class="producto-item-info">
+                                                <span class="producto-nombre">${p.nombre}</span>
+                                                <span class="producto-precio">Bs/ ${parseFloat(p.precio).toFixed(2)}</span>
+                                            </div>
+                                            <button type="button" class="btn-agregar-producto"
+                                                    data-producto-id="${p.id}"
+                                                    data-producto-nombre="${p.nombre}"
+                                                    data-producto-precio="${p.precio}"
+                                                    onclick="agregarProductoAlPedido(this.dataset.productoId, this.dataset.productoNombre, this.dataset.productoPrecio)">
+                                                <i class='bx bx-plus'></i>
+                                            </button>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Footer fijo con total y botones -->
+            <div class="panel-lateral-footer">
+                <div class="panel-total">
+                    <span class="panel-total-label">Total:</span>
+                    <span class="panel-total-valor" id="totalPedidoActual">Bs/ ${total.toFixed(2)}</span>
+                </div>
+
+                <div class="panel-botones-grid">
+                    <button type="button" class="btn-panel btn-pagar" onclick="cerrarPanelLateralMesa(); abrirModalPago(${pedidoActualData.mesaId}, false);">
+                        <i class='bx bx-money'></i>
+                        Pagar Todo
+                    </button>
+                    <button type="button" class="btn-panel btn-pago-separado" onclick="cerrarPanelLateralMesa(); abrirModalPago(${pedidoActualData.mesaId}, true);">
+                        <i class='bx bx-cut'></i>
+                        Pago Separado
+                    </button>
+                    <button type="button" class="btn-panel btn-cambiar-mesa" onclick="cerrarPanelLateralMesa(); abrirModalCambiarMesa(${pedidoActualData.mesaId});">
+                        <i class='bx bx-transfer'></i>
+                        Cambiar Mesa
+                    </button>
+                </div>
+
+                <button type="button" class="btn-panel btn-guardar-principal" onclick="guardarCambiosPedido()">
+                    <i class='bx bx-save'></i>
+                    Guardar Cambios
+                </button>
+            </div>
+        </div>
+    `;
+
+    document.body.insertAdjacentHTML('beforeend', panelHTML);
+
+    // Animación de entrada
+    setTimeout(() => {
+        document.getElementById('panelLateralMesa').classList.add('abierto');
+        document.getElementById('panelLateralOverlay').classList.add('visible');
+    }, 10);
+}
+
+function renderizarProductosPedido() {
+    if (!pedidoActualData.productos || pedidoActualData.productos.length === 0) {
+        return '<div class="empty-productos">No hay productos en este pedido</div>';
+    }
+
+    return pedidoActualData.productos.map((producto, index) => `
+        <div class="producto-pedido-item">
+            <div class="producto-pedido-info">
+                <span class="producto-pedido-nombre">${producto.nombre}</span>
+                <span class="producto-pedido-precio">Bs/ ${parseFloat(producto.precio_unitario).toFixed(2)} c/u</span>
+            </div>
+            <div class="producto-pedido-controles">
+                <button type="button" class="btn-cantidad btn-menos" onclick="modificarCantidadPedido(${index}, -1)">
+                    <i class='bx bx-minus'></i>
+                </button>
+                <span class="cantidad-display">${producto.cantidad}</span>
+                <button type="button" class="btn-cantidad btn-mas" onclick="modificarCantidadPedido(${index}, 1)">
+                    <i class='bx bx-plus'></i>
+                </button>
+                <button type="button" class="btn-eliminar-producto" onclick="eliminarProductoDePedido(${index})" title="Eliminar">
+                    <i class='bx bx-trash'></i>
+                </button>
+            </div>
+            <div class="producto-pedido-subtotal">
+                Bs/ ${(parseFloat(producto.precio_unitario) * producto.cantidad).toFixed(2)}
+            </div>
+        </div>
+    `).join('');
+}
+
+function toggleCategoria(categoriaId) {
+    const categoriaElement = document.getElementById(`cat_${categoriaId}`);
+    if (categoriaElement) {
+        categoriaElement.classList.toggle('expandida');
+        const header = categoriaElement.previousElementSibling;
+        if (header) {
+            header.classList.toggle('abierta');
+        }
+    }
+}
+
+function filtrarProductos(termino) {
+    const terminoLower = termino.toLowerCase().trim();
+    const productos = document.querySelectorAll('.producto-item-seleccionable');
+
+    productos.forEach(producto => {
+        const nombre = producto.getAttribute('data-nombre');
+        if (nombre.includes(terminoLower)) {
+            producto.style.display = 'flex';
+        } else {
+            producto.style.display = 'none';
+        }
+    });
+
+    // Si hay búsqueda, expandir todas las categorías
+    if (terminoLower.length > 0) {
+        document.querySelectorAll('.categoria-productos').forEach(cat => {
+            cat.classList.add('expandida');
+        });
+    }
+}
+
+async function modificarCantidadPedido(index, cambio) {
+    const producto = pedidoActualData.productos[index];
+    const nuevaCantidad = producto.cantidad + cambio;
+
+    if (nuevaCantidad < 1) {
+        mostrarNotificacion('La cantidad mínima es 1. Usa el botón eliminar para quitar el producto.', 'warning');
+        return;
+    }
+
+    // Actualizar localmente primero para UI responsive
+    const cantidadAnterior = producto.cantidad;
+    producto.cantidad = nuevaCantidad;
+    actualizarVistaPanelLateral();
+
+    // Guardar en backend (si tiene detalle_id del backend)
+    if (producto.detalle_id) {
+        try {
+            const response = await fetch(`/api/caja/pedidos/detalle/${producto.detalle_id}/cantidad/`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify({ cantidad: nuevaCantidad })
+            });
+
+            const data = await response.json();
+            if (!data.success) {
+                // Revertir si falla
+                producto.cantidad = cantidadAnterior;
+                actualizarVistaPanelLateral();
+                mostrarNotificacion(data.error || 'Error al modificar cantidad', 'error');
+            }
+        } catch (error) {
+            producto.cantidad = cantidadAnterior;
+            actualizarVistaPanelLateral();
+            mostrarNotificacion('Error al guardar cambio', 'error');
+        }
+    }
+}
+
+async function eliminarProductoDePedido(index) {
+    if (pedidoActualData.productos.length === 1) {
+        mostrarNotificacion('No puedes eliminar el único producto del pedido.', 'warning');
+        return;
+    }
+
+    const producto = pedidoActualData.productos[index];
+
+    if (!confirm(`¿Eliminar ${producto.nombre} del pedido?`)) {
+        return;
+    }
+
+    // Guardar referencia para posible restauración
+    const productoEliminado = { ...producto };
+    const indexEliminado = index;
+
+    // Eliminar localmente primero para UI responsive
+    pedidoActualData.productos.splice(index, 1);
+    actualizarVistaPanelLateral();
+    mostrarNotificacion('Producto eliminado', 'success');
+
+    // Eliminar en backend (si tiene detalle_id)
+    if (producto.detalle_id) {
+        try {
+            const response = await fetch(`/api/caja/pedidos/detalle/${producto.detalle_id}/eliminar/`, {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify({ motivo: 'Eliminado desde panel de caja' })
+            });
+
+            const data = await response.json();
+            if (!data.success) {
+                // Restaurar si falla
+                pedidoActualData.productos.splice(indexEliminado, 0, productoEliminado);
+                actualizarVistaPanelLateral();
+                mostrarNotificacion(data.error || 'Error al eliminar producto', 'error');
+            }
+        } catch (error) {
+            pedidoActualData.productos.splice(indexEliminado, 0, productoEliminado);
+            actualizarVistaPanelLateral();
+            mostrarNotificacion('Error al eliminar producto', 'error');
+        }
+    }
+}
+
+async function agregarProductoAlPedido(productoId, nombre, precio) {
+    // Verificar si ya existe
+    const productoExistente = pedidoActualData.productos.find(p => p.producto_id === productoId);
+
+    if (productoExistente) {
+        // Si existe, aumentar cantidad usando la función de modificar
+        const index = pedidoActualData.productos.indexOf(productoExistente);
+        await modificarCantidadPedido(index, 1);
+        mostrarNotificacion(`Cantidad de ${nombre} aumentada`, 'success');
+        return;
+    }
+
+    // Agregar localmente primero
+    const nuevoProducto = {
+        nombre: nombre,
+        cantidad: 1,
+        precio_unitario: parseFloat(precio),
+        subtotal: parseFloat(precio),
+        producto_id: productoId
+    };
+
+    pedidoActualData.productos.push(nuevoProducto);
+    actualizarVistaPanelLateral();
+    mostrarNotificacion(`${nombre} agregado`, 'success');
+
+    // Guardar en backend
+    try {
+        const response = await fetch('/api/caja/pedidos/agregar-producto/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify({
+                pedido_id: pedidoActualData.id,
+                producto_id: productoId,
+                cantidad: 1
+            })
+        });
+
+        const data = await response.json();
+        if (data.success) {
+            // Guardar el detalle_id para futuras modificaciones
+            nuevoProducto.detalle_id = data.detalle.id;
+        } else {
+            // Eliminar si falla
+            const index = pedidoActualData.productos.indexOf(nuevoProducto);
+            pedidoActualData.productos.splice(index, 1);
+            actualizarVistaPanelLateral();
+            mostrarNotificacion(data.error || 'Error al agregar producto', 'error');
+        }
+    } catch (error) {
+        const index = pedidoActualData.productos.indexOf(nuevoProducto);
+        pedidoActualData.productos.splice(index, 1);
+        actualizarVistaPanelLateral();
+        mostrarNotificacion('Error al agregar producto', 'error');
+    }
+}
+
+function calcularTotalPedidoActual() {
+    if (!pedidoActualData || !pedidoActualData.productos) return 0;
+
+    return pedidoActualData.productos.reduce((total, producto) => {
+        return total + (parseFloat(producto.precio_unitario) * producto.cantidad);
+    }, 0);
+}
+
+function actualizarVistaPanelLateral() {
+    const listaContainer = document.getElementById('listaProductosPedido');
+    const totalContainer = document.getElementById('totalPedidoActual');
+
+    if (listaContainer) {
+        listaContainer.innerHTML = renderizarProductosPedido();
+    }
+
+    if (totalContainer) {
+        const total = calcularTotalPedidoActual();
+        totalContainer.textContent = `Bs/ ${total.toFixed(2)}`;
+    }
+}
+
+async function guardarCambiosPedido() {
+    try {
+        mostrarNotificacion('Cambios aplicados correctamente', 'success');
+        cerrarPanelLateralMesa();
+        cargarMapaMesas();
+    } catch (error) {
+        console.error('Error guardando cambios:', error);
+        mostrarNotificacion('Error al guardar cambios', 'error');
+    }
+}
+
+function cerrarPanelLateralMesa() {
+    const panel = document.getElementById('panelLateralMesa');
+    const overlay = document.getElementById('panelLateralOverlay');
+
+    if (panel) {
+        panel.classList.remove('abierto');
+        setTimeout(() => panel.remove(), 300);
+    }
+
+    if (overlay) {
+        overlay.classList.remove('visible');
+        setTimeout(() => overlay.remove(), 300);
+    }
+
+    pedidoActualData = null;
+}
+
+
+
+// ============================================
 // CARGAR HISTORIAL
 // ============================================
 async function cargarHistorial() {
@@ -1052,16 +1497,14 @@ async function cargarHistorial() {
     container.innerHTML = '<div class="loading">Cargando historial...</div>';
 
     try {
-        const response = await fetch('/api/caja/pedidos/pendientes/', {
+        const response = await fetch('/api/caja/pedidos/pagados/', {
             headers: { 'X-CSRFToken': getCookie('csrftoken') }
         });
 
         if (!response.ok) throw new Error('Error al cargar historial');
 
         const data = await response.json();
-
-        // Filtrar solo pedidos pagados
-        const pedidosPagados = (data.pedidos || []).filter(p => p.estado_pago === 'pagado');
+        const pedidosPagados = data.pedidos || [];
 
         if (pedidosPagados.length === 0) {
             container.innerHTML = `
@@ -1084,7 +1527,7 @@ async function cargarHistorial() {
         `;
 
         pedidosPagados.forEach(pedido => {
-            const fecha = new Date(pedido.fecha);
+            const fecha = new Date(pedido.fecha_pago);
             const fechaFormateada = fecha.toLocaleDateString('es-BO', {
                 day: '2-digit',
                 month: '2-digit',
@@ -1103,16 +1546,17 @@ async function cargarHistorial() {
                     <div class="historial-info">
                         <div class="historial-titulo">
                             <strong>Pedido #${pedido.id}</strong>
-                            <span class="historial-mesa">Mesa ${pedido.mesa_numero}</span>
+                            <span class="historial-mesa">Mesa ${pedido.mesa}</span>
                         </div>
                         <div class="historial-detalles">
                             <span><i class='bx bx-calendar'></i> ${fechaFormateada}</span>
                             <span><i class='bx bx-time'></i> ${horaFormateada}</span>
-                            <span><i class='bx bx-user'></i> ${pedido.mesero || 'N/A'}</span>
+                            <span><i class='bx bx-credit-card'></i> ${pedido.forma_pago || 'N/A'}</span>
+                            <span><i class='bx bx-user'></i> ${pedido.cajero || 'N/A'}</span>
                         </div>
                     </div>
                     <div class="historial-total">
-                        Bs/ ${parseFloat(pedido.total_final || pedido.total).toFixed(2)}
+                        Bs/ ${parseFloat(pedido.total_final).toFixed(2)}
                     </div>
                 </div>
             `;
@@ -1202,17 +1646,19 @@ async function cargarPersonal() {
                                         <p class="empleado-username">@${emp.username}</p>
                                     </div>
                                 </div>
-                                <div class="empleado-qr">
-                                    ${emp.qr_url ? `
-                                        <img src="${emp.qr_url}" alt="QR ${emp.username}" class="qr-image">
-                                        <p class="qr-instruccion">Escanea para iniciar sesion</p>
-                                    ` : `
-                                        <div class="qr-placeholder">
-                                            <i class='bx bx-qr' style="font-size: 48px; color: #ccc;"></i>
-                                            <p>QR no disponible</p>
-                                        </div>
-                                    `}
-                                </div>
+                                ${rol !== 'cajero' ? `
+                                    <div class="empleado-qr-action">
+                                        <button class="btn-generar-qr" onclick="generarQREmpleado(${emp.id}, '${emp.nombre_completo}')">
+                                            <i class='bx bx-qr-scan'></i>
+                                            Generar QR
+                                        </button>
+                                        <p class="qr-nota">Click para generar c\u00f3digo QR</p>
+                                    </div>
+                                ` : `
+                                    <div class="empleado-info-extra">
+                                        <p class="empleado-rol-desc">Acceso por PIN</p>
+                                    </div>
+                                `}
                             </div>
                         `).join('')}
                     </div>
@@ -1236,8 +1682,469 @@ async function cargarPersonal() {
     }
 }
 
-function cargarJornada() {
-    document.getElementById('jornadaContainer').innerHTML = '<p>📅 Jornada laboral próximamente</p>';
+// ✅ NUEVO: Generar QR para empleado
+async function generarQREmpleado(empleadoId, nombreEmpleado) {
+    try {
+        const response = await fetch('/usuarios/generar-qr/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify({
+                empleado_id: empleadoId
+            })
+        });
+
+        const data = await response.json();
+
+        if (!data.success) {
+            mostrarNotificacion(data.error || 'Error al generar QR', 'error');
+            return;
+        }
+
+        // Mostrar QR en un modal
+        mostrarModalQR(data.qr_url, nombreEmpleado, data.empleado.rol);
+        mostrarNotificacion(data.message, 'success');
+
+    } catch (error) {
+        console.error('[ERROR] Error al generar QR:', error);
+        mostrarNotificacion('Error al generar código QR', 'error');
+    }
+}
+
+function mostrarModalQR(qrUrl, nombreEmpleado, rol) {
+    const modalBody = document.getElementById('modalBody');
+
+    modalBody.innerHTML = `
+        <div class="qr-modal-content">
+            <div class="qr-modal-header">
+                <i class='bx bx-qr-scan' style="font-size: 48px; color: var(--primary-color);"></i>
+                <h2>Código QR Generado</h2>
+                <p class="qr-modal-subtitle">${nombreEmpleado} - ${rol}</p>
+            </div>
+
+            <div class="qr-modal-body">
+                <div class="qr-container-modal" id="qrCodeContainer"></div>
+                <div class="qr-instrucciones">
+                    <div class="qr-instruccion-item">
+                        <i class='bx bx-check-circle'></i>
+                        <span>El código QR ha sido generado exitosamente</span>
+                    </div>
+                    <div class="qr-instruccion-item">
+                        <i class='bx bx-mobile'></i>
+                        <span>Escanea con tu dispositivo móvil para iniciar sesión</span>
+                    </div>
+                    <div class="qr-instruccion-item">
+                        <i class='bx bx-refresh'></i>
+                        <span>Al escanear, este QR se invalidará y se generará uno nuevo</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="qr-modal-footer">
+                <button class="btn btn-secondary" onclick="cerrarModal()">
+                    <i class='bx bx-x'></i>
+                    Cerrar
+                </button>
+            </div>
+        </div>
+    `;
+
+    // Mostrar modal primero
+    const modalElement = document.getElementById('modalDetallePedido');
+    if (modalElement) {
+        modalElement.style.display = 'flex';
+    }
+
+    // Generar QR después de que el modal esté visible
+    setTimeout(() => {
+        const qrContainer = document.getElementById('qrCodeContainer');
+        if (qrContainer) {
+            new QRCode(qrContainer, {
+                text: qrUrl,
+                width: 256,
+                height: 256,
+                colorDark: "#000000",
+                colorLight: "#ffffff",
+                correctLevel: QRCode.CorrectLevel.H
+            });
+        }
+    }, 100);
+}
+
+async function cargarJornada() {
+    const container = document.getElementById('jornadaContainer');
+    container.innerHTML = '<div class="loading">Cargando jornada...</div>';
+
+    try {
+        const response = await fetch('/api/caja/jornada/', {
+            headers: { 'X-CSRFToken': getCookie('csrftoken') }
+        });
+
+        if (!response.ok) throw new Error('Error al cargar jornada');
+
+        const data = await response.json();
+
+        if (data.hay_jornada_activa) {
+            // Hay jornada activa - mostrar información y botón de finalizar
+            container.innerHTML = `
+                <div class="jornada-activa">
+                    <div class="jornada-header">
+                        <div class="jornada-status activo">
+                            <i class='bx bx-time-five'></i>
+                            <span>JORNADA ACTIVA</span>
+                        </div>
+                    </div>
+
+                    <div class="jornada-info-grid">
+                        <div class="jornada-info-item">
+                            <div class="jornada-icon calendar">
+                                <i class='bx bx-calendar'></i>
+                            </div>
+                            <div class="jornada-info-content">
+                                <label>Fecha</label>
+                                <span>${formatearFecha(data.jornada.fecha)}</span>
+                            </div>
+                        </div>
+
+                        <div class="jornada-info-item">
+                            <div class="jornada-icon time">
+                                <i class='bx bx-time'></i>
+                            </div>
+                            <div class="jornada-info-content">
+                                <label>Hora de Inicio</label>
+                                <span>${data.jornada.hora_inicio}</span>
+                            </div>
+                        </div>
+
+                        <div class="jornada-info-item">
+                            <div class="jornada-icon timer">
+                                <i class='bx bx-timer'></i>
+                            </div>
+                            <div class="jornada-info-content">
+                                <label>Duracion</label>
+                                <span>${data.jornada.duracion}</span>
+                            </div>
+                        </div>
+
+                        <div class="jornada-info-item">
+                            <div class="jornada-icon user">
+                                <i class='bx bx-user'></i>
+                            </div>
+                            <div class="jornada-info-content">
+                                <label>Iniciado por</label>
+                                <span>${data.jornada.cajero}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    ${data.jornada.observaciones_apertura ? `
+                        <div class="jornada-observaciones">
+                            <label><i class='bx bx-note'></i> Observaciones de Apertura:</label>
+                            <p>${data.jornada.observaciones_apertura}</p>
+                        </div>
+                    ` : ''}
+
+                    <div class="jornada-acciones">
+                        <button class="btn btn-danger btn-lg" onclick="abrirModalFinalizarJornada()">
+                            <i class='bx bx-stop-circle'></i>
+                            Finalizar Jornada
+                        </button>
+                    </div>
+                </div>
+            `;
+        } else {
+            // No hay jornada activa - mostrar botón de iniciar
+            container.innerHTML = `
+                <div class="jornada-inactiva">
+                    <div class="jornada-empty-state">
+                        <i class='bx bx-calendar-x'></i>
+                        <h3>No hay jornada laboral activa</h3>
+                        <p>Inicia una nueva jornada para comenzar a trabajar</p>
+                    </div>
+
+                    <div class="jornada-acciones">
+                        <button class="btn btn-success btn-lg" onclick="abrirModalIniciarJornada()">
+                            <i class='bx bx-play-circle'></i>
+                            Iniciar Jornada
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+
+    } catch (error) {
+        console.error('Error cargando jornada:', error);
+        container.innerHTML = `
+            <div class="error-container">
+                <i class='bx bx-error-circle'></i>
+                <p style="color: var(--danger-color);">Error al cargar jornada</p>
+                <button class="btn btn-primary" onclick="cargarJornada()" style="margin-top: 20px;">
+                    <i class='bx bx-refresh'></i> Reintentar
+                </button>
+            </div>
+        `;
+    }
+}
+
+function formatearFecha(fechaStr) {
+    const fecha = new Date(fechaStr + 'T00:00:00');
+    const dias = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+    const meses = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+
+    return `${dias[fecha.getDay()]}, ${fecha.getDate()} de ${meses[fecha.getMonth()]} ${fecha.getFullYear()}`;
+}
+
+function abrirModalIniciarJornada() {
+    // Eliminar modal existente si hay
+    const modalExistente = document.getElementById('modalIniciarJornada');
+    if (modalExistente) {
+        modalExistente.remove();
+    }
+
+    const modalHTML = `
+        <div class="modal" id="modalIniciarJornada" style="display: flex;" onclick="cerrarModalJornada(event)">
+            <div class="modal-content" onclick="event.stopPropagation()">
+                <div class="modal-header">
+                    <h2><i class='bx bx-play-circle'></i> Iniciar Jornada Laboral</h2>
+                    <button class="modal-close" onclick="cerrarModalJornada()">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <p style="margin-bottom: 20px;">¿Estás seguro que deseas iniciar una nueva jornada laboral?</p>
+
+                    <div class="form-group">
+                        <label>Observaciones (opcional)</label>
+                        <textarea
+                            id="observacionesInicioJornada"
+                            class="form-control"
+                            rows="3"
+                            placeholder="Ej: Inicio de turno mañana..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" onclick="cerrarModalJornada()">
+                        <i class='bx bx-x'></i> Cancelar
+                    </button>
+                    <button class="btn btn-success" onclick="iniciarJornada()">
+                        <i class='bx bx-play-circle'></i> Iniciar Jornada
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+}
+
+function abrirModalFinalizarJornada() {
+    // Eliminar modal existente si hay
+    const modalExistente = document.getElementById('modalFinalizarJornada');
+    if (modalExistente) {
+        modalExistente.remove();
+    }
+
+    const modalHTML = `
+        <div class="modal" id="modalFinalizarJornada" style="display: flex;" onclick="cerrarModalJornada(event)">
+            <div class="modal-content" onclick="event.stopPropagation()">
+                <div class="modal-header">
+                    <h2><i class='bx bx-stop-circle'></i> Finalizar Jornada Laboral</h2>
+                    <button class="modal-close" onclick="cerrarModalJornada()">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="alerta-warning">
+                        <i class='bx bx-info-circle'></i>
+                        <p>Al finalizar la jornada, se verificará que no haya pedidos pendientes de pago.</p>
+                    </div>
+
+                    <div class="form-group" style="margin-top: 20px;">
+                        <label>Observaciones de Cierre (opcional)</label>
+                        <textarea
+                            id="observacionesCierreJornada"
+                            class="form-control"
+                            rows="3"
+                            placeholder="Ej: Sin novedades, todo en orden..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" onclick="cerrarModalJornada()">
+                        <i class='bx bx-x'></i> Cancelar
+                    </button>
+                    <button class="btn btn-danger" onclick="finalizarJornada()">
+                        <i class='bx bx-stop-circle'></i> Finalizar Jornada
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+}
+
+function cerrarModalJornada(event) {
+    if (event && event.target !== event.currentTarget) return;
+
+    const modales = document.querySelectorAll('#modalIniciarJornada, #modalFinalizarJornada');
+    modales.forEach(modal => modal.remove());
+}
+
+async function iniciarJornada() {
+    try {
+        const observaciones = document.getElementById('observacionesInicioJornada').value.trim();
+
+        const response = await fetch('/api/caja/jornada/iniciar/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify({ observaciones })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            mostrarNotificacion(data.message, 'success');
+            cerrarModalJornada();
+            cargarJornada();
+        } else {
+            mostrarNotificacion(data.error, 'error');
+        }
+
+    } catch (error) {
+        console.error('Error iniciando jornada:', error);
+        mostrarNotificacion('Error al iniciar jornada', 'error');
+    }
+}
+
+async function finalizarJornada() {
+    try {
+        const observaciones = document.getElementById('observacionesCierreJornada').value.trim();
+
+        const response = await fetch('/api/caja/jornada/finalizar/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify({ observaciones })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            mostrarNotificacion(data.message, 'success');
+            cerrarModalJornada();
+            cargarJornada();
+        } else {
+            mostrarNotificacion(data.error, 'error');
+        }
+
+    } catch (error) {
+        console.error('Error finalizando jornada:', error);
+        mostrarNotificacion('Error al finalizar jornada', 'error');
+    }
+}
+
+// ============================================
+// TURNO DE CAJA (CierreCaja)
+// ============================================
+
+function abrirModalTurno() {
+    // Eliminar modal existente si hay
+    const modalExistente = document.getElementById('modalAbrirTurno');
+    if (modalExistente) {
+        modalExistente.remove();
+    }
+
+    const modalHTML = `
+        <div class="modal" id="modalAbrirTurno" style="display: flex;" onclick="cerrarModalTurno(event)">
+            <div class="modal-content" onclick="event.stopPropagation()">
+                <div class="modal-header">
+                    <h2><i class='bx bx-store-alt'></i> Abrir Turno de Caja</h2>
+                    <button class="modal-close" onclick="cerrarModalTurno()">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <p style="margin-bottom: 20px;">Selecciona el turno y registra el efectivo inicial</p>
+
+                    <div class="form-group">
+                        <label>Tipo de Turno *</label>
+                        <select id="tipoTurno" class="form-control">
+                            <option value="manana">Mañana (06:00 - 14:00)</option>
+                            <option value="tarde">Tarde (14:00 - 22:00)</option>
+                            <option value="noche">Noche (22:00 - 06:00)</option>
+                            <option value="completo">Día Completo</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Efectivo Inicial (Bs/)</label>
+                        <input
+                            type="number"
+                            id="efectivoInicial"
+                            class="form-control"
+                            placeholder="0.00"
+                            step="0.01"
+                            min="0"
+                            value="0">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" onclick="cerrarModalTurno()">
+                        <i class='bx bx-x'></i> Cancelar
+                    </button>
+                    <button class="btn btn-success" onclick="confirmarAbrirTurno()">
+                        <i class='bx bx-check-circle'></i> Abrir Turno
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+}
+
+function cerrarModalTurno(event) {
+    if (event && event.target !== event.currentTarget) return;
+
+    const modal = document.getElementById('modalAbrirTurno');
+    if (modal) {
+        modal.remove();
+    }
+}
+
+async function confirmarAbrirTurno() {
+    try {
+        const tipoTurno = document.getElementById('tipoTurno').value;
+        const efectivoInicial = document.getElementById('efectivoInicial').value || '0';
+
+        const response = await fetch('/api/caja/abrir/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify({
+                turno: tipoTurno,
+                efectivo_inicial: parseFloat(efectivoInicial)
+            })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            mostrarNotificacion(data.message, 'success');
+            cerrarModalTurno();
+            // Recargar página para actualizar header
+            location.reload();
+        } else {
+            mostrarNotificacion(data.error, 'error');
+        }
+
+    } catch (error) {
+        console.error('Error abriendo turno:', error);
+        mostrarNotificacion('Error al abrir turno', 'error');
+    }
 }
 
 // Auto-actualización cada 30 segundos
@@ -1258,6 +2165,8 @@ console.log('✅ Panel Unificado de Caja cargado correctamente');
 // ============================================
 // TABLERO KANBAN - ESTADO DE PEDIDOS
 // ============================================
+let kanbanTimerInterval = null;
+
 async function cargarKanban() {
     try {
         const response = await fetch('/api/caja/pedidos/kanban/', {
@@ -1276,10 +2185,50 @@ async function cargarKanban() {
             renderizarColumnaKanban(estado, pedidos);
         });
 
+        // ✅ NUEVO: Iniciar actualización del temporizador cada segundo
+        iniciarTimerKanban();
+
     } catch (error) {
         console.error('[DEBUG] Error al cargar kanban:', error);
         mostrarNotificacion('Error al cargar estado de pedidos', 'error');
     }
+}
+
+// ✅ NUEVO: Función para actualizar temporizadores en tiempo real
+function iniciarTimerKanban() {
+    // Limpiar intervalo anterior si existe
+    if (kanbanTimerInterval) {
+        clearInterval(kanbanTimerInterval);
+    }
+
+    // Actualizar cada segundo
+    kanbanTimerInterval = setInterval(() => {
+        const tarjetas = document.querySelectorAll('.kanban-card[data-estado]:not([data-estado="entregado"])');
+
+        tarjetas.forEach(tarjeta => {
+            const tiempoTotal = parseInt(tarjeta.dataset.tiempoTotal || 0);
+            const nuevoTiempo = tiempoTotal + 1;
+
+            // Actualizar data attribute
+            tarjeta.dataset.tiempoTotal = nuevoTiempo;
+
+            // Calcular minutos y segundos
+            const minutos = Math.floor(nuevoTiempo / 60);
+            const segundos = nuevoTiempo % 60;
+
+            // Actualizar display
+            const timerElement = tarjeta.querySelector('.kanban-timer-valor');
+            if (timerElement) {
+                timerElement.textContent = `${minutos}:${segundos.toString().padStart(2, '0')}`;
+            }
+
+            // Agregar alerta si pasa 20 minutos
+            const timerContainer = tarjeta.querySelector('.kanban-timer');
+            if (timerContainer && minutos >= 20) {
+                timerContainer.classList.add('kanban-timer-alerta');
+            }
+        });
+    }, 1000);
 }
 
 function renderizarColumnaKanban(estado, pedidos) {
@@ -1343,27 +2292,26 @@ function crearTarjetaKanban(pedido, estado) {
         </div>
     `).join('');
 
-    // Botones de navegación
-    const puedeRetroceder = estado !== 'pedido';
+    // ✅ NUEVO: Calcular y formatear temporizador
+    const minutos = pedido.tiempo_minutos || 0;
+    const segundos = pedido.tiempo_segundos || 0;
+    const tiempoFormateado = `${minutos}:${segundos.toString().padStart(2, '0')}`;
+    const claseAlerta = pedido.alerta_20min ? 'kanban-timer-alerta' : '';
+
+    // ✅ NUEVO: Solo avanzar, nunca retroceder
     const puedeAvanzar = estado !== 'entregado';
 
-    const botonesHTML = `
+    const botonesHTML = puedeAvanzar ? `
         <div class="kanban-card-actions">
-            <button class="kanban-btn kanban-btn-prev"
-                    onclick="cambiarEstadoKanban(${pedido.id}, '${estado}', 'prev')"
-                    ${!puedeRetroceder ? 'disabled' : ''}>
-                <i class='bx bx-chevron-left'></i>
-            </button>
             <button class="kanban-btn kanban-btn-next"
-                    onclick="cambiarEstadoKanban(${pedido.id}, '${estado}', 'next')"
-                    ${!puedeAvanzar ? 'disabled' : ''}>
+                    onclick="cambiarEstadoKanban(${pedido.id}, '${estado}', 'next')">
                 <i class='bx bx-chevron-right'></i>
             </button>
         </div>
-    `;
+    ` : '';
 
     return `
-        <div class="kanban-card" data-pedido-id="${pedido.id}" data-estado="${estado}">
+        <div class="kanban-card" data-pedido-id="${pedido.id}" data-estado="${estado}" data-tiempo-total="${pedido.tiempo_total_segundos || 0}">
             <div class="kanban-card-header">
                 <span class="kanban-card-mesa">Mesa ${pedido.mesa || 'N/A'}</span>
                 <span class="kanban-card-total">Bs/ ${parseFloat(pedido.total).toFixed(2)}</span>
@@ -1376,9 +2324,9 @@ function crearTarjetaKanban(pedido, estado) {
                     <i class='bx bx-user'></i>
                     <span>${pedido.mesero || 'N/A'}</span>
                 </div>
-                <div class="kanban-hora">
-                    <i class='bx bx-time'></i>
-                    <span>${pedido.hora || ''}</span>
+                <div class="kanban-timer ${claseAlerta}" data-pedido-id="${pedido.id}">
+                    <i class='bx bx-timer'></i>
+                    <span class="kanban-timer-valor">${tiempoFormateado}</span>
                 </div>
             </div>
             ${botonesHTML}
@@ -1390,13 +2338,13 @@ async function cambiarEstadoKanban(pedidoId, estadoActual, direccion) {
     const estados = ['pedido', 'preparando', 'listo', 'entregado'];
     const indexActual = estados.indexOf(estadoActual);
 
-    let nuevoIndex;
+    // ✅ NUEVO: Solo permitir avanzar (next), nunca retroceder (prev)
     if (direccion === 'prev') {
-        nuevoIndex = Math.max(0, indexActual - 1);
-    } else {
-        nuevoIndex = Math.min(estados.length - 1, indexActual + 1);
+        mostrarNotificacion('No se puede retroceder el estado de un pedido', 'error');
+        return;
     }
 
+    const nuevoIndex = Math.min(estados.length - 1, indexActual + 1);
     const nuevoEstado = estados[nuevoIndex];
 
     if (nuevoEstado === estadoActual) return;
@@ -1427,22 +2375,315 @@ async function cambiarEstadoKanban(pedidoId, estadoActual, direccion) {
 // FUNCIONES DE MAPA DE MESAS
 // ============================================
 
-function abrirModalPago(mesaId, pagoSeparado) {
-    if (pagoSeparado) {
-        mostrarNotificacion('Función "Pago Separado" en desarrollo', 'info');
-        // TODO: Implementar modal de pago separado
-    } else {
-        mostrarNotificacion('Función "Pagar Todo" en desarrollo', 'info');
-        // TODO: Implementar pago completo
+async function abrirModalPago(mesaId, pagoSeparado) {
+    try {
+        // Obtener pedido pendiente de la mesa
+        const response = await fetch('/api/caja/pedidos/pendientes/', {
+            headers: { 'X-CSRFToken': getCookie('csrftoken') }
+        });
+
+        const data = await response.json();
+        if (!data.success) {
+            mostrarNotificacion('Error al cargar pedido', 'error');
+            return;
+        }
+
+        const pedido = data.pedidos.find(p => p.mesa_id === mesaId);
+        if (!pedido) {
+            mostrarNotificacion('No hay pedido pendiente en esta mesa', 'error');
+            return;
+        }
+
+        if (pagoSeparado) {
+            // Pago separado - mostrar productos para seleccionar
+            abrirModalPagoSeparado(pedido);
+        } else {
+            // Pago total - mostrar formulario de pago directo
+            document.getElementById('modalDetallePedido').style.display = 'flex';
+            await procesarPago(pedido.id, pedido.total_final);
+        }
+    } catch (error) {
+        console.error('Error al abrir modal de pago:', error);
+        mostrarNotificacion('Error al procesar pago', 'error');
     }
 }
 
-function modificarPedidoMesa(mesaId) {
-    mostrarNotificacion('Función "Modificar Pedido" en desarrollo', 'info');
-    // TODO: Implementar modificación de pedido
+async function abrirModalPagoSeparado(pedido) {
+    const modalBody = document.getElementById('modalBody');
+    modalBody.innerHTML = `
+        <div class="pago-separado-container">
+            <h3>Pago Separado - Pedido #${pedido.id} - Mesa ${pedido.mesa}</h3>
+            <p class="subtitle">Selecciona los productos y cantidad a pagar</p>
+
+            <div class="productos-separado-lista">
+                ${pedido.productos.map((producto, index) => `
+                    <div class="producto-separado-item">
+                        <div class="producto-info">
+                            <span class="producto-nombre">${producto.nombre}</span>
+                            <span class="producto-precio-unit">Bs/ ${producto.precio_unitario.toFixed(2)} c/u</span>
+                        </div>
+                        <div class="cantidad-selector">
+                            <button class="btn-cantidad" onclick="cambiarCantidadSeparado(${index}, -1, ${producto.cantidad}, ${producto.precio_unitario})">
+                                <i class='bx bx-minus'></i>
+                            </button>
+                            <input type="number"
+                                   id="cant_${index}"
+                                   class="cantidad-input"
+                                   value="0"
+                                   min="0"
+                                   max="${producto.cantidad}"
+                                   data-precio-unit="${producto.precio_unitario}"
+                                   data-max="${producto.cantidad}"
+                                   onchange="validarCantidadSeparado(${index}, ${producto.cantidad})"
+                                   readonly>
+                            <span class="cantidad-max">/ ${producto.cantidad}</span>
+                            <button class="btn-cantidad" onclick="cambiarCantidadSeparado(${index}, 1, ${producto.cantidad}, ${producto.precio_unitario})">
+                                <i class='bx bx-plus'></i>
+                            </button>
+                        </div>
+                        <div class="producto-subtotal">
+                            <span id="subtotal_${index}">Bs/ 0.00</span>
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
+
+            <div class="total-separado">
+                <h3>Total Seleccionado: <span id="totalSeparado">Bs/ 0.00</span></h3>
+            </div>
+
+            <div class="form-actions">
+                <button class="btn btn-success btn-lg" onclick="continuarPagoSeparado(${pedido.id})">
+                    <i class='bx bx-check'></i> Continuar al Pago
+                </button>
+                <button class="btn btn-secondary" onclick="cerrarModal()">
+                    <i class='bx bx-x'></i> Cancelar
+                </button>
+            </div>
+        </div>
+    `;
+
+    document.getElementById('modalDetallePedido').style.display = 'flex';
 }
 
-function abrirModalCambiarMesa(mesaId) {
-    mostrarNotificacion('Función "Cambiar Mesa" en desarrollo', 'info');
-    // TODO: Implementar cambio de mesa
+function cambiarCantidadSeparado(index, cambio, maxCantidad, precioUnitario) {
+    const input = document.getElementById(`cant_${index}`);
+    let cantidad = parseInt(input.value) || 0;
+
+    cantidad += cambio;
+
+    // Validar límites
+    if (cantidad < 0) cantidad = 0;
+    if (cantidad > maxCantidad) cantidad = maxCantidad;
+
+    input.value = cantidad;
+
+    // Actualizar subtotal del producto
+    const subtotal = cantidad * precioUnitario;
+    document.getElementById(`subtotal_${index}`).textContent = `Bs/ ${subtotal.toFixed(2)}`;
+
+    // Actualizar total general
+    actualizarTotalSeparado();
 }
+
+function validarCantidadSeparado(index, maxCantidad) {
+    const input = document.getElementById(`cant_${index}`);
+    let cantidad = parseInt(input.value) || 0;
+
+    if (cantidad < 0) cantidad = 0;
+    if (cantidad > maxCantidad) cantidad = maxCantidad;
+
+    input.value = cantidad;
+    actualizarTotalSeparado();
+}
+
+function actualizarTotalSeparado() {
+    const inputs = document.querySelectorAll('.cantidad-input');
+    let total = 0;
+
+    inputs.forEach(input => {
+        const cantidad = parseInt(input.value) || 0;
+        const precioUnit = parseFloat(input.dataset.precioUnit) || 0;
+        total += cantidad * precioUnit;
+    });
+
+    document.getElementById('totalSeparado').textContent = `Bs/ ${total.toFixed(2)}`;
+}
+
+async function continuarPagoSeparado(pedidoId) {
+    const inputs = document.querySelectorAll('.cantidad-input');
+    let total = 0;
+    let hayProductos = false;
+
+    inputs.forEach(input => {
+        const cantidad = parseInt(input.value) || 0;
+        if (cantidad > 0) {
+            hayProductos = true;
+            const precioUnit = parseFloat(input.dataset.precioUnit) || 0;
+            total += cantidad * precioUnit;
+        }
+    });
+
+    if (!hayProductos) {
+        mostrarNotificacion('Selecciona al menos un producto con cantidad mayor a 0', 'error');
+        return;
+    }
+
+    // Mostrar formulario de pago con el total calculado
+    await procesarPago(pedidoId, total);
+}
+
+async function abrirModalCambiarMesa(mesaIdActual) {
+    try {
+        // Obtener todas las mesas disponibles
+        const response = await fetch('/api/caja/mapa-mesas/', {
+            headers: { 'X-CSRFToken': getCookie('csrftoken') }
+        });
+
+        const data = await response.json();
+        if (!data.success) {
+            mostrarNotificacion('Error al cargar mesas', 'error');
+            return;
+        }
+
+        // Obtener pedido de la mesa actual
+        const pedidosResponse = await fetch('/api/caja/pedidos/pendientes/', {
+            headers: { 'X-CSRFToken': getCookie('csrftoken') }
+        });
+
+        const pedidosData = await pedidosResponse.json();
+        const pedido = pedidosData.pedidos.find(p => p.mesa_id === mesaIdActual);
+
+        if (!pedido) {
+            mostrarNotificacion('No hay pedido en esta mesa', 'error');
+            return;
+        }
+
+        // Filtrar solo mesas disponibles
+        const mesasDisponibles = data.mesas.filter(m =>
+            m.estado === 'disponible' && m.id !== mesaIdActual
+        );
+
+        const modalBody = document.getElementById('modalBody');
+        modalBody.innerHTML = `
+            <div class="cambiar-mesa-container">
+                <h3>Cambiar Mesa - Pedido #${pedido.id}</h3>
+                <p class="subtitle">Mesa actual: <strong>Mesa ${pedido.mesa}</strong></p>
+                <p>Selecciona la nueva mesa:</p>
+
+                <div class="mesas-grid">
+                    ${mesasDisponibles.map(mesa => `
+                        <button class="mesa-option"
+                                data-pedido-id="${pedido.id}"
+                                data-mesa-actual-id="${mesaIdActual}"
+                                data-mesa-nueva-id="${mesa.id}"
+                                data-mesa-numero="${mesa.numero}"
+                                onclick="confirmarCambioMesa(this.dataset.pedidoId, this.dataset.mesaActualId, this.dataset.mesaNuevaId, this.dataset.mesaNumero)">
+                            <i class='bx bx-table'></i>
+                            <span>Mesa ${mesa.numero}</span>
+                            <small>Capacidad: ${mesa.capacidad}</small>
+                        </button>
+                    `).join('')}
+                </div>
+
+                ${mesasDisponibles.length === 0 ? `
+                    <div class="empty-state">
+                        <i class='bx bx-error'></i>
+                        <p>No hay mesas disponibles</p>
+                    </div>
+                ` : ''}
+
+                <div class="form-actions">
+                    <button class="btn btn-secondary" onclick="cerrarModal()">
+                        <i class='bx bx-x'></i> Cancelar
+                    </button>
+                </div>
+            </div>
+        `;
+
+        document.getElementById('modalDetallePedido').style.display = 'flex';
+    } catch (error) {
+        console.error('Error al abrir modal cambiar mesa:', error);
+        mostrarNotificacion('Error al cargar mesas', 'error');
+    }
+}
+
+async function confirmarCambioMesa(pedidoId, mesaActualId, mesaNuevaId, mesaNuevoNumero) {
+    try {
+        const response = await fetch('/api/caja/pedidos/reasignar-mesa/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify({
+                pedido_id: pedidoId,
+                mesa_id: mesaNuevaId,
+                motivo: 'Cambio solicitado desde panel de caja'
+            })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            mostrarNotificacion(`Pedido reasignado a Mesa ${mesaNuevoNumero}`, 'success');
+            cerrarModal();
+            cerrarPanelLateralMesa();
+            cargarMapaMesas(); // Recargar mapa
+        } else {
+            mostrarNotificacion(data.error || 'Error al cambiar mesa', 'error');
+        }
+    } catch (error) {
+        console.error('Error al cambiar mesa:', error);
+        mostrarNotificacion('Error al cambiar mesa', 'error');
+    }
+}
+
+// ============================================
+// EXPONER FUNCIONES AL SCOPE GLOBAL
+// ============================================
+// Las funciones usadas en onclick deben estar en window
+window.navigateTo = navigateTo;
+window.expandirMesa = expandirMesa;
+window.abrirModalPago = abrirModalPago;
+window.abrirModalCambiarMesa = abrirModalCambiarMesa;
+window.cerrarPanelLateralMesa = cerrarPanelLateralMesa;
+window.modificarCantidadPedido = modificarCantidadPedido;
+window.eliminarProductoDePedido = eliminarProductoDePedido;
+window.agregarProductoAlPedido = agregarProductoAlPedido;
+window.guardarCambiosPedido = guardarCambiosPedido;
+window.toggleCategoria = toggleCategoria;
+window.filtrarProductos = filtrarProductos;
+window.cambiarCantidadSeparado = cambiarCantidadSeparado;
+window.validarCantidadSeparado = validarCantidadSeparado;
+window.actualizarTotalSeparado = actualizarTotalSeparado;
+window.continuarPagoSeparado = continuarPagoSeparado;
+window.confirmarCambioMesa = confirmarCambioMesa;
+window.verDetallePedido = verDetallePedido;
+window.procesarPago = procesarPago;
+window.confirmarPago = confirmarPago;
+window.calcularCambio = calcularCambio;
+window.cerrarModal = cerrarModal;
+window.mostrarNotificacion = mostrarNotificacion;
+window.cargarDashboard = cargarDashboard;
+window.cargarPedidos = cargarPedidos;
+window.cargarMapaMesas = cargarMapaMesas;
+window.cargarHistorial = cargarHistorial;
+window.cargarPersonal = cargarPersonal;
+window.generarQREmpleado = generarQREmpleado;
+window.cargarJornada = cargarJornada;
+window.abrirModalIniciarJornada = abrirModalIniciarJornada;
+window.abrirModalFinalizarJornada = abrirModalFinalizarJornada;
+window.cerrarModalJornada = cerrarModalJornada;
+window.iniciarJornada = iniciarJornada;
+window.finalizarJornada = finalizarJornada;
+// ✅ NUEVO: Funciones de Turno de Caja (diferente de Jornada Laboral)
+window.abrirTurno = abrirModalTurno;
+window.abrirModalTurno = abrirModalTurno;
+window.cerrarModalTurno = cerrarModalTurno;
+window.confirmarAbrirTurno = confirmarAbrirTurno;
+window.cargarKanban = cargarKanban;
+window.cambiarEstadoKanban = cambiarEstadoKanban;
+
+// Fin del event listener DOMContentLoaded
+});

@@ -15,7 +15,7 @@ from app.pedidos.models import Pedido, DetallePedido
 from app.mesas.models import Mesa
 from app.mesas.utils import liberar_mesa
 from app.productos.models import Producto
-from .models import Transaccion, DetallePago, CierreCaja, HistorialModificacion, AlertaStock
+from .models import Transaccion, DetallePago, CierreCaja, HistorialModificacion, AlertaStock, JornadaLaboral
 from .utils import (
     generar_numero_factura,
     calcular_cambio,
@@ -109,6 +109,68 @@ def api_pedidos_pendientes_pago(request):
 
     except Exception as e:
         print(f"[DEBUG] Error en api_pedidos_pendientes_pago: {str(e)}")
+        import traceback
+        traceback.print_exc()
+
+        return Response({
+            'success': False,
+            'error': str(e)
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def api_pedidos_pagados(request):
+    """
+    Obtiene todos los pedidos que ya fueron pagados (historial)
+    """
+    try:
+        print(f"[DEBUG] API Pedidos Pagados - Usuario: {request.user}")
+
+        # Mostrar pedidos pagados ordenados por fecha de pago descendente
+        pedidos = Pedido.objects.filter(
+            estado_pago='pagado'
+        ).select_related('mesa', 'cajero_responsable').prefetch_related('detalles__producto').order_by('-fecha_pago')
+
+        pedidos_data = []
+        for pedido in pedidos:
+            # Obtener productos
+            productos = []
+            for detalle in pedido.detalles.all():
+                productos.append({
+                    'nombre': detalle.producto.nombre,
+                    'cantidad': detalle.cantidad,
+                    'precio_unitario': float(detalle.producto.precio),
+                    'subtotal': float(detalle.subtotal)
+                })
+
+            # Cajero que procesó el pago
+            cajero_nombre = "N/A"
+            if pedido.cajero_responsable:
+                cajero_nombre = f"{pedido.cajero_responsable.first_name} {pedido.cajero_responsable.last_name}".strip() or pedido.cajero_responsable.username
+
+            pedidos_data.append({
+                'id': pedido.id,
+                'mesa': pedido.mesa.numero if pedido.mesa else 'N/A',
+                'fecha_pago': pedido.fecha_pago.strftime('%Y-%m-%d %H:%M') if pedido.fecha_pago else 'N/A',
+                'productos': productos,
+                'subtotal': float(pedido.total),
+                'descuento': float(pedido.descuento),
+                'propina': float(pedido.propina),
+                'total_final': float(pedido.total_final if pedido.total_final > 0 else pedido.total),
+                'forma_pago': pedido.forma_pago,
+                'cajero': cajero_nombre,
+                'numero_factura': pedido.transaccion.numero_factura if hasattr(pedido, 'transaccion') else 'N/A'
+            })
+
+        return Response({
+            'success': True,
+            'pedidos': pedidos_data,
+            'total_pedidos': len(pedidos_data)
+        })
+
+    except Exception as e:
+        print(f"[DEBUG] Error en api_pedidos_pagados: {str(e)}")
         import traceback
         traceback.print_exc()
 
@@ -221,54 +283,87 @@ def api_procesar_pago_simple(request):
                 'productos_sin_stock': productos_sin_stock
             }, status=status.HTTP_400_BAD_REQUEST)
 
-        # Calcular total final
-        total_final = calcular_total_con_descuento_propina(pedido)
-        pedido.total_final = total_final
+        # Calcular total final del pedido
+        total_final_pedido = calcular_total_con_descuento_propina(pedido)
+        pedido.total_final = total_final_pedido
+
+        # ✅ CORREGIDO: Convertir a float para evitar conflictos Decimal/float
+        total_final_pedido = float(total_final_pedido)
+
+        # ✅ NUEVO: Determinar monto de este pago (puede ser parcial)
+        # Si monto_recibido es menor al total pendiente, es un pago parcial
+        monto_pagado_anterior = float(pedido.monto_pagado or 0)
+        monto_pendiente = total_final_pedido - monto_pagado_anterior
+
+        # El monto de esta transacción es lo que se está pagando AHORA
+        monto_esta_transaccion = float(monto_recibido) if monto_recibido else total_final_pedido
 
         # Calcular cambio (si es efectivo)
         cambio = 0
         if metodo_pago == 'efectivo' and monto_recibido:
-            cambio = calcular_cambio(total_final, monto_recibido)
+            cambio = calcular_cambio(monto_pendiente, monto_recibido)
 
-        # Crear transacción
+        # Crear transacción por el monto pagado en esta operación
         numero_factura = generar_numero_factura()
         transaccion = Transaccion.objects.create(
             pedido=pedido,
             cajero=request.user,
-            monto_total=total_final,
+            monto_total=monto_esta_transaccion,
             metodo_pago=metodo_pago,
             estado='procesado',
             numero_factura=numero_factura,
             referencia=referencia
         )
 
-        # Actualizar pedido
-        pedido.estado_pago = 'pagado'
-        pedido.fecha_pago = timezone.now()
-        pedido.cajero_responsable = request.user
-        pedido.monto_pagado = total_final
-        pedido.forma_pago = metodo_pago
+        # ✅ NUEVO: Actualizar monto pagado acumulado
+        nuevo_monto_pagado = monto_pagado_anterior + monto_esta_transaccion
+        pedido.monto_pagado = nuevo_monto_pagado
+
+        # ✅ NUEVO: Determinar si el pedido está completamente pagado
+        pago_completo = nuevo_monto_pagado >= total_final_pedido
+
+        if pago_completo:
+            # Pago completo: marcar como pagado y liberar mesa
+            pedido.estado_pago = 'pagado'
+            pedido.fecha_pago = timezone.now()
+            pedido.cajero_responsable = request.user
+            pedido.forma_pago = metodo_pago
+
+            # Descontar stock solo cuando se paga completo
+            descontar_stock_pedido(pedido)
+
+            # Liberar mesa solo cuando se paga completo
+            if pedido.mesa:
+                liberar_mesa(pedido.mesa)
+                logger.info(f"Mesa {pedido.mesa.numero} liberada después del pago completo")
+        else:
+            # Pago parcial: mantener como pendiente pero actualizar monto
+            logger.info(f"Pago parcial - Pagado: Bs/ {nuevo_monto_pagado:.2f} de Bs/ {total_final_pedido:.2f}")
+
         pedido.save()
-
-        # Descontar stock
-        descontar_stock_pedido(pedido)
-
-        # ✅ MEJORADO: Liberar mesa (incluso si está combinada)
-        if pedido.mesa:
-            liberar_mesa(pedido.mesa)
-            logger.info(f"Mesa {pedido.mesa.numero} liberada después del pago")
 
         # Verificar alertas de stock
         verificar_alertas_stock()
 
-        logger.info(f"Pago procesado exitosamente - Factura: {numero_factura}, Total: Bs/ {total_final}")
+        # ✅ NUEVO: Mensaje según tipo de pago
+        if pago_completo:
+            mensaje = f'Pago procesado exitosamente - Factura: {numero_factura}'
+            logger.info(f"Pago COMPLETO - Factura: {numero_factura}, Total: Bs/ {total_final_pedido:.2f}")
+        else:
+            monto_restante = total_final_pedido - nuevo_monto_pagado
+            mensaje = f'Pago parcial registrado. Pagado: Bs/ {nuevo_monto_pagado:.2f}, Resta: Bs/ {monto_restante:.2f}'
+            logger.info(f"Pago PARCIAL - Pagado: Bs/ {nuevo_monto_pagado:.2f}, Resta: Bs/ {monto_restante:.2f}")
 
         return Response({
             'success': True,
-            'message': 'Pago procesado exitosamente',
+            'message': mensaje,
+            'pago_completo': pago_completo,
             'transaccion_id': transaccion.id,
             'numero_factura': numero_factura,
-            'total_pagado': float(total_final),
+            'monto_esta_transaccion': float(monto_esta_transaccion),
+            'monto_total_pagado': float(nuevo_monto_pagado),
+            'monto_pendiente': float(total_final_pedido - nuevo_monto_pagado),
+            'total_pedido': float(total_final_pedido),
             'cambio': float(cambio) if cambio > 0 else 0,
             'metodo_pago': metodo_pago
         })
@@ -1047,8 +1142,10 @@ def api_mapa_mesas(request):
                 estado_pago='pendiente'
             ).exclude(estado='cancelado').prefetch_related('detalles__producto')
 
+            # ✅ CORREGIDO: Calcular total pendiente considerando pagos parciales
+            # Convertir todo a float para evitar conflictos entre Decimal y float
             total_pendiente = sum(
-                p.total_final if p.total_final > 0 else p.total
+                float(p.total_final if p.total_final > 0 else p.total) - float(p.monto_pagado or 0)
                 for p in pedidos_activos
             )
 
@@ -1355,6 +1452,14 @@ def api_pedidos_kanban(request):
             # Calcular total
             total = pedido.total_final if pedido.total_final > 0 else pedido.total
 
+            # ✅ NUEVO: Calcular tiempo transcurrido
+            # Calcular tiempo desde que se creó el pedido hasta ahora
+            # Para pedidos entregados, muestra el tiempo total que tomó
+            tiempo_transcurrido_segundos = int((timezone.now() - pedido.fecha).total_seconds())
+
+            tiempo_minutos = tiempo_transcurrido_segundos // 60
+            tiempo_segundos = tiempo_transcurrido_segundos % 60
+
             # Agregar pedido al estado correspondiente
             resultado[estado_kanban].append({
                 'id': pedido.id,
@@ -1364,7 +1469,11 @@ def api_pedidos_kanban(request):
                 'total': float(total),
                 'mesero': mesero_nombre,
                 'hora': pedido.fecha.strftime('%H:%M'),
-                'estado_actual': estado_modelo
+                'estado_actual': estado_modelo,
+                'tiempo_minutos': tiempo_minutos,
+                'tiempo_segundos': tiempo_segundos,
+                'tiempo_total_segundos': tiempo_transcurrido_segundos,
+                'alerta_20min': tiempo_minutos >= 20  # ✅ Alerta si pasa 20 minutos
             })
 
         return Response({
@@ -1390,6 +1499,7 @@ def api_pedidos_kanban(request):
 def api_cambiar_estado_pedido(request, pedido_id):
     """
     Cambia el estado de un pedido en el tablero Kanban
+    ✅ FLUJO UNIDIRECCIONAL: Solo permite avanzar, nunca retroceder
     """
     try:
         pedido = get_object_or_404(Pedido, id=pedido_id)
@@ -1412,17 +1522,192 @@ def api_cambiar_estado_pedido(request, pedido_id):
                 'error': 'Estado inválido'
             }, status=status.HTTP_400_BAD_REQUEST)
 
+        # ✅ NUEVO: Validar flujo unidireccional (no permitir retroceso)
+        orden_estados = ['pendiente', 'en preparacion', 'listo', 'entregado']
+        estado_actual_index = orden_estados.index(pedido.estado) if pedido.estado in orden_estados else 0
+        nuevo_estado_index = orden_estados.index(nuevo_estado_modelo)
+
+        if nuevo_estado_index < estado_actual_index:
+            return Response({
+                'success': False,
+                'error': f'No se puede retroceder el estado. El pedido ya está en "{pedido.get_estado_display()}"'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
         # Actualizar estado
+        estado_anterior = pedido.estado
         pedido.estado = nuevo_estado_modelo
+
+        # ✅ NUEVO: Si se marca como entregado, guardar timestamp para detener el timer
+        if nuevo_estado_modelo == 'entregado' and not hasattr(pedido, 'fecha_entregado'):
+            # Por ahora usamos un campo temporal en observaciones_caja
+            # Más adelante crearemos una migración para agregar el campo fecha_entregado
+            pedido.observaciones_caja = (pedido.observaciones_caja or '') + f'\n[ENTREGADO: {timezone.now().strftime("%Y-%m-%d %H:%M:%S")}]'
+
         pedido.save()
 
         return Response({
             'success': True,
-            'message': f'Estado cambiado a {nuevo_estado_kanban}'
+            'message': f'Estado cambiado de {estado_anterior} a {nuevo_estado_kanban}'
         })
 
     except Exception as e:
         print(f"[DEBUG] Error en api_cambiar_estado_pedido: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return Response({
+            'success': False,
+            'error': str(e)
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+# ══════════════════════════════════════════════
+# 📅 APIS DE JORNADA LABORAL
+# ══════════════════════════════════════════════
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def api_jornada_estado(request):
+    """
+    Obtiene el estado actual de la jornada laboral
+    """
+    try:
+        jornada_activa = JornadaLaboral.jornada_activa()
+
+        if jornada_activa:
+            # Calcular duración
+            duracion = timezone.now() - jornada_activa.hora_inicio
+            horas = int(duracion.total_seconds() // 3600)
+            minutos = int((duracion.total_seconds() % 3600) // 60)
+
+            # Obtener información del cajero
+            cajero_nombre = "N/A"
+            if jornada_activa.cajero:
+                cajero_nombre = f"{jornada_activa.cajero.first_name} {jornada_activa.cajero.last_name}".strip() or jornada_activa.cajero.username
+
+            return Response({
+                'success': True,
+                'hay_jornada_activa': True,
+                'jornada': {
+                    'id': jornada_activa.id,
+                    'fecha': jornada_activa.fecha.strftime('%Y-%m-%d'),
+                    'hora_inicio': jornada_activa.hora_inicio.strftime('%H:%M:%S'),
+                    'cajero': cajero_nombre,
+                    'duracion': f"{horas}h {minutos}m",
+                    'observaciones_apertura': jornada_activa.observaciones_apertura or ''
+                }
+            })
+        else:
+            return Response({
+                'success': True,
+                'hay_jornada_activa': False,
+                'jornada': None
+            })
+
+    except Exception as e:
+        print(f"[DEBUG] Error en api_jornada_estado: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return Response({
+            'success': False,
+            'error': str(e)
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def api_jornada_iniciar(request):
+    """
+    Inicia una nueva jornada laboral
+    """
+    try:
+        # Verificar que no haya una jornada activa
+        if JornadaLaboral.hay_jornada_activa():
+            return Response({
+                'success': False,
+                'error': 'Ya existe una jornada activa. Debe finalizar la jornada actual antes de iniciar una nueva.'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        observaciones = request.data.get('observaciones', '')
+
+        # Crear nueva jornada
+        jornada = JornadaLaboral.objects.create(
+            cajero=request.user,
+            fecha=timezone.now().date(),
+            estado='activa',
+            hora_inicio=timezone.now(),
+            observaciones_apertura=observaciones
+        )
+
+        cajero_nombre = f"{request.user.first_name} {request.user.last_name}".strip() or request.user.username
+
+        print(f"[DEBUG] Jornada iniciada por {cajero_nombre}")
+
+        return Response({
+            'success': True,
+            'message': 'Jornada laboral iniciada correctamente',
+            'jornada': {
+                'id': jornada.id,
+                'fecha': jornada.fecha.strftime('%Y-%m-%d'),
+                'hora_inicio': jornada.hora_inicio.strftime('%H:%M:%S'),
+                'cajero': cajero_nombre
+            }
+        })
+
+    except Exception as e:
+        print(f"[DEBUG] Error en api_jornada_iniciar: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return Response({
+            'success': False,
+            'error': str(e)
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def api_jornada_finalizar(request):
+    """
+    Finaliza la jornada laboral activa
+    """
+    try:
+        jornada = JornadaLaboral.jornada_activa()
+
+        if not jornada:
+            return Response({
+                'success': False,
+                'error': 'No hay ninguna jornada activa para finalizar'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        observaciones = request.data.get('observaciones', '')
+
+        # Intentar finalizar (puede lanzar ValidationError si hay pedidos pendientes)
+        try:
+            jornada.finalizar(request.user, observaciones)
+        except Exception as validation_error:
+            return Response({
+                'success': False,
+                'error': str(validation_error)
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        cajero_nombre = f"{request.user.first_name} {request.user.last_name}".strip() or request.user.username
+
+        print(f"[DEBUG] Jornada finalizada por {cajero_nombre}")
+
+        return Response({
+            'success': True,
+            'message': 'Jornada laboral finalizada correctamente',
+            'jornada': {
+                'id': jornada.id,
+                'fecha': jornada.fecha.strftime('%Y-%m-%d'),
+                'hora_inicio': jornada.hora_inicio.strftime('%H:%M:%S'),
+                'hora_fin': jornada.hora_fin.strftime('%H:%M:%S') if jornada.hora_fin else None,
+                'cajero': jornada.cajero.username if jornada.cajero else 'N/A',
+                'finalizado_por': cajero_nombre
+            }
+        })
+
+    except Exception as e:
+        print(f"[DEBUG] Error en api_jornada_finalizar: {str(e)}")
         import traceback
         traceback.print_exc()
         return Response({

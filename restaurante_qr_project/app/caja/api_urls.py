@@ -8,6 +8,7 @@ urlpatterns = [
     # CONSULTAS DE PEDIDOS
     # ═══════════════════════════════════════════
     path('pedidos/pendientes/', api_views.api_pedidos_pendientes_pago, name='pedidos_pendientes'),
+    path('pedidos/pagados/', api_views.api_pedidos_pagados, name='pedidos_pagados'),
     path('pedidos/kanban/', api_views.api_pedidos_kanban, name='pedidos_kanban'),
     path('pedidos/<int:pedido_id>/cambiar-estado/', api_views.api_cambiar_estado_pedido, name='cambiar_estado'),
     path('pedidos/<int:pedido_id>/', api_views.api_detalle_pedido, name='detalle_pedido'),
@@ -47,4 +48,11 @@ urlpatterns = [
     # GESTIÓN DE PERSONAL
     # ═══════════════════════════════════════════
     path('empleados/', api_views.api_lista_empleados, name='lista_empleados'),
+
+    # ═══════════════════════════════════════════
+    # JORNADA LABORAL
+    # ═══════════════════════════════════════════
+    path('jornada/', api_views.api_jornada_estado, name='jornada_estado'),
+    path('jornada/iniciar/', api_views.api_jornada_iniciar, name='jornada_iniciar'),
+    path('jornada/finalizar/', api_views.api_jornada_finalizar, name='jornada_finalizar'),
 ]

@@ -322,20 +322,23 @@ class JornadaLaboral(models.Model):
     def finalizar(self, usuario, observaciones=None):
         """
         Finaliza la jornada laboral.
-        Valida que no haya pedidos pendientes antes de finalizar.
+        Valida que no haya pedidos pendientes DE PAGO antes de finalizar.
         """
         from app.pedidos.models import Pedido
         from django.core.exceptions import ValidationError
 
-        # ✅ NUEVO: Validar que no haya pedidos pendientes
+        # ✅ CORREGIDO: Validar por estado_pago (no por estado de comanda)
+        # Solo impide finalizar si hay pedidos sin pagar (pendiente o parcial)
         pedidos_pendientes = Pedido.objects.filter(
-            estado__in=['pendiente', 'en preparacion', 'listo', 'entregado', 'solicitando_cuenta']
+            estado_pago='pendiente'
+        ).exclude(
+            estado='cancelado'
         )
 
         if pedidos_pendientes.exists():
             # Generar lista detallada de pedidos pendientes
             lista_pedidos = ', '.join([
-                f"Pedido #{p.id} (Mesa {p.mesa.numero if p.mesa else 'N/A'})"
+                f"Pedido #{p.id} (Mesa {p.mesa.numero if p.mesa else 'N/A'}) - Bs/ {p.total_final or p.total}"
                 for p in pedidos_pendientes[:5]  # Mostrar máximo 5
             ])
 

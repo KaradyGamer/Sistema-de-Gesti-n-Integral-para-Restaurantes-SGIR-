@@ -19,12 +19,14 @@ from app.pedidos.views import (
 )
 from rest_framework_simplejwt.views import TokenRefreshView
 from app.usuarios.views_empleado import panel_empleado
+from app.usuarios.views import qr_login  # ✅ NUEVO: Para login por QR
 
 urlpatterns = [
     path('admin/', admin.site.urls),
 
     # 🔐 SISTEMA DE LOGIN
     path('login/', TemplateView.as_view(template_name='login.html'), name='login'),
+    path('qr-login/<uuid:token>/', qr_login, name='qr_login'),  # ✅ NUEVO: Login por QR desde raíz
 
     # 🎨 FAVICON (evita error 404)
     path('favicon.ico', RedirectView.as_view(url='/static/admin/img/icon-yes.svg', permanent=True)),
