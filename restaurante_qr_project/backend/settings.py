@@ -15,8 +15,8 @@ else:
     ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1').split(',')  # Solo acceso local en producción
 
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(hours=8),  # ✅ Token dura 8 horas
-    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),  # ✅ Refresh token dura 7 días
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=config('JWT_ACCESS_TOKEN_LIFETIME', default=60, cast=int)),  # ✅ 60 minutos por defecto
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=config('JWT_REFRESH_TOKEN_LIFETIME', default=14, cast=int)),  # ✅ 14 días por defecto
     'ROTATE_REFRESH_TOKENS': True,
     'BLACKLIST_AFTER_ROTATION': True,
     'UPDATE_LAST_LOGIN': True,
@@ -66,6 +66,7 @@ X_FRAME_OPTIONS = "SAMEORIGIN"
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',  # ✅ WhiteNoise para archivos estáticos
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.locale.LocaleMiddleware',  # ✅ Soporte de idiomas para admin_interface
     'django.middleware.common.CommonMiddleware',
@@ -131,9 +132,13 @@ STATIC_URL = '/static/'
 
 STATICFILES_DIRS = [
     os.path.join(BASE_DIR, 'templates'),  # Templates contiene css/, js/, etc.
+    os.path.join(BASE_DIR, 'static'),  # ✅ Carpeta static/ para PWA y otros
 ]
 
 STATIC_ROOT = os.path.join(BASE_DIR, 'static_collected')  # ✅ Carpeta donde collectstatic recopila archivos
+
+# ✅ WhiteNoise - Compresión y caché de archivos estáticos
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
@@ -147,15 +152,15 @@ AUTH_USER_MODEL = 'usuarios.Usuario'
 # 🌐 CORS
 CORS_ALLOWED_ORIGINS = config('CORS_ALLOWED_ORIGINS', default='http://localhost:3000,http://127.0.0.1:3000').split(',')
 
+# ✅ CSRF - Orígenes confiables desde variable de entorno
+CSRF_TRUSTED_ORIGINS = config(
+    'CSRF_TRUSTED_ORIGINS',
+    default='http://localhost:8000,http://127.0.0.1:8000'
+).split(',')
+
 # ✅ Permitir todos los orígenes en desarrollo (para escaneo QR desde celular)
 if DEBUG:
     CORS_ALLOW_ALL_ORIGINS = True
-    CSRF_TRUSTED_ORIGINS = [
-        'http://192.168.0.179:8000',
-        'http://localhost:8000',
-        'http://127.0.0.1:8000',
-        'http://10.165.187.107:8000',
-    ]
 
 # 🔐 Configuración de DRF y JWT
 REST_FRAMEWORK = {
@@ -176,14 +181,18 @@ LOGOUT_REDIRECT_URL = '/login/'  # ✅ Redirigir al login después del logout
 # 🛡️ Prevenir redirección automática al admin
 ADMIN_URL = '/admin/'  # ✅ Mantener admin en su propia ruta
 
-# 🔧 Configuración de sesiones (soluciona problemas de cookies)
+# 🔧 Configuración de sesiones
 SESSION_COOKIE_AGE = 86400  # 24 horas
 SESSION_SAVE_EVERY_REQUEST = True
 SESSION_EXPIRE_AT_BROWSER_CLOSE = False
 
-# 🛡️ Configuración de seguridad para desarrollo (descomenta si hay problemas)
-# SESSION_COOKIE_SECURE = False  # Solo para desarrollo local
-# CSRF_COOKIE_SECURE = False     # Solo para desarrollo local
+# 🛡️ Seguridad de cookies (desde variables de entorno)
+SESSION_COOKIE_SECURE = config('SESSION_COOKIE_SECURE', default=False, cast=bool)
+CSRF_COOKIE_SECURE = config('CSRF_COOKIE_SECURE', default=False, cast=bool)
+SESSION_COOKIE_HTTPONLY = config('SESSION_COOKIE_HTTPONLY', default=True, cast=bool)
+CSRF_COOKIE_HTTPONLY = config('CSRF_COOKIE_HTTPONLY', default=True, cast=bool)
+SESSION_COOKIE_SAMESITE = config('SESSION_COOKIE_SAMESITE', default='Lax')
+CSRF_COOKIE_SAMESITE = config('CSRF_COOKIE_SAMESITE', default='Lax')
 
 # 🚫 Prevenir redirecciones no deseadas
 APPEND_SLASH = True
