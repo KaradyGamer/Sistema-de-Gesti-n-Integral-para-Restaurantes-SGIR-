@@ -1238,11 +1238,17 @@ def api_alertas_stock(request):
     """
     try:
         alertas = AlertaStock.objects.filter(
-            estado='activa'
+            estado='activa',
+            producto__isnull=False  # ✅ Solo alertas con producto válido
         ).select_related('producto').order_by('-fecha_creacion')
 
         alertas_data = []
         for alerta in alertas:
+            # ✅ Validación adicional por seguridad
+            if not alerta.producto:
+                logger.warning(f"Alerta #{alerta.id} sin producto asociado, omitiendo...")
+                continue
+
             alertas_data.append({
                 'id': alerta.id,
                 'producto': alerta.producto.nombre,
@@ -1260,10 +1266,10 @@ def api_alertas_stock(request):
         })
 
     except Exception as e:
-        print(f"[DEBUG] Error en api_alertas_stock: {str(e)}")
+        logger.error(f"Error en api_alertas_stock: {str(e)}")
         return Response({
             'success': False,
-            'error': str(e)
+            'error': 'Error al cargar alertas de stock'
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
