@@ -1,0 +1,16 @@
+{% load static %}
+{% comment %}
+========================================
+SGIR v38.3 - UI Head Snippet
+Include this in your base templates
+========================================
+{% endcomment %}
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="manifest" href="{% static 'pwa/manifest.json' %}">
+<link rel="stylesheet" href="{% static 'css/theme.min.css' %}">
+<link rel="stylesheet" href="{% static 'css/util/responsive.css' %}">
+<script src="{% static 'js/ui.min.js' %}" defer></script>
+<script src="{% static 'js/responsive-tables.js' %}" defer></script>
+
+{% comment %} Tema minimalista blanco/negro activado globalmente {% endcomment %}

@@ -4,6 +4,15 @@ from django.core.validators import MinValueValidator
 from decimal import Decimal
 
 
+# === SGIR v38.3: Constante Global de Métodos de Pago (unificada) ===
+METODO_PAGO_CHOICES = [
+    ('efectivo', 'Efectivo'),
+    ('tarjeta', 'Tarjeta'),
+    ('qr', 'Código QR'),
+    ('movil', 'Pago Móvil'),
+]
+
+
 class Transaccion(models.Model):
     """
     Modelo para registrar transacciones de pago
@@ -14,13 +23,6 @@ class Transaccion(models.Model):
         ('procesado', 'Procesado'),
         ('cancelado', 'Cancelado'),
         ('reembolsado', 'Reembolsado'),
-    ]
-
-    METODO_PAGO_CHOICES = [
-        ('efectivo', 'Efectivo'),
-        ('tarjeta', 'Tarjeta'),
-        ('qr', 'Código QR'),
-        ('movil', 'Pago Móvil'),
     ]
 
     # Relaciones
@@ -59,13 +61,6 @@ class DetallePago(models.Model):
     Modelo para desglosar pagos mixtos
     Permite dividir un pago en múltiples métodos
     """
-    METODO_PAGO_CHOICES = [
-        ('efectivo', 'Efectivo'),
-        ('tarjeta', 'Tarjeta'),
-        ('qr', 'Código QR'),
-        ('movil', 'Pago Móvil'),
-    ]
-
     transaccion = models.ForeignKey(Transaccion, on_delete=models.CASCADE, related_name='detalles_pago')
     metodo_pago = models.CharField(max_length=20, choices=METODO_PAGO_CHOICES)
     monto = models.DecimalField(max_digits=10, decimal_places=2, validators=[MinValueValidator(Decimal('0.01'))])
