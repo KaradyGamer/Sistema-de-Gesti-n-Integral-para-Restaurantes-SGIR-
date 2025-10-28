@@ -8,6 +8,7 @@
     <link rel="stylesheet" href="{% static 'css/empleado/panel_unificado.css' %}?v=10.0">
 </head>
 <body>
+    {% csrf_token %}
     <div class="container">
         <div class="header" style="position: relative;">
             <h1>🍽️ Panel de Empleado</h1>
