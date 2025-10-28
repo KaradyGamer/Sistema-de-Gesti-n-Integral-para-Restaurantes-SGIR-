@@ -3,12 +3,10 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    {% include '_ui_head_snippet.html' %}
     <title>{% block title %}Formulario{% endblock %} - AdminUX</title>
     <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
     <link rel="stylesheet" href="{% static 'css/adminux/main.css' %}?v=1.0">
-    <link rel="stylesheet" href="{% static 'css/util/responsive.css' %}">
-    <script src="{% static 'js/responsive-tables.js' %}" defer></script>
 </head>
 <body>
     <div class="admin-wrapper">
