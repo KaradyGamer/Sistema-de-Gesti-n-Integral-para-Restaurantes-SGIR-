@@ -3470,108 +3470,67 @@ body {
 }
 
 /* ============================================
-   ALERTAS DE STOCK
+   ALERTAS DE STOCK - LISTA SIMPLE
    ============================================ */
-.alertas-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-    gap: 20px;
-    padding: 20px;
-}
-
-.alerta-card {
-    background: var(--card-bg);
-    border-radius: 12px;
-    padding: 0;
-    overflow: hidden;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-    transition: all 0.3s ease;
-    border: 1px solid var(--border-color);
-}
-
-.alerta-card:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
-}
-
-.alerta-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 20px;
-    background: linear-gradient(135deg, #fef3c7 0%, #fcd34d 100%);
-    border-bottom: 1px solid var(--border-color);
-}
-
-.alerta-card[data-tipo="agotado"] .alerta-header {
-    background: linear-gradient(135deg, #fee2e2 0%, #fca5a5 100%);
-}
-
-.alerta-body {
-    padding: 20px;
-}
-
-.alerta-body h3 {
-    font-size: 18px;
-    font-weight: 600;
-    color: var(--text-primary);
-    margin-bottom: 16px;
-}
-
-.alerta-stats {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 12px;
-    margin-bottom: 16px;
-}
-
-.alerta-stats .stat {
+.alertas-lista {
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 12px;
+    padding: 20px;
+    max-width: 600px;
+    margin: 0 auto;
 }
 
-.alerta-stats .label {
-    font-size: 12px;
-    color: var(--text-secondary);
-    text-transform: uppercase;
-    font-weight: 500;
-}
-
-.alerta-stats .value {
-    font-size: 24px;
-    font-weight: 700;
-    color: var(--text-primary);
-}
-
-.alerta-fecha {
+.alerta-item {
     display: flex;
     align-items: center;
-    gap: 8px;
-    font-size: 13px;
-    color: var(--text-secondary);
-    margin-top: 12px;
-    padding-top: 12px;
-    border-top: 1px solid var(--border-color);
-}
-
-.alerta-actions {
-    display: flex;
-    gap: 8px;
+    gap: 16px;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
     padding: 16px 20px;
-    background: #f8fafc;
-    border-top: 1px solid var(--border-color);
+    transition: all 0.2s ease;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
-.alerta-actions .btn {
+.alerta-item:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    transform: translateX(4px);
+}
+
+.alerta-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.alerta-icon i {
+    font-size: 24px;
+    color: #ffffff;
+}
+
+.alerta-info {
     flex: 1;
-    padding: 10px 16px;
-    font-size: 14px;
 }
 
-/* Variables de color para alertas */
-:root {
-    --success: #10b981;
-    --warning: #f59e0b;
-    --danger: #ef4444;
+.alerta-info h4 {
+    font-size: 16px;
+    font-weight: 600;
+    color: #1e293b;
+    margin: 0 0 4px 0;
+}
+
+.alerta-info p {
+    font-size: 14px;
+    color: #64748b;
+    margin: 0;
+}
+
+.alerta-info strong {
+    color: #1e293b;
+    font-weight: 600;
 }

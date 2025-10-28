@@ -1601,46 +1601,21 @@ async function cargarAlertasStock() {
         const badge = document.getElementById('badgeStock');
         if (badge) badge.textContent = data.total_alertas;
 
-        // Renderizar alertas
-        let html = '<div class="alertas-grid">';
+        // Renderizar lista simple de alertas
+        let html = '<div class="alertas-lista">';
 
         data.alertas.forEach(alerta => {
             const tipoIcon = alerta.tipo_alerta === 'agotado' ? 'bx-x-circle' : 'bx-error';
-            const tipoColor = alerta.tipo_alerta === 'agotado' ? 'var(--danger)' : 'var(--warning)';
-            const tipoTexto = alerta.tipo_alerta === 'agotado' ? 'Agotado' : 'Stock Bajo';
+            const tipoColor = alerta.tipo_alerta === 'agotado' ? '#ef4444' : '#f59e0b';
 
             html += `
-                <div class="card alerta-card" data-alerta-id="${alerta.id}">
-                    <div class="alerta-header">
-                        <i class='bx ${tipoIcon}' style="font-size: 2em; color: ${tipoColor};"></i>
-                        <span class="badge" style="background: ${tipoColor};">${tipoTexto}</span>
+                <div class="alerta-item">
+                    <div class="alerta-icon" style="background: ${tipoColor};">
+                        <i class='bx ${tipoIcon}'></i>
                     </div>
-                    <div class="alerta-body">
-                        <h3>${alerta.producto}</h3>
-                        <div class="alerta-stats">
-                            <div class="stat">
-                                <span class="label">Stock Actual:</span>
-                                <span class="value" style="color: ${tipoColor}; font-weight: bold;">
-                                    ${alerta.stock_actual}
-                                </span>
-                            </div>
-                            <div class="stat">
-                                <span class="label">Stock Mínimo:</span>
-                                <span class="value">${alerta.stock_minimo}</span>
-                            </div>
-                        </div>
-                        <p class="alerta-fecha">
-                            <i class='bx bx-time-five'></i>
-                            ${new Date(alerta.fecha_creacion).toLocaleString('es-ES')}
-                        </p>
-                    </div>
-                    <div class="alerta-actions">
-                        <button class="btn btn-primary" onclick="resolverAlerta(${alerta.id})">
-                            <i class='bx bx-check'></i> Resolver
-                        </button>
-                        <button class="btn btn-outline" onclick="verProducto(${alerta.producto_id})">
-                            <i class='bx bx-info-circle'></i> Ver Producto
-                        </button>
+                    <div class="alerta-info">
+                        <h4>${alerta.producto}</h4>
+                        <p>Stock: <strong>${alerta.stock_actual} unidades</strong></p>
                     </div>
                 </div>
             `;
@@ -1661,40 +1636,6 @@ async function cargarAlertasStock() {
             </div>
         `;
     }
-}
-
-async function resolverAlerta(alertaId) {
-    if (!confirm('¿Marcar esta alerta como resuelta? Esto indica que ya se ha tomado acción sobre el stock.')) {
-        return;
-    }
-
-    try {
-        const response = await fetch(`/api/caja/alertas-stock/${alertaId}/resolver/`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': getCookie('csrftoken')
-            }
-        });
-
-        const data = await response.json();
-
-        if (data.success) {
-            mostrarNotificacion('Alerta marcada como resuelta', 'success');
-            cargarAlertasStock(); // Recargar lista
-        } else {
-            mostrarNotificacion(data.error || 'Error al resolver alerta', 'error');
-        }
-
-    } catch (error) {
-        console.error('Error al resolver alerta:', error);
-        mostrarNotificacion('Error de conexión al resolver alerta', 'error');
-    }
-}
-
-function verProducto(productoId) {
-    mostrarNotificacion('Funcionalidad de ver producto en desarrollo', 'info');
-    // TODO: Implementar modal con detalles del producto
 }
 
 async function cargarPersonal() {
