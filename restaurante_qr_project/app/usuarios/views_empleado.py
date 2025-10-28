@@ -3,9 +3,11 @@ Vistas para el panel unificado de empleados (meseros, cocineros)
 """
 from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
+from django.views.decorators.csrf import ensure_csrf_cookie
 from django.contrib import messages
 
 
+@ensure_csrf_cookie
 @login_required
 def panel_empleado(request):
     """

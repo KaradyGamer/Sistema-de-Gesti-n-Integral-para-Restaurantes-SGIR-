@@ -4,6 +4,7 @@ from django.contrib import messages
 from django.http import JsonResponse
 from django.utils import timezone
 from django.db.models import Sum
+from django.views.decorators.csrf import ensure_csrf_cookie
 from datetime import date, datetime
 
 # Importar decoradores personalizados
@@ -24,6 +25,7 @@ from .utils import (
 # 🧾 PANEL PRINCIPAL DEL CAJERO
 # ──────────────────────────────────────────────
 
+@ensure_csrf_cookie
 @solo_cajero
 def panel_unificado(request):
     """

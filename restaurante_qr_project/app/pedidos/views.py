@@ -17,6 +17,7 @@ from app.usuarios.permisos import EsCocinero, EsMesero
 from app.reservas.models import Reserva
 
 from django.contrib.auth.decorators import login_required
+from django.views.decorators.csrf import ensure_csrf_cookie
 
 #  Configurar logger
 logger = logging.getLogger('app.pedidos')
@@ -269,11 +270,12 @@ def crear_pedido_cliente(request):
             'debug': 'Ver consola del servidor para detalles'
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-# 
+#
 #  Cocinero  Vistas HTML
-# 
+#
 
 #  Panel cocinero (requiere autenticacin y rol)
+@ensure_csrf_cookie
 def panel_cocina(request):
     """Panel del cocinero - Sin decoradores Django"""
     if not request.user.is_authenticated:
@@ -287,11 +289,12 @@ def panel_cocina(request):
         'nombre_usuario': request.user.first_name or request.user.username,
     })
 
-# 
+#
 #  Mesero  Vistas HTML protegidas MEJORADAS
-# 
+#
 
 #  Panel mesero MEJORADO con pestaas y auto-actualizacin
+@ensure_csrf_cookie
 def panel_mesero(request):
     """Panel mesero mejorado con pestaas de pedidos y reservas"""
     if not request.user.is_authenticated:
