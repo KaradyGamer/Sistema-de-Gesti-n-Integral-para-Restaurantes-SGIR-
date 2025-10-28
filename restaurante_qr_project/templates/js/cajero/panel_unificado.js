@@ -1570,8 +1570,131 @@ async function cargarHistorial() {
     }
 }
 
-function cargarAlertasStock() {
-    document.getElementById('alertasStockContainer').innerHTML = '<p>⚠️ Alertas de stock próximamente</p>';
+async function cargarAlertasStock() {
+    const container = document.getElementById('alertasStockContainer');
+    container.innerHTML = '<div class="loading">Cargando alertas de stock...</div>';
+
+    try {
+        const response = await fetch('/api/caja/alertas-stock/', {
+            headers: { 'X-CSRFToken': getCookie('csrftoken') }
+        });
+
+        if (!response.ok) throw new Error('Error al cargar alertas de stock');
+
+        const data = await response.json();
+
+        if (!data.alertas || data.alertas.length === 0) {
+            container.innerHTML = `
+                <div class="card" style="text-align: center; padding: 60px;">
+                    <i class='bx bx-check-circle' style="font-size: 4em; color: var(--success);"></i>
+                    <h3 style="margin-top: 20px;">No hay alertas de stock</h3>
+                    <p style="color: var(--text-secondary);">Todos los productos tienen stock suficiente</p>
+                </div>
+            `;
+            // Actualizar badge del sidebar
+            const badge = document.getElementById('badgeStock');
+            if (badge) badge.textContent = '0';
+            return;
+        }
+
+        // Actualizar badge del sidebar
+        const badge = document.getElementById('badgeStock');
+        if (badge) badge.textContent = data.total_alertas;
+
+        // Renderizar alertas
+        let html = '<div class="alertas-grid">';
+
+        data.alertas.forEach(alerta => {
+            const tipoIcon = alerta.tipo_alerta === 'agotado' ? 'bx-x-circle' : 'bx-error';
+            const tipoColor = alerta.tipo_alerta === 'agotado' ? 'var(--danger)' : 'var(--warning)';
+            const tipoTexto = alerta.tipo_alerta === 'agotado' ? 'Agotado' : 'Stock Bajo';
+
+            html += `
+                <div class="card alerta-card" data-alerta-id="${alerta.id}">
+                    <div class="alerta-header">
+                        <i class='bx ${tipoIcon}' style="font-size: 2em; color: ${tipoColor};"></i>
+                        <span class="badge" style="background: ${tipoColor};">${tipoTexto}</span>
+                    </div>
+                    <div class="alerta-body">
+                        <h3>${alerta.producto}</h3>
+                        <div class="alerta-stats">
+                            <div class="stat">
+                                <span class="label">Stock Actual:</span>
+                                <span class="value" style="color: ${tipoColor}; font-weight: bold;">
+                                    ${alerta.stock_actual}
+                                </span>
+                            </div>
+                            <div class="stat">
+                                <span class="label">Stock Mínimo:</span>
+                                <span class="value">${alerta.stock_minimo}</span>
+                            </div>
+                        </div>
+                        <p class="alerta-fecha">
+                            <i class='bx bx-time-five'></i>
+                            ${new Date(alerta.fecha_creacion).toLocaleString('es-ES')}
+                        </p>
+                    </div>
+                    <div class="alerta-actions">
+                        <button class="btn btn-primary" onclick="resolverAlerta(${alerta.id})">
+                            <i class='bx bx-check'></i> Resolver
+                        </button>
+                        <button class="btn btn-outline" onclick="verProducto(${alerta.producto_id})">
+                            <i class='bx bx-info-circle'></i> Ver Producto
+                        </button>
+                    </div>
+                </div>
+            `;
+        });
+
+        html += '</div>';
+        container.innerHTML = html;
+
+    } catch (error) {
+        console.error('Error al cargar alertas de stock:', error);
+        container.innerHTML = `
+            <div class="card error">
+                <i class='bx bx-error-circle'></i>
+                <p>Error al cargar alertas de stock</p>
+                <button class="btn btn-primary" onclick="cargarAlertasStock()">
+                    <i class='bx bx-refresh'></i> Reintentar
+                </button>
+            </div>
+        `;
+    }
+}
+
+async function resolverAlerta(alertaId) {
+    if (!confirm('¿Marcar esta alerta como resuelta? Esto indica que ya se ha tomado acción sobre el stock.')) {
+        return;
+    }
+
+    try {
+        const response = await fetch(`/api/caja/alertas-stock/${alertaId}/resolver/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            }
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            mostrarNotificacion('Alerta marcada como resuelta', 'success');
+            cargarAlertasStock(); // Recargar lista
+        } else {
+            mostrarNotificacion(data.error || 'Error al resolver alerta', 'error');
+        }
+
+    } catch (error) {
+        console.error('Error al resolver alerta:', error);
+        mostrarNotificacion('Error de conexión al resolver alerta', 'error');
+    }
+}
+
+function verProducto(productoId) {
+    mostrarNotificacion('Funcionalidad de ver producto en desarrollo', 'info');
+    // TODO: Implementar modal con detalles del producto
 }
 
 async function cargarPersonal() {
