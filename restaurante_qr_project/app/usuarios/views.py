@@ -12,6 +12,12 @@ from django.views.decorators.csrf import csrf_protect
 from django.views.decorators.http import require_http_methods
 from .models import Usuario
 
+# ✅ SEGURIDAD: Logging y rate limiting
+import logging
+from .decorators import rate_limit_login
+
+logger = logging.getLogger('app.usuarios')
+
 class RegistroUsuarioView(generics.CreateAPIView):
     """
     Vista para registrar nuevos usuarios.
@@ -33,58 +39,69 @@ class CustomTokenObtainPairView(TokenObtainPairView):
 #  NUEVA VISTA: Login con Django Session
 @csrf_protect
 @require_http_methods(["POST"])
+@rate_limit_login(max_attempts=5, lockout_duration=300, login_type='password')
 def session_login(request):
     """
-    Vista para login con sesin Django (compatible con @login_required)
+    ✅ ACTUALIZADO: Login con sesión Django + rate limiting + logging seguro
     """
     try:
         username = request.POST.get('username')
         password = request.POST.get('password')
         rol_solicitado = request.POST.get('rol')
-        
-        print(f" Intento de login: {username}, rol: {rol_solicitado}")
-        
+
+        logger.info(f"LOGIN: Intento de login para rol: {rol_solicitado}")
+
         if not all([username, password, rol_solicitado]):
             return JsonResponse({
                 'success': False,
                 'error': 'Por favor completa todos los campos'
             }, status=400)
-        
-        #  Autenticar usuario
+
+        # Autenticar usuario
         user = authenticate(request, username=username, password=password)
-        
+
         if user is not None:
-            #  Verificar si el usuario est activo
+            # ✅ Verificar ambos campos: is_active (Django) y activo (Usuario personalizado)
             if not user.is_active:
+                logger.warning(f"LOGIN: Usuario Django inactivo - ID: {user.id}")
                 return JsonResponse({
                     'success': False,
-                    'error': 'Tu cuenta est desactivada'
+                    'error': 'Tu cuenta está desactivada'
                 }, status=400)
-            
-            #  Verificar rol (si el usuario tiene el modelo Usuario personalizado)
+
+            # Verificar campo activo del modelo personalizado
+            if hasattr(user, 'activo') and not user.activo:
+                logger.warning(f"LOGIN: Usuario SGIR inactivo - ID: {user.id}")
+                return JsonResponse({
+                    'success': False,
+                    'error': 'Tu cuenta está desactivada'
+                }, status=400)
+
+            # Verificar rol
             try:
                 usuario_perfil = Usuario.objects.get(username=username)
                 rol_usuario = usuario_perfil.rol
-                print(f" Rol del usuario en BD: {rol_usuario}")
-                
-                #  Mapear roles para compatibilidad
+                logger.info(f"LOGIN: Usuario ID:{user.id}, rol:{rol_usuario}")
+
+                # Mapear roles para compatibilidad
                 mapeo_roles = {
                     'cocinero': ['cocinero'],
                     'mesero': ['mesero'],
-                    'cajero': ['cajero'],  # Nuevo rol cajero
+                    'cajero': ['cajero'],
                     'administrador': ['admin', 'gerente'],
                 }
 
                 roles_permitidos = mapeo_roles.get(rol_solicitado, [])
 
                 if rol_usuario not in roles_permitidos:
+                    logger.warning(f"LOGIN: Rol no permitido - Usuario ID:{user.id}, intentó:{rol_solicitado}, tiene:{rol_usuario}")
                     return JsonResponse({
                         'success': False,
                         'error': f'No tienes permisos para acceder como {rol_solicitado}'
                     }, status=403)
 
             except Usuario.DoesNotExist:
-                #  Si no tiene perfil personalizado, permitir admin/superuser
+                # Si no tiene perfil personalizado, permitir admin/superuser
                 if not user.is_superuser and rol_solicitado == 'administrador':
                     return JsonResponse({
                         'success': False,
@@ -96,20 +113,20 @@ def session_login(request):
                         'error': 'Usuario sin rol asignado'
                     }, status=403)
 
-            #  Crear sesin Django
+            # Crear sesión Django
             login(request, user)
-            print(f" Sesin creada para {username}")
+            logger.info(f"LOGIN: Sesión creada - Usuario ID:{user.id}")
 
-            #  Determinar URL de redireccin
+            # Determinar URL de redirección
             redirect_urls = {
                 'cocinero': '/cocina/',
                 'mesero': '/mesero/',
-                'cajero': '/caja/',  # Nueva URL para cajero
-                'administrador': '/reportes/dashboard/',  # Panel de reportes para admin
+                'cajero': '/caja/',
+                'administrador': '/reportes/dashboard/',
             }
-            
+
             redirect_url = redirect_urls.get(rol_solicitado, '/')
-            
+
             return JsonResponse({
                 'success': True,
                 'message': 'Login exitoso',
@@ -117,19 +134,16 @@ def session_login(request):
                 'user': username,
                 'rol': rol_solicitado
             })
-            
+
         else:
-            print(f" Credenciales invlidas para {username}")
+            logger.warning(f"LOGIN: Credenciales inválidas")
             return JsonResponse({
                 'success': False,
-                'error': 'Usuario o contrasea incorrectos'
+                'error': 'Usuario o contraseña incorrectos'
             }, status=401)
-            
+
     except Exception as e:
-        print(f" Error en session_login: {str(e)}")
-        import traceback
-        traceback.print_exc()
-        
+        logger.exception(f"LOGIN: Error en session_login")
         return JsonResponse({
             'success': False,
             'error': 'Error interno del servidor'
@@ -150,13 +164,16 @@ import json
 
 @csrf_protect
 @require_http_methods(["POST"])
+@rate_limit_login(max_attempts=5, lockout_duration=300, login_type='pin')
 def login_pin(request):
     """
-    Login con PIN para cajeros y empleados
+    ✅ ACTUALIZADO: Login con PIN + rate limiting + logging (SIN exponer PIN)
     """
     try:
         data = json.loads(request.body)
         pin = data.get('pin')
+
+        logger.info("LOGIN-PIN: Intento de login por PIN")
 
         if not pin:
             return JsonResponse({
@@ -164,10 +181,11 @@ def login_pin(request):
                 'error': 'PIN requerido'
             }, status=400)
 
-        # Buscar usuario por PIN
+        # Buscar usuario por PIN (NO loguear el PIN)
         try:
             usuario = Usuario.objects.get(pin=pin, activo=True)
         except Usuario.DoesNotExist:
+            logger.warning("LOGIN-PIN: PIN inválido o usuario inactivo")
             return JsonResponse({
                 'success': False,
                 'error': 'PIN incorrecto o usuario inactivo'
@@ -175,19 +193,21 @@ def login_pin(request):
 
         # Verificar que el usuario pueda usar PIN
         if not usuario.puede_usar_pin():
+            logger.warning(f"LOGIN-PIN: Usuario ID:{usuario.id} no puede usar PIN")
             return JsonResponse({
                 'success': False,
                 'error': 'Este usuario no puede usar PIN'
             }, status=403)
 
-        # Crear sesin
+        # Crear sesión
         login(request, usuario, backend='django.contrib.auth.backends.ModelBackend')
+        logger.info(f"LOGIN-PIN: Acceso exitoso - Usuario ID:{usuario.id}, rol:{usuario.rol}")
 
-        # Determinar redireccin segn rol
+        # Determinar redirección según rol
         redirect_urls = {
             'cajero': '/caja/',
-            'mesero': '/empleado/',  # Panel unificado
-            'cocinero': '/empleado/',  # Panel unificado
+            'mesero': '/empleado/',
+            'cocinero': '/empleado/',
         }
 
         redirect_url = redirect_urls.get(usuario.rol, '/empleado/')
@@ -201,10 +221,7 @@ def login_pin(request):
         })
 
     except Exception as e:
-        print(f" Error en login_pin: {str(e)}")
-        import traceback
-        traceback.print_exc()
-
+        logger.exception("LOGIN-PIN: Error en login_pin")
         return JsonResponse({
             'success': False,
             'error': 'Error interno del servidor'
@@ -214,7 +231,12 @@ def login_pin(request):
 @require_http_methods(["POST"])
 def login_admin(request):
     """
-    Login tradicional para administradores y gerentes
+    ✅ ACTUALIZADO: Login con redirección inteligente según privilegios
+
+    Comportamiento según tipo de usuario:
+    - superuser (is_superuser=True) → /admin/ (Django admin)
+    - staff (is_staff=True) → /adminux/ (panel moderno)
+    - usuario normal → /menu/ (menú cliente)
     """
     try:
         username = request.POST.get('username')
@@ -230,48 +252,61 @@ def login_admin(request):
         user = authenticate(request, username=username, password=password)
 
         if user is not None:
-            # Verificar que sea admin o gerente
+            # Verificar que el usuario esté activo
+            if not user.is_active:
+                logger.warning(f"LOGIN-ADMIN: Usuario Django inactivo - ID: {user.id}")
+                return JsonResponse({
+                    'success': False,
+                    'error': 'Tu cuenta está desactivada'
+                }, status=400)
+
+            # Verificar campo activo del modelo personalizado
             try:
                 usuario = Usuario.objects.get(username=username)
-
-                if usuario.rol not in ['admin', 'gerente']:
-                    return JsonResponse({
-                        'success': False,
-                        'error': 'Acceso restringido a administradores'
-                    }, status=403)
-
                 if not usuario.activo:
+                    logger.warning(f"LOGIN-ADMIN: Usuario SGIR inactivo - ID: {usuario.id}")
                     return JsonResponse({
                         'success': False,
-                        'error': 'Tu cuenta est desactivada'
+                        'error': 'Tu cuenta está desactivada'
                     }, status=400)
-
             except Usuario.DoesNotExist:
-                # Permitir superusuarios de Django
-                if not user.is_superuser:
-                    return JsonResponse({
-                        'success': False,
-                        'error': 'Usuario sin permisos de administrador'
-                    }, status=403)
+                # Usuario Django sin perfil personalizado
+                pass
 
-            # Crear sesin
+            # Crear sesión
             login(request, user)
+            logger.info(f"LOGIN-ADMIN: Login exitoso - {username} (is_staff={user.is_staff}, is_superuser={user.is_superuser})")
+
+            # ✅ REDIRECCIÓN INTELIGENTE según privilegios
+            if user.is_superuser:
+                # Superusuario → Admin nativo de Django
+                redirect_url = '/admin/'
+                logger.info(f"LOGIN-ADMIN: Superuser redirigido a /admin/")
+            elif user.is_staff:
+                # Staff → AdminUX (panel moderno)
+                redirect_url = '/adminux/'
+                logger.info(f"LOGIN-ADMIN: Staff redirigido a /adminux/")
+            else:
+                # Usuario normal → Menú cliente
+                redirect_url = '/menu/'
+                logger.info(f"LOGIN-ADMIN: Usuario normal redirigido a /menu/")
 
             return JsonResponse({
                 'success': True,
                 'message': 'Login exitoso',
-                'redirect_url': '/admin/',
+                'redirect_url': redirect_url,
                 'user': username
             })
 
         else:
+            logger.warning(f"LOGIN-ADMIN: Credenciales inválidas para usuario: {username}")
             return JsonResponse({
                 'success': False,
-                'error': 'Usuario o contrasea incorrectos'
+                'error': 'Usuario o contraseña incorrectos'
             }, status=401)
 
     except Exception as e:
-        print(f" Error en login_admin: {str(e)}")
+        logger.exception("LOGIN-ADMIN: Error en login_admin")
         import traceback
         traceback.print_exc()
 
@@ -292,22 +327,22 @@ def auth_qr(request, token):
         from app.caja.models import CierreCaja
         from datetime import date
 
-        print("=" * 80)
-        print(f"[AUTH-QR] INICIO - Intento de autenticacion por QR")
-        print(f"[AUTH-QR] Token recibido: {token}")
-        print(f"[AUTH-QR] Tipo: {type(token)}")
-        print(f"[AUTH-QR] Usuario actual: {request.user}")
-        print(f"[AUTH-QR] Esta autenticado: {request.user.is_authenticated}")
+        logger.debug("="*80)
+        logger.info(f"AUTH-QR: INICIO - Intento de autenticacion por QR")
+        logger.info(f"AUTH-QR: Token recibido: {token}")
+        logger.info(f"AUTH-QR: Tipo: {type(token)}")
+        logger.info(f"AUTH-QR: Usuario actual: {request.user}")
+        logger.info(f"AUTH-QR: Esta autenticado: {request.user.is_authenticated}")
 
         # Buscar usuario por token
         try:
             usuario = Usuario.objects.get(qr_token=token, activo=True)
-            print(f"[AUTH-QR] ✓ Usuario encontrado: {usuario.username} ({usuario.rol})")
-            print(f"[AUTH-QR] ✓ Usuario activo: {usuario.activo}")
-            print(f"[AUTH-QR] ✓ Usuario is_active: {usuario.is_active}")
+            logger.info(f"AUTH-QR: ✓ Usuario encontrado: {usuario.username} ({usuario.rol})")
+            logger.info(f"AUTH-QR: ✓ Usuario activo: {usuario.activo}")
+            logger.info(f"AUTH-QR: ✓ Usuario is_active: {usuario.is_active}")
         except Usuario.DoesNotExist:
-            print(f"[AUTH-QR] ✗ ERROR: Token QR no encontrado en BD: {token}")
-            print(f"[AUTH-QR] ✗ Redirigiendo a login...")
+            logger.info(f"AUTH-QR: ✗ ERROR: Token QR no encontrado en BD: {token}")
+            logger.info(f"AUTH-QR: ✗ Redirigiendo a login...")
             messages.error(request, 'Codigo QR invalido o expirado')
             return redirect('/login/')
 
@@ -319,34 +354,34 @@ def auth_qr(request, token):
         #         fecha=date.today()
         #     ).exists()
 
-        #     print(f"[AUTH-QR] Verificando caja para {usuario.rol}: {'Abierta' if caja_abierta else 'Cerrada'}")
+        #     logger.info(f"AUTH-QR: Verificando caja para {usuario.rol}: {'Abierta' if caja_abierta else 'Cerrada'}")
 
         #     if not caja_abierta:
-        #         print(f"[AUTH-QR] ERROR: Caja cerrada - Redirigiendo a login")
+        #         logger.info(f"AUTH-QR: ERROR: Caja cerrada - Redirigiendo a login")
         #         messages.error(request, 'La caja esta cerrada. No puedes iniciar sesion hasta que un cajero abra la caja.')
         #         return redirect('/login/')
 
         # Autenticar y crear sesion
-        print(f"[AUTH-QR] Intentando login para: {usuario.username}")
+        logger.info(f"AUTH-QR: Intentando login para: {usuario.username}")
         login(request, usuario, backend='django.contrib.auth.backends.ModelBackend')
-        print(f"[AUTH-QR] ✓ Login por QR exitoso: {usuario.username} ({usuario.rol})")
-        print(f"[AUTH-QR] ✓ Usuario ahora autenticado: {request.user.is_authenticated}")
+        logger.info(f"AUTH-QR: ✓ Login por QR exitoso: {usuario.username} ({usuario.rol})")
+        logger.info(f"AUTH-QR: ✓ Usuario ahora autenticado: {request.user.is_authenticated}")
 
         # Redirigir segn el rol
         if usuario.rol == 'mesero' or usuario.rol == 'cocinero':
-            print(f"[AUTH-QR] → Redirigiendo a /empleado/")
+            logger.info(f"AUTH-QR: → Redirigiendo a /empleado/")
             return redirect('/empleado/')  # Panel unificado
         elif usuario.rol == 'cajero':
-            print(f"[AUTH-QR] → Redirigiendo a /caja/")
+            logger.info(f"AUTH-QR: → Redirigiendo a /caja/")
             return redirect('/caja/')
         else:
-            print(f"[AUTH-QR] → Redirigiendo a /")
+            logger.info(f"AUTH-QR: → Redirigiendo a /")
             return redirect('/')
 
-        print("=" * 80)
+        logger.debug("="*80)
 
     except Exception as e:
-        print(f"[AUTH-QR] ERROR en auth_qr: {str(e)}")
+        logger.info(f"AUTH-QR: ERROR en auth_qr: {str(e)}")
         import traceback
         traceback.print_exc()
         messages.error(request, 'Error al procesar el codigo QR')
@@ -474,7 +509,7 @@ def generar_qr_empleado(request):
         })
 
     except Exception as e:
-        print(f"[ERROR] Error en generar_qr_empleado: {str(e)}")
+        logger.info(f"[ERROR] Error en generar_qr_empleado: {str(e)}")
         import traceback
         traceback.print_exc()
 
@@ -484,42 +519,48 @@ def generar_qr_empleado(request):
         }, status=500)
 
 
+@rate_limit_login(max_attempts=5, lockout_duration=300, login_type='qr')
 def qr_login(request, token):
     """
-    Login por QR usando el nuevo sistema de tokens regenerables
-    Al hacer login, invalida el token usado y genera uno nuevo
+    ✅ ACTUALIZADO: Login por QR con logging, rate limiting y validación de expiración
     """
     try:
         from django.utils import timezone
 
-        print("=" * 80)
-        print(f"[QR-LOGIN] Token recibido: {token}")
+        logger.info("QR-LOGIN: Intento de login con token")
 
         # Buscar token activo
         try:
             qr_token = QRToken.objects.get(token=token, activo=True)
             empleado = qr_token.usuario
-            print(f"[QR-LOGIN] ✓ Token válido para: {empleado.username} ({empleado.rol})")
+            logger.info(f"QR-LOGIN: Token válido para usuario ID:{empleado.id}, rol:{empleado.rol}")
         except QRToken.DoesNotExist:
-            print(f"[QR-LOGIN] ✗ Token inválido o expirado")
+            logger.warning("QR-LOGIN: Token inválido o ya usado")
             messages.error(request, 'Código QR inválido o expirado')
+            return redirect('/login/')
+
+        # ✅ NUEVO: Verificar expiración del token
+        if qr_token.esta_expirado():
+            qr_token.invalidar()
+            logger.warning(f"QR-LOGIN: Token expirado para usuario ID:{empleado.id}")
+            messages.error(request, 'Código QR expirado. Solicita uno nuevo.')
             return redirect('/login/')
 
         # Verificar que el empleado esté activo
         if not empleado.activo or not empleado.is_active:
-            print(f"[QR-LOGIN] ✗ Empleado inactivo")
+            logger.warning(f"QR-LOGIN: Usuario inactivo ID:{empleado.id}")
             messages.error(request, 'Tu cuenta está desactivada')
             return redirect('/login/')
 
-        # ✅ Marcar token como usado
+        # Marcar token como usado
         qr_token.marcar_usado()
-        print(f"[QR-LOGIN] ✓ Token marcado como usado")
+        logger.info("QR-LOGIN: Token marcado como usado")
 
-        # ✅ Autenticar y crear sesión
+        # Autenticar y crear sesión
         login(request, empleado, backend='django.contrib.auth.backends.ModelBackend')
-        print(f"[QR-LOGIN] ✓ Login exitoso para: {empleado.username}")
+        logger.info(f"QR-LOGIN: Login exitoso para usuario ID:{empleado.id}")
 
-        # ✅ Generar nuevo token automáticamente (invalida el usado)
+        # Generar nuevo token automáticamente
         import socket
         try:
             hostname = socket.gethostname()
@@ -527,10 +568,9 @@ def qr_login(request, token):
         except:
             ip_actual = '127.0.0.1'
 
-        nuevo_token = QRToken.generar_token(empleado, ip_actual)
-        print(f"[QR-LOGIN] ✓ Nuevo token generado: {nuevo_token.token}")
+        nuevo_token = QRToken.generar_token(empleado, ip_actual, duracion_horas=24)
+        logger.info(f"QR-LOGIN: Nuevo token generado (expira: {nuevo_token.fecha_expiracion})")
 
-        # ✅ CORREGIDO: Redirigir según el rol del empleado
         messages.success(request, f'Bienvenido {empleado.get_full_name() or empleado.username}')
 
         # Determinar panel según rol
@@ -541,15 +581,13 @@ def qr_login(request, token):
         elif empleado.rol == 'cajero':
             panel_url = '/caja/'
         else:
-            panel_url = '/empleado/'  # Fallback por si hay otro rol
+            panel_url = '/empleado/'
 
-        print(f"[QR-LOGIN] ✓ Redirigiendo a: {panel_url}")
+        logger.info(f"QR-LOGIN: Redirigiendo a: {panel_url}")
         return redirect(panel_url)
 
     except Exception as e:
-        print(f"[QR-LOGIN] ERROR: {str(e)}")
-        import traceback
-        traceback.print_exc()
+        logger.exception("QR-LOGIN: Error al procesar código QR")
         messages.error(request, 'Error al procesar el código QR')
         return redirect('/login/')
 

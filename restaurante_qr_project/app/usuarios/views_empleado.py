@@ -5,6 +5,9 @@ from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.contrib import messages
+import logging
+
+logger = logging.getLogger('app.usuarios')
 
 
 @ensure_csrf_cookie
@@ -14,15 +17,15 @@ def panel_empleado(request):
     Panel unificado que muestra todas las áreas a las que el empleado tiene acceso
     """
     usuario = request.user
-    print(f"[PANEL_EMPLEADO] Acceso de usuario: {usuario.username}, rol: {usuario.rol}")
+    logger.info(f"PANEL_EMPLEADO: Acceso usuario ID:{usuario.id}, rol:{usuario.rol}")
 
     # Verificar que sea mesero o cocinero
     if usuario.rol not in ['mesero', 'cocinero']:
-        print(f"[PANEL_EMPLEADO] Rol {usuario.rol} no permitido - redirigiendo a login")
+        logger.warning(f"PANEL_EMPLEADO: Rol {usuario.rol} no permitido - redirigiendo")
         messages.error(request, 'No tienes permisos para acceder a este panel.')
         return redirect('/login/')
 
-    print(f"[PANEL_EMPLEADO] Rol verificado OK - renderizando panel")
+    logger.debug("PANEL_EMPLEADO: Rol verificado OK - renderizando panel")
 
     # Obtener áreas activas del empleado
     areas_activas = usuario.get_areas_activas()

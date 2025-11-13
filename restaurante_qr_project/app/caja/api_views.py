@@ -11,6 +11,8 @@ from datetime import date, datetime
 import json
 import logging
 
+logger = logging.getLogger('app.caja')
+
 from app.pedidos.models import Pedido, DetallePedido
 from app.mesas.models import Mesa
 from app.mesas.utils import liberar_mesa
@@ -45,7 +47,7 @@ def api_pedidos_pendientes_pago(request):
     Obtiene todos los pedidos pendientes de pago
     """
     try:
-        print(f"[DEBUG] API Pedidos Pendientes - Usuario: {request.user}")
+        logger.debug(f"API Pedidos Pendientes - Usuario: {request.user}")
 
         # Mostrar pedidos pendientes de pago (cualquier estado excepto cancelado)
         pedidos = Pedido.objects.filter(
@@ -108,10 +110,7 @@ def api_pedidos_pendientes_pago(request):
         })
 
     except Exception as e:
-        print(f"[DEBUG] Error en api_pedidos_pendientes_pago: {str(e)}")
-        import traceback
-        traceback.print_exc()
-
+        logger.exception("Error en api_pedidos_pendientes_pago")
         return Response({
             'success': False,
             'error': str(e)
@@ -125,7 +124,7 @@ def api_pedidos_pagados(request):
     Obtiene todos los pedidos que ya fueron pagados (historial)
     """
     try:
-        print(f"[DEBUG] API Pedidos Pagados - Usuario: {request.user}")
+        logger.debug(f"API Pedidos Pagados - Usuario: {request.user}")
 
         # Mostrar pedidos pagados ordenados por fecha de pago descendente
         pedidos = Pedido.objects.filter(
@@ -170,10 +169,7 @@ def api_pedidos_pagados(request):
         })
 
     except Exception as e:
-        print(f"[DEBUG] Error en api_pedidos_pagados: {str(e)}")
-        import traceback
-        traceback.print_exc()
-
+        logger.exception("Error en api_pedidos_pagados")
         return Response({
             'success': False,
             'error': str(e)
@@ -231,7 +227,7 @@ def api_detalle_pedido(request, pedido_id):
         })
 
     except Exception as e:
-        print(f"[DEBUG] Error en api_detalle_pedido: {str(e)}")
+        logger.exception("Error en api_detalle_pedido")
         return Response({
             'success': False,
             'error': str(e)
@@ -388,7 +384,7 @@ def api_procesar_pago_mixto(request):
         pedido_id = request.data.get('pedido_id')
         detalles_pago = request.data.get('detalles_pago', [])  # Lista de {metodo, monto, referencia}
 
-        print(f"[DEBUG] Procesando pago mixto - Pedido: {pedido_id}")
+        logger.debug(f"Procesando pago mixto - Pedido: {pedido_id}")
 
         # Validaciones
         if not pedido_id or not detalles_pago:
@@ -467,7 +463,7 @@ def api_procesar_pago_mixto(request):
         # Verificar alertas de stock
         verificar_alertas_stock()
 
-        print(f"[DEBUG] Pago mixto procesado - Factura: {numero_factura}")
+        logger.debug(f"Pago mixto procesado - Factura: {numero_factura}")
 
         return Response({
             'success': True,
@@ -484,10 +480,7 @@ def api_procesar_pago_mixto(request):
         })
 
     except Exception as e:
-        print(f"[DEBUG] Error en api_procesar_pago_mixto: {str(e)}")
-        import traceback
-        traceback.print_exc()
-
+        logger.exception("Error en api_procesar_pago_mixto")
         return Response({
             'success': False,
             'error': str(e)
@@ -555,7 +548,7 @@ def api_aplicar_descuento(request):
             'error': str(e)
         }, status=status.HTTP_400_BAD_REQUEST)
     except Exception as e:
-        print(f"[DEBUG] Error en api_aplicar_descuento: {str(e)}")
+        logger.exception("Error en api_aplicar_descuento")
         return Response({
             'success': False,
             'error': str(e)
@@ -609,7 +602,7 @@ def api_aplicar_propina(request):
         })
 
     except Exception as e:
-        print(f"[DEBUG] Error en api_aplicar_propina: {str(e)}")
+        logger.exception("Error en api_aplicar_propina")
         return Response({
             'success': False,
             'error': str(e)
@@ -705,10 +698,7 @@ def api_agregar_producto_pedido(request):
         })
 
     except Exception as e:
-        print(f"[DEBUG] Error en api_agregar_producto_pedido: {str(e)}")
-        import traceback
-        traceback.print_exc()
-
+        logger.exception("Error en api_agregar_producto_pedido")
         return Response({
             'success': False,
             'error': str(e)
@@ -782,7 +772,7 @@ def api_eliminar_producto_pedido(request, detalle_id):
         })
 
     except Exception as e:
-        print(f"[DEBUG] Error en api_eliminar_producto_pedido: {str(e)}")
+        logger.exception("Error en api_eliminar_producto_pedido")
         return Response({
             'success': False,
             'error': str(e)
@@ -870,7 +860,7 @@ def api_modificar_cantidad_producto(request, detalle_id):
         })
 
     except Exception as e:
-        print(f"[DEBUG] Error en api_modificar_cantidad_producto: {str(e)}")
+        logger.exception("Error en api_modificar_cantidad_producto")
         return Response({
             'success': False,
             'error': str(e)
@@ -946,7 +936,7 @@ def api_reasignar_pedido_mesa(request):
         })
 
     except Exception as e:
-        print(f"[DEBUG] Error en api_reasignar_pedido_mesa: {str(e)}")
+        logger.exception("Error en api_reasignar_pedido_mesa")
         return Response({
             'success': False,
             'error': str(e)
@@ -991,7 +981,7 @@ def api_abrir_caja(request):
             efectivo_esperado=Decimal(str(efectivo_inicial))
         )
 
-        print(f"[DEBUG] Caja abierta - Cajero: {request.user}, Turno: {turno}")
+        logger.debug(f"Caja abierta - Cajero: {request.user}, Turno: {turno}")
 
         return Response({
             'success': True,
@@ -1007,7 +997,7 @@ def api_abrir_caja(request):
         })
 
     except Exception as e:
-        print(f"[DEBUG] Error en api_abrir_caja: {str(e)}")
+        logger.exception("Error en api_abrir_caja")
         return Response({
             'success': False,
             'error': str(e)
@@ -1083,7 +1073,7 @@ def api_cerrar_caja(request):
             observaciones=observaciones
         )
 
-        print(f"[DEBUG] Caja cerrada - Cajero: {request.user}, Diferencia: {turno.diferencia}")
+        logger.debug(f"Caja cerrada - Cajero: {request.user}, Diferencia: {turno.diferencia}")
 
         return Response({
             'success': True,
@@ -1109,10 +1099,7 @@ def api_cerrar_caja(request):
         })
 
     except Exception as e:
-        print(f"[DEBUG] Error en api_cerrar_caja: {str(e)}")
-        import traceback
-        traceback.print_exc()
-
+        logger.exception("Error en api_cerrar_caja")
         return Response({
             'success': False,
             'error': str(e)
@@ -1190,7 +1177,7 @@ def api_mapa_mesas(request):
         })
 
     except Exception as e:
-        print(f"[DEBUG] Error en api_mapa_mesas: {str(e)}")
+        logger.exception("Error en api_mapa_mesas")
         return Response({
             'success': False,
             'error': str(e)
@@ -1223,7 +1210,7 @@ def api_estadisticas_dia(request):
         })
 
     except Exception as e:
-        print(f"[DEBUG] Error en api_estadisticas_dia: {str(e)}")
+        logger.exception("Error en api_estadisticas_dia")
         return Response({
             'success': False,
             'error': str(e)
@@ -1292,7 +1279,7 @@ def api_resolver_alerta_stock(request, alerta_id):
         })
 
     except Exception as e:
-        print(f"[DEBUG] Error en api_resolver_alerta_stock: {str(e)}")
+        logger.exception("Error en api_resolver_alerta_stock")
         return Response({
             'success': False,
             'error': str(e)
@@ -1328,7 +1315,7 @@ def api_historial_modificaciones(request, pedido_id):
         })
 
     except Exception as e:
-        print(f"[ERROR] Error en api_historial_modificaciones: {str(e)}")
+        logger.exception("Error en api_historial_modificaciones")
         return Response({
             'success': False,
             'error': str(e)
@@ -1346,7 +1333,7 @@ def api_lista_empleados(request):
         from django.conf import settings
         from pathlib import Path
 
-        print(f"[API] Obteniendo lista de empleados - Usuario: {request.user}")
+        logger.info(f"API: Obteniendo lista de empleados - Usuario: {request.user}")
 
         # Obtener empleados activos (meseros, cocineros, cajeros)
         empleados = Usuario.objects.filter(
@@ -1387,10 +1374,7 @@ def api_lista_empleados(request):
         })
 
     except Exception as e:
-        print(f"[ERROR] Error en api_lista_empleados: {str(e)}")
-        import traceback
-        traceback.print_exc()
-
+        logger.exception("Error en api_lista_empleados")
         return Response({
             'success': False,
             'error': str(e)
@@ -1496,9 +1480,7 @@ def api_pedidos_kanban(request):
         })
 
     except Exception as e:
-        print(f"[DEBUG] Error en api_pedidos_kanban: {str(e)}")
-        import traceback
-        traceback.print_exc()
+        logger.exception("Error en api_pedidos_kanban")
         return Response({
             'success': False,
             'error': str(e)
@@ -1562,9 +1544,7 @@ def api_cambiar_estado_pedido(request, pedido_id):
         })
 
     except Exception as e:
-        print(f"[DEBUG] Error en api_cambiar_estado_pedido: {str(e)}")
-        import traceback
-        traceback.print_exc()
+        logger.exception("Error en api_cambiar_estado_pedido")
         return Response({
             'success': False,
             'error': str(e)
@@ -1615,9 +1595,7 @@ def api_jornada_estado(request):
             })
 
     except Exception as e:
-        print(f"[DEBUG] Error en api_jornada_estado: {str(e)}")
-        import traceback
-        traceback.print_exc()
+        logger.exception("Error en api_jornada_estado")
         return Response({
             'success': False,
             'error': str(e)
@@ -1651,7 +1629,7 @@ def api_jornada_iniciar(request):
 
         cajero_nombre = f"{request.user.first_name} {request.user.last_name}".strip() or request.user.username
 
-        print(f"[DEBUG] Jornada iniciada por {cajero_nombre}")
+        logger.debug(f"Jornada iniciada por {cajero_nombre}")
 
         return Response({
             'success': True,
@@ -1665,9 +1643,7 @@ def api_jornada_iniciar(request):
         })
 
     except Exception as e:
-        print(f"[DEBUG] Error en api_jornada_iniciar: {str(e)}")
-        import traceback
-        traceback.print_exc()
+        logger.exception("Error en api_jornada_iniciar")
         return Response({
             'success': False,
             'error': str(e)
@@ -1702,7 +1678,7 @@ def api_jornada_finalizar(request):
 
         cajero_nombre = f"{request.user.first_name} {request.user.last_name}".strip() or request.user.username
 
-        print(f"[DEBUG] Jornada finalizada por {cajero_nombre}")
+        logger.debug(f"Jornada finalizada por {cajero_nombre}")
 
         return Response({
             'success': True,
@@ -1718,9 +1694,7 @@ def api_jornada_finalizar(request):
         })
 
     except Exception as e:
-        print(f"[DEBUG] Error en api_jornada_finalizar: {str(e)}")
-        import traceback
-        traceback.print_exc()
+        logger.exception("Error en api_jornada_finalizar")
         return Response({
             'success': False,
             'error': str(e)

@@ -2,6 +2,9 @@ from django.db import models
 from django.utils import timezone
 from django.core.validators import MinValueValidator
 from decimal import Decimal
+import logging
+
+logger = logging.getLogger('app.caja')
 
 
 # === SGIR v38.3: Constante Global de Métodos de Pago (unificada) ===
@@ -182,7 +185,7 @@ class CierreCaja(models.Model):
                     if usuario.rol in ['mesero', 'cocinero']:
                         # Eliminar la sesión
                         sesion.delete()
-                        print(f"✅ Sesión cerrada para {usuario.username}")
+                        logger.info(f"✅ Sesión cerrada para {usuario.username}")
                 except Usuario.DoesNotExist:
                     pass
 

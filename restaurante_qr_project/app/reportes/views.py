@@ -7,6 +7,9 @@ from datetime import datetime, timedelta
 import json
 import csv
 from io import StringIO
+import logging
+
+logger = logging.getLogger('app.reportes')
 
 from .models import ReporteVentas
 from app.pedidos.models import Pedido, DetallePedido
@@ -29,10 +32,10 @@ def datos_ventas_semanales(request):
         fin_semana = inicio_semana + timedelta(days=6)
         
         # ✅ SOLUCIONADO: Debug para verificar fechas
-        print(f"📊 DASHBOARD DEBUG:")
-        print(f"📊 Hoy: {hoy}")
-        print(f"📊 Inicio semana: {inicio_semana}")
-        print(f"📊 Fin semana: {fin_semana}")
+        logger.info(f"📊 DASHBOARD DEBUG:")
+        logger.info(f"📊 Hoy: {hoy}")
+        logger.info(f"📊 Inicio semana: {inicio_semana}")
+        logger.info(f"📊 Fin semana: {fin_semana}")
         
         # ✅ SOLUCIONADO: Incluir TODOS los pedidos (no solo entregados)
         estados_ventas = ['pendiente', 'en preparacion', 'listo', 'entregado']
@@ -44,8 +47,8 @@ def datos_ventas_semanales(request):
             fecha__date__lte=fin_semana
         )
         
-        print(f"📊 Total pedidos en BD: {total_pedidos_bd}")
-        print(f"📊 Pedidos en semana actual: {pedidos_semana.count()}")
+        logger.info(f"📊 Total pedidos en BD: {total_pedidos_bd}")
+        logger.info(f"📊 Pedidos en semana actual: {pedidos_semana.count()}")
         
         # Datos por día de la semana
         ventas_por_dia = []
@@ -65,7 +68,7 @@ def datos_ventas_semanales(request):
                 estado__in=estados_ventas  # ✅ CAMBIADO: Todos los estados
             ).count()
             
-            print(f"📊 {dias_semana[i]} ({fecha}): {pedidos_dia} pedidos, Bs/ {ventas_dia}")
+            logger.info(f"📊 {dias_semana[i]} ({fecha}): {pedidos_dia} pedidos, Bs/ {ventas_dia}")
             
             ventas_por_dia.append({
                 'dia': dias_semana[i],
@@ -77,9 +80,9 @@ def datos_ventas_semanales(request):
         total_semana = sum(dia['ventas'] for dia in ventas_por_dia)
         total_pedidos_semana = sum(dia['pedidos'] for dia in ventas_por_dia)
         
-        print(f"📊 RESULTADO FINAL:")
-        print(f"📊 Total ventas semana: Bs/ {total_semana}")
-        print(f"📊 Total pedidos semana: {total_pedidos_semana}")
+        logger.info(f"📊 RESULTADO FINAL:")
+        logger.info(f"📊 Total ventas semana: Bs/ {total_semana}")
+        logger.info(f"📊 Total pedidos semana: {total_pedidos_semana}")
         
         return JsonResponse({
             'ventas_por_dia': ventas_por_dia,
@@ -88,7 +91,7 @@ def datos_ventas_semanales(request):
         })
         
     except Exception as e:
-        print(f"❌ Error en datos_ventas_semanales: {str(e)}")
+        logger.info(f"❌ Error en datos_ventas_semanales: {str(e)}")
         import traceback
         traceback.print_exc()
         return JsonResponse({'error': str(e)}, status=500)
@@ -103,7 +106,7 @@ def datos_productos_top(request):
         dias_desde_lunes = hoy.weekday()
         inicio_semana = hoy - timedelta(days=dias_desde_lunes)
         
-        print(f"📊 PRODUCTOS TOP - Inicio semana: {inicio_semana}")
+        logger.info(f"📊 PRODUCTOS TOP - Inicio semana: {inicio_semana}")
         
         # ✅ SOLUCIONADO: Incluir todos los estados de ventas
         estados_ventas = ['pendiente', 'en preparacion', 'listo', 'entregado']
@@ -118,11 +121,11 @@ def datos_productos_top(request):
             ingresos=Sum('subtotal')
         ).order_by('-cantidad_vendida')[:10]
         
-        print(f"📊 Productos encontrados: {productos_top.count()}")
+        logger.info(f"📊 Productos encontrados: {productos_top.count()}")
         
         productos_data = []
         for producto in productos_top:
-            print(f"📊 Producto: {producto['producto__nombre']} - Cantidad: {producto['cantidad_vendida']}")
+            logger.info(f"📊 Producto: {producto['producto__nombre']} - Cantidad: {producto['cantidad_vendida']}")
             productos_data.append({
                 'nombre': producto['producto__nombre'],
                 'cantidad': producto['cantidad_vendida'],
@@ -134,7 +137,7 @@ def datos_productos_top(request):
         })
         
     except Exception as e:
-        print(f"❌ Error en datos_productos_top: {str(e)}")
+        logger.info(f"❌ Error en datos_productos_top: {str(e)}")
         import traceback
         traceback.print_exc()
         return JsonResponse({'error': str(e)}, status=500)

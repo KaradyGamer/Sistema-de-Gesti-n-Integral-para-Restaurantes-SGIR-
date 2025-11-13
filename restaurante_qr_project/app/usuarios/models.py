@@ -218,14 +218,32 @@ class QRToken(models.Model):
         help_text='Fecha y hora en que se invalidó el token'
     )
 
+    # ✅ NUEVO: Fecha de expiración del token
+    fecha_expiracion = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text='Fecha y hora de expiración del token (24h por defecto)'
+    )
+
     class Meta:
         verbose_name = 'Token QR'
         verbose_name_plural = 'Tokens QR'
         ordering = ['-fecha_creacion']
+        indexes = [
+            models.Index(fields=['token', 'activo', 'usado']),
+            models.Index(fields=['usuario', 'activo']),
+        ]
 
     def __str__(self):
         estado = 'Activo' if self.activo else 'Inactivo'
         return f"QR Token - {self.usuario.username} ({estado})"
+
+    def esta_expirado(self):
+        """✅ NUEVO: Verifica si el token está expirado"""
+        from django.utils import timezone
+        if not self.fecha_expiracion:
+            return False  # Tokens antiguos sin expiración
+        return timezone.now() > self.fecha_expiracion
 
     def invalidar(self):
         """Invalida este token"""
@@ -235,19 +253,26 @@ class QRToken(models.Model):
         self.save()
 
     def marcar_usado(self):
-        """Marca el token como usado"""
+        """✅ ACTUALIZADO: Marca el token como usado e inactivo"""
         from django.utils import timezone
         self.usado = True
+        self.activo = False  # ✅ Desactivar al usar
         self.fecha_uso = timezone.now()
         self.save()
 
     @classmethod
-    def generar_token(cls, usuario, ip_actual):
+    def generar_token(cls, usuario, ip_actual, duracion_horas=24):
         """
-        Genera un nuevo token para el usuario
+        ✅ ACTUALIZADO: Genera un nuevo token para el usuario con expiración
         Invalida todos los tokens anteriores
+
+        Args:
+            usuario: Usuario para quien se genera el token
+            ip_actual: IP desde donde se genera
+            duracion_horas: Duración del token en horas (default: 24h)
         """
         from django.utils import timezone
+        from datetime import timedelta
 
         # Invalidar todos los tokens anteriores del usuario
         cls.objects.filter(usuario=usuario, activo=True).update(
@@ -255,10 +280,12 @@ class QRToken(models.Model):
             fecha_invalidacion=timezone.now()
         )
 
-        # Crear nuevo token
+        # Crear nuevo token con expiración
+        fecha_expiracion = timezone.now() + timedelta(hours=duracion_horas)
         nuevo_token = cls.objects.create(
             usuario=usuario,
-            ip_generacion=ip_actual
+            ip_generacion=ip_actual,
+            fecha_expiracion=fecha_expiracion  # ✅ NUEVO
         )
 
         return nuevo_token

@@ -360,8 +360,8 @@ def mapa_mesas_mesero(request):
 def api_pedidos_mesero(request):
     """API para obtener pedidos del mesero (listos y entregados) - DJANGO AUTH"""
     try:
-        print(f" API Pedidos Mesero - Usuario: {request.user}")
-        print(f" Usuario autenticado: {request.user.is_authenticated}")
+        logger.info(f" API Pedidos Mesero - Usuario: {request.user}")
+        logger.info(f" Usuario autenticado: {request.user.is_authenticated}")
         
         fecha_hoy = date.today()
         
@@ -376,8 +376,8 @@ def api_pedidos_mesero(request):
             fecha__date=fecha_hoy
         ).select_related('mesa').prefetch_related('detalles__producto').order_by('-fecha')
         
-        print(f" Pedidos listos encontrados: {pedidos_listos.count()}")
-        print(f" Pedidos entregados encontrados: {pedidos_entregados.count()}")
+        logger.info(f" Pedidos listos encontrados: {pedidos_listos.count()}")
+        logger.info(f" Pedidos entregados encontrados: {pedidos_entregados.count()}")
         
         # Serializar pedidos listos
         pedidos_listos_data = []
@@ -423,12 +423,12 @@ def api_pedidos_mesero(request):
             'timestamp': datetime.now().isoformat()
         }
         
-        print(f" Enviando {len(pedidos_listos_data)} pedidos listos y {len(pedidos_entregados_data)} entregados")
+        logger.info(f" Enviando {len(pedidos_listos_data)} pedidos listos y {len(pedidos_entregados_data)} entregados")
         
         return JsonResponse(response_data)
         
     except Exception as e:
-        print(f" Error en api_pedidos_mesero: {str(e)}")
+        logger.info(f" Error en api_pedidos_mesero: {str(e)}")
         import traceback
         traceback.print_exc()
         
@@ -442,46 +442,46 @@ def api_pedidos_mesero(request):
 def api_reservas_mesero(request):
     """API para obtener reservas del da para el mesero - DJANGO AUTH"""
     try:
-        print("=" * 50)
-        print(f" API RESERVAS MESERO - Usuario: {request.user}")
-        print(f" Usuario autenticado: {request.user.is_authenticated}")
-        print("=" * 50)
+        logger.debug("="*50)
+        logger.info(f" API RESERVAS MESERO - Usuario: {request.user}")
+        logger.info(f" Usuario autenticado: {request.user.is_authenticated}")
+        logger.debug("="*50)
         
         # Obtener fecha actual
         fecha_hoy = timezone.now().date()
         fecha_manana = fecha_hoy + timedelta(days=1)
         
-        print(f" Fecha hoy: {fecha_hoy}")
-        print(f" Fecha maana: {fecha_manana}")
+        logger.info(f" Fecha hoy: {fecha_hoy}")
+        logger.info(f" Fecha maana: {fecha_manana}")
         
         # Obtener TODAS las reservas para debug
         todas_reservas = Reserva.objects.all()
-        print(f" TOTAL reservas en BD: {todas_reservas.count()}")
+        logger.info(f" TOTAL reservas en BD: {todas_reservas.count()}")
         
         for reserva in todas_reservas:
-            print(f"   Reserva #{reserva.id}: {reserva.nombre_completo} | {reserva.fecha_reserva} | {reserva.estado}")
+            logger.info(f"   Reserva #{reserva.id}: {reserva.nombre_completo} | {reserva.fecha_reserva} | {reserva.estado}")
         
         # Obtener reservas de hoy
         reservas_hoy = Reserva.objects.filter(
             fecha_reserva=fecha_hoy
         ).order_by('hora_reserva')
         
-        print(f" Reservas encontradas para HOY ({fecha_hoy}): {reservas_hoy.count()}")
+        logger.info(f" Reservas encontradas para HOY ({fecha_hoy}): {reservas_hoy.count()}")
         
         # Debug detallado de reservas de hoy
         for reserva in reservas_hoy:
-            print(f"   Reserva HOY #{reserva.id}: {reserva.nombre_completo}, {reserva.hora_reserva}, Estado: {reserva.estado}")
+            logger.info(f"   Reserva HOY #{reserva.id}: {reserva.nombre_completo}, {reserva.hora_reserva}, Estado: {reserva.estado}")
         
         # Prximas reservas (maana en adelante)
         reservas_proximas = Reserva.objects.filter(
             fecha_reserva__gte=fecha_manana
         ).order_by('fecha_reserva', 'hora_reserva')[:10]
         
-        print(f" Prximas reservas encontradas: {reservas_proximas.count()}")
+        logger.info(f" Prximas reservas encontradas: {reservas_proximas.count()}")
         
         # Debug prximas reservas
         for reserva in reservas_proximas:
-            print(f"   Reserva PRXIMA #{reserva.id}: {reserva.nombre_completo}, {reserva.fecha_reserva}, {reserva.hora_reserva}")
+            logger.info(f"   Reserva PRXIMA #{reserva.id}: {reserva.nombre_completo}, {reserva.fecha_reserva}, {reserva.hora_reserva}")
         
         # Serializar reservas de hoy
         reservas_hoy_data = []
@@ -513,7 +513,7 @@ def api_reservas_mesero(request):
             }
             
             reservas_hoy_data.append(reserva_data)
-            print(f"   Serializada reserva HOY: {reserva.nombre_completo} - {reserva.estado}")
+            logger.info(f"   Serializada reserva HOY: {reserva.nombre_completo} - {reserva.estado}")
         
         # Serializar prximas reservas
         reservas_proximas_data = []
@@ -530,7 +530,7 @@ def api_reservas_mesero(request):
                 'mesa': reserva.mesa.numero if reserva.mesa else None
             }
             reservas_proximas_data.append(reserva_data)
-            print(f"   Serializada reserva PRXIMA: {reserva.nombre_completo}")
+            logger.info(f"   Serializada reserva PRXIMA: {reserva.nombre_completo}")
         
         response_data = {
             'success': True,
@@ -546,15 +546,15 @@ def api_reservas_mesero(request):
             }
         }
         
-        print(f" RESPUESTA FINAL:")
-        print(f"  - Reservas HOY: {len(reservas_hoy_data)}")
-        print(f"  - Reservas PRXIMAS: {len(reservas_proximas_data)}")
-        print("=" * 50)
+        logger.info(f" RESPUESTA FINAL:")
+        logger.info(f"  - Reservas HOY: {len(reservas_hoy_data)}")
+        logger.info(f"  - Reservas PRXIMAS: {len(reservas_proximas_data)}")
+        logger.debug("="*50)
         
         return JsonResponse(response_data)
         
     except Exception as e:
-        print(f" ERROR GRAVE en api_reservas_mesero: {str(e)}")
+        logger.info(f" ERROR GRAVE en api_reservas_mesero: {str(e)}")
         import traceback
         traceback.print_exc()
         
@@ -583,7 +583,7 @@ def api_entregar_pedido(request, pedido_id):
         pedido.estado = 'entregado'
         pedido.save()
         
-        print(f" Pedido #{pedido_id} marcado como entregado por {request.user}")
+        logger.info(f" Pedido #{pedido_id} marcado como entregado por {request.user}")
         
         return JsonResponse({
             'success': True,
@@ -597,7 +597,7 @@ def api_entregar_pedido(request, pedido_id):
             'error': 'Pedido no encontrado'
         }, status=404)
     except Exception as e:
-        print(f" Error en api_entregar_pedido: {str(e)}")
+        logger.info(f" Error en api_entregar_pedido: {str(e)}")
         return JsonResponse({
             'success': False,
             'error': str(e)
@@ -622,7 +622,7 @@ def api_confirmar_reserva(request, reserva_id):
         reserva.estado = 'confirmada'
         reserva.save()
         
-        print(f" Reserva #{reserva_id} confirmada por {request.user}")
+        logger.info(f" Reserva #{reserva_id} confirmada por {request.user}")
         
         return JsonResponse({
             'success': True,
@@ -637,7 +637,7 @@ def api_confirmar_reserva(request, reserva_id):
             'error': 'Reserva no encontrada'
         }, status=404)
     except Exception as e:
-        print(f" Error en api_confirmar_reserva: {str(e)}")
+        logger.info(f" Error en api_confirmar_reserva: {str(e)}")
         return JsonResponse({
             'success': False,
             'error': str(e)
@@ -673,7 +673,7 @@ def api_cambiar_estado_reserva(request, reserva_id):
         reserva.estado = nuevo_estado
         reserva.save()
         
-        print(f" Reserva #{reserva_id} cambiada de '{estado_anterior}' a '{nuevo_estado}' por {request.user}")
+        logger.info(f" Reserva #{reserva_id} cambiada de '{estado_anterior}' a '{nuevo_estado}' por {request.user}")
         
         return JsonResponse({
             'success': True,
@@ -689,7 +689,7 @@ def api_cambiar_estado_reserva(request, reserva_id):
             'error': 'Reserva no encontrada'
         }, status=404)
     except Exception as e:
-        print(f" Error en api_cambiar_estado_reserva: {str(e)}")
+        logger.info(f" Error en api_cambiar_estado_reserva: {str(e)}")
         return JsonResponse({
             'success': False,
             'error': str(e)
@@ -727,7 +727,7 @@ def api_asignar_mesa_reserva(request, reserva_id):
         reserva.mesa = mesa
         reserva.save()
         
-        print(f" Mesa {mesa_numero} asignada a reserva #{reserva_id} por {request.user}")
+        logger.info(f" Mesa {mesa_numero} asignada a reserva #{reserva_id} por {request.user}")
         
         return JsonResponse({
             'success': True,
@@ -743,7 +743,7 @@ def api_asignar_mesa_reserva(request, reserva_id):
             'error': 'Reserva no encontrada'
         }, status=404)
     except Exception as e:
-        print(f" Error en api_asignar_mesa_reserva: {str(e)}")
+        logger.info(f" Error en api_asignar_mesa_reserva: {str(e)}")
         return JsonResponse({
             'success': False,
             'error': str(e)
@@ -759,8 +759,8 @@ def pedidos_en_cocina_api(request):
     """API para obtener todos los pedidos para la cocina - DJANGO AUTH"""
     try:
         #  Debug: Verificar el usuario y rol
-        print(f" API Cocina - Usuario autenticado: {request.user}")
-        print(f" Username: {request.user.username}")
+        logger.info(f" API Cocina - Usuario autenticado: {request.user}")
+        logger.info(f" Username: {request.user.username}")
         
         #  CORREGIDO: Solo mostrar pedidos que el cocinero necesita trabajar
         # Excluir 'listo' y 'entregado' porque ya no son responsabilidad del cocinero
@@ -768,11 +768,11 @@ def pedidos_en_cocina_api(request):
             estado__in=['pendiente', 'en preparacion']  #  SOLO ESTOS ESTADOS
         ).order_by('-fecha')
         
-        print(f" Pedidos encontrados para cocina: {pedidos.count()}")
+        logger.info(f" Pedidos encontrados para cocina: {pedidos.count()}")
         
         pedidos_data = []
         for pedido in pedidos:
-            print(f" Procesando pedido ID: {pedido.id}, Mesa: {pedido.mesa}, Estado: {pedido.estado}")
+            logger.info(f" Procesando pedido ID: {pedido.id}, Mesa: {pedido.mesa}, Estado: {pedido.estado}")
             
             #  SOLUCIONADO: Usar 'detalles' en lugar de 'detallepedido_set'
             try:
@@ -785,7 +785,7 @@ def pedidos_en_cocina_api(request):
                             'producto': detalle.producto.nombre if detalle.producto else 'Producto',
                             'subtotal': float(detalle.subtotal)
                         })
-                    print(f"   Detalles encontrados: {len(detalles_data)}")
+                    logger.info(f"   Detalles encontrados: {len(detalles_data)}")
                 else:
                     # Si no hay detalles, crear uno genrico
                     detalles_data = [
@@ -795,9 +795,9 @@ def pedidos_en_cocina_api(request):
                             'subtotal': float(pedido.total)
                         }
                     ]
-                    print(f"   No hay detalles, creando genrico")
+                    logger.info(f"   No hay detalles, creando genrico")
             except Exception as e:
-                print(f"   Error obteniendo detalles: {str(e)}")
+                logger.info(f"   Error obteniendo detalles: {str(e)}")
                 # Fallback: usar datos bsicos
                 detalles_data = [
                     {
@@ -823,11 +823,11 @@ def pedidos_en_cocina_api(request):
                 'mesero': mesero_nombre
             })
         
-        print(f" Enviando {len(pedidos_data)} pedidos al frontend (solo pendientes y en preparacin)")
+        logger.info(f" Enviando {len(pedidos_data)} pedidos al frontend (solo pendientes y en preparacin)")
         return JsonResponse(pedidos_data, safe=False)
         
     except Exception as e:
-        print(f" ERROR GRAVE en pedidos_en_cocina_api: {str(e)}")
+        logger.info(f" ERROR GRAVE en pedidos_en_cocina_api: {str(e)}")
         import traceback
         traceback.print_exc()
         
@@ -847,16 +847,16 @@ def actualizar_estado_pedido(request, pedido_id):
         import json
         data = json.loads(request.body) if request.body else {}
         
-        print(f" Actualizando pedido {pedido_id}, usuario: {request.user}")
-        print(f" Datos recibidos: {data}")
+        logger.info(f" Actualizando pedido {pedido_id}, usuario: {request.user}")
+        logger.info(f" Datos recibidos: {data}")
         
         # Buscar el pedido
         pedido = Pedido.objects.get(id=pedido_id)
-        print(f" Pedido encontrado: {pedido}")
+        logger.info(f" Pedido encontrado: {pedido}")
         
         # Obtener el nuevo estado del request
         nuevo_estado = data.get('estado')
-        print(f" Nuevo estado solicitado: {nuevo_estado}")
+        logger.info(f" Nuevo estado solicitado: {nuevo_estado}")
         
         # Validar que se envi un estado
         if not nuevo_estado:
@@ -876,7 +876,7 @@ def actualizar_estado_pedido(request, pedido_id):
         pedido.estado = nuevo_estado
         pedido.save()
         
-        print(f" Pedido {pedido_id} actualizado de '{estado_anterior}' a '{nuevo_estado}'")
+        logger.info(f" Pedido {pedido_id} actualizado de '{estado_anterior}' a '{nuevo_estado}'")
         
         return JsonResponse({
             'mensaje': f'Pedido #{pedido_id} actualizado correctamente',
@@ -886,13 +886,13 @@ def actualizar_estado_pedido(request, pedido_id):
         })
 
     except Pedido.DoesNotExist:
-        print(f" Pedido {pedido_id} no encontrado")
+        logger.info(f" Pedido {pedido_id} no encontrado")
         return JsonResponse({
             'error': f'Pedido con ID {pedido_id} no encontrado'
         }, status=404)
     
     except Exception as e:
-        print(f" Error al actualizar pedido {pedido_id}: {str(e)}")
+        logger.info(f" Error al actualizar pedido {pedido_id}: {str(e)}")
         import traceback
         traceback.print_exc()
         return JsonResponse({
@@ -909,11 +909,11 @@ def actualizar_estado_pedido(request, pedido_id):
 def pedidos_por_mesa(request):
     """API para que el mesero vea pedidos por mesa"""
     try:
-        print(f" Mesero solicitando pedidos por mesa: {request.user}")
+        logger.info(f" Mesero solicitando pedidos por mesa: {request.user}")
         
         # Obtener todas las mesas con pedidos activos
         pedidos = Pedido.objects.exclude(estado='entregado').select_related('mesa').order_by('-fecha')
-        print(f" Pedidos activos encontrados: {pedidos.count()}")
+        logger.info(f" Pedidos activos encontrados: {pedidos.count()}")
         
         # Agrupar por mesa
         mesas_data = {}
@@ -933,11 +933,11 @@ def pedidos_por_mesa(request):
                 'fecha': pedido.fecha.isoformat()
             })
         
-        print(f" Enviando datos de {len(mesas_data)} mesas")
+        logger.info(f" Enviando datos de {len(mesas_data)} mesas")
         return Response(list(mesas_data.values()), status=status.HTTP_200_OK)
     
     except Exception as e:
-        print(f" Error en pedidos_por_mesa: {str(e)}")
+        logger.info(f" Error en pedidos_por_mesa: {str(e)}")
         return Response({
             'error': f'Error al obtener pedidos por mesa: {str(e)}'
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
@@ -948,25 +948,25 @@ def pedidos_por_mesa(request):
 def marcar_entregado(request, pedido_id):
     """Marcar pedido como entregado"""
     try:
-        print(f" Marcando pedido {pedido_id} como entregado, usuario: {request.user}")
+        logger.info(f" Marcando pedido {pedido_id} como entregado, usuario: {request.user}")
         
         pedido = Pedido.objects.get(id=pedido_id)
         pedido.estado = 'entregado'
         pedido.save()
         
-        print(f" Pedido {pedido_id} marcado como entregado")
+        logger.info(f" Pedido {pedido_id} marcado como entregado")
         
         return Response({
             'mensaje': f'Pedido #{pedido_id} marcado como entregado'
         }, status=status.HTTP_200_OK)
         
     except Pedido.DoesNotExist:
-        print(f" Pedido {pedido_id} no encontrado para marcar como entregado")
+        logger.info(f" Pedido {pedido_id} no encontrado para marcar como entregado")
         return Response({
             'error': f'Pedido con ID {pedido_id} no encontrado'
         }, status=status.HTTP_404_NOT_FOUND)
     except Exception as e:
-        print(f" Error al marcar como entregado: {str(e)}")
+        logger.info(f" Error al marcar como entregado: {str(e)}")
         return Response({
             'error': f'Error: {str(e)}'
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

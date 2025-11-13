@@ -19,7 +19,21 @@
       "Bash(python -m pip:*)",
       "Bash(locust:*)",
       "Bash(timeout 3 sleep:*)",
-      "Bash(xargs ls:*)"
+      "Bash(xargs ls:*)",
+      "Bash(python replace_personal.py:*)",
+      "Bash(del replace_personal.py)",
+      "Bash(find:*)",
+      "Bash(xargs -I {} sh -c 'grep -c \"\"\"\"^def \"\"\"\" {} && echo {}')",
+      "Bash(paste:*)",
+      "Bash(test:*)",
+      "Bash(mkdir:*)",
+      "Bash(del check_templates.py)",
+      "Bash(md5sum:*)",
+      "Read(//c/Users/jhami/OneDrive/**)",
+      "Bash(git rm:*)",
+      "Bash(for file in templates/html/cocinero/panel_cocina.html templates/html/mesero/panel_mesero.html templates/html/reservas/panel.html)",
+      "Bash(do echo \"=== $file ===\")",
+      "Bash(done)"
     ],
     "deny": [],
     "ask": []

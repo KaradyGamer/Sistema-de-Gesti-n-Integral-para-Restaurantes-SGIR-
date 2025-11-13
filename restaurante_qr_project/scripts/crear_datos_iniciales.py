@@ -258,9 +258,25 @@ def crear_mesas():
             print(f"  ✅ Mesa {i} - Capacidad: {mesa.capacidad} personas")
 
 def main():
+    # ✅ SEGURIDAD: Solo ejecutar en entorno de desarrollo
+    from django.conf import settings
+
+    if not settings.DEBUG:
+        print("\n" + "="*60)
+        print("❌ ERROR: Este script solo debe ejecutarse en desarrollo")
+        print("="*60)
+        print("\n⚠️  DEBUG=False detectado")
+        print("Este script crea usuarios con credenciales de prueba débiles.")
+        print("NO debe ejecutarse en producción.")
+        print("\nPara crear usuarios en producción, usa:")
+        print("  python manage.py createsuperuser\n")
+        sys.exit(1)
+
     print("\n" + "="*60)
-    print("     CONFIGURACIÓN INICIAL DEL RESTAURANTE")
+    print("     CONFIGURACIÓN INICIAL DEL RESTAURANTE (DESARROLLO)")
     print("="*60)
+    print("⚠️  Este script es SOLO para entornos de desarrollo")
+    print("="*60 + "\n")
 
     crear_usuarios()
     crear_categorias_productos()

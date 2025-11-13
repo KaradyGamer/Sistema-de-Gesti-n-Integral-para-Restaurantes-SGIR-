@@ -1,7 +1,13 @@
+import logging
+from django.contrib.auth import authenticate, login
+from django.contrib.auth.decorators import login_required, user_passes_test
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.db.models import Count, Sum, Q
 from django.utils import timezone
+from django.urls import reverse, NoReverseMatch
+from django.apps import apps
+from django.views.decorators.csrf import csrf_protect
 from datetime import date
 
 from app.usuarios.models import Usuario
@@ -10,58 +16,229 @@ from app.productos.models import Producto, Categoria
 from app.mesas.models import Mesa
 from app.pedidos.models import Pedido
 from app.reservas.models import Reserva
+from app.caja.models import JornadaLaboral, Transaccion
+
+logger = logging.getLogger("app.adminux")
+
+
+def staff_required(user):
+    """Verifica que el usuario esté autenticado y tenga permisos de staff."""
+    return user.is_authenticated and user.is_staff
+
+
+def safe_get_model(app_label, model_name):
+    """
+    Carga un modelo de forma segura.
+    Retorna None si el modelo no existe en lugar de lanzar excepción.
+    """
+    try:
+        return apps.get_model(app_label, model_name)
+    except Exception as e:
+        logger.debug(f"Model {app_label}.{model_name} not found: {e}")
+        return None
+
+
+def admin_url_for(model_cls, action="changelist"):
+    """
+    Genera URL del admin de Django para un modelo.
+    Retorna '#' si el modelo no está registrado en el admin (evita NoReverseMatch).
+    """
+    if model_cls is None:
+        return "#"
+    try:
+        app_label = model_cls._meta.app_label
+        model_name = model_cls._meta.model_name
+        return reverse(f"admin:{app_label}_{model_name}_{action}")
+    except NoReverseMatch:
+        logger.debug(f"Admin URL not found for {model_cls.__name__} - action: {action}")
+        return "#"
+    except Exception as e:
+        logger.debug(f"Error generating admin URL for {model_cls.__name__}: {e}")
+        return "#"
+
+
+def safe_count(qs, **filters):
+    """Evita crasheos si el campo no existe en el modelo."""
+    try:
+        return qs.filter(**filters).count()
+    except Exception as e:
+        logger.debug(f"safe_count fallback for {qs.model.__name__}: {e}")
+        return qs.count()
+
+
+# ══════════════════════════════════════════════
+# 🔐 LOGIN DEL PERSONAL
+# ══════════════════════════════════════════════
+
+@csrf_protect
+def staff_login(request):
+    """
+    Login unificado para el personal del restaurante.
+
+    Comportamiento según tipo de usuario:
+    - superuser → redirige a /admin/ (admin nativo Django)
+    - staff (no superuser) → redirige a /adminux/ (panel moderno)
+    - usuario normal → redirige a / (puede ajustarse)
+
+    Respeta el parámetro ?next= si apunta a /adminux/
+    """
+    # Si ya está autenticado, redirigir según privilegios
+    if request.user.is_authenticated:
+        if request.user.is_superuser:
+            return redirect("/admin/")
+        elif request.user.is_staff:
+            return redirect("/adminux/")
+        return redirect("/")
+
+    if request.method == "POST":
+        username = request.POST.get("username", "").strip()
+        password = request.POST.get("password", "")
+
+        # Autenticar usuario
+        user = authenticate(request, username=username, password=password)
+
+        if not user:
+            logger.warning(f"Login fallido: usuario '{username}' no existe o credenciales inválidas")
+            return render(request, "adminux/login.html", {
+                "error": "Usuario o contraseña incorrectos",
+                "next": request.POST.get("next", "")
+            })
+
+        if not user.is_active:
+            logger.warning(f"Login fallido: usuario '{username}' está inactivo")
+            return render(request, "adminux/login.html", {
+                "error": "Tu cuenta está inactiva. Contacta al administrador.",
+                "next": request.POST.get("next", "")
+            })
+
+        # Login exitoso
+        login(request, user)
+        logger.info(f"Login exitoso: {username} (is_staff={user.is_staff}, is_superuser={user.is_superuser})")
+
+        # Determinar redirección
+        next_url = request.POST.get("next") or request.GET.get("next") or ""
+
+        # Si viene con ?next= hacia /adminux/, respetarlo
+        if next_url.startswith("/adminux/"):
+            return redirect(next_url)
+
+        # Ruteo automático por privilegios
+        if user.is_superuser:
+            return redirect("/admin/")
+        elif user.is_staff:
+            return redirect("/adminux/")
+        else:
+            # Usuarios normales (clientes, etc.)
+            return redirect("/")
+
+    # GET request - mostrar formulario de login
+    return render(request, "adminux/login.html", {
+        "next": request.GET.get("next", "")
+    })
 
 
 # ══════════════════════════════════════════════
 # 📊 DASHBOARD PRINCIPAL
 # ══════════════════════════════════════════════
 
-@admin_requerido
-def dashboard(request):
-    """Dashboard principal de AdminUX con estadísticas"""
+@login_required(login_url="/staff/login/")
+@user_passes_test(staff_required, login_url="/staff/login/")
+def adminux_dashboard(request):
+    """
+    Dashboard principal de AdminUX con estadísticas y enlaces al admin nativo.
+    Solo accesible para usuarios is_staff.
+    Versión mejorada con manejo robusto de errores NoReverseMatch.
+    """
+    # Cargar modelos dinámicamente (con manejo de errores)
+    Mesa = safe_get_model("mesas", "Mesa")
+    Producto = safe_get_model("productos", "Producto")
+    Categoria = safe_get_model("productos", "Categoria")
+    Pedido = safe_get_model("pedidos", "Pedido")
+    Reserva = safe_get_model("reservas", "Reserva")
+    Usuario = safe_get_model("usuarios", "Usuario")
 
-    # Estadísticas generales
-    total_usuarios = Usuario.objects.filter(activo=True).count()
-    total_productos = Producto.objects.filter(activo=True).count()
-    total_mesas = Mesa.objects.count()
+    # Modelos de Caja (todos los registrados en admin)
+    AlertaStock = safe_get_model("caja", "AlertaStock")
+    CierreCaja = safe_get_model("caja", "CierreCaja")
+    DetallePago = safe_get_model("caja", "DetallePago")
+    HistMod = safe_get_model("caja", "HistorialModificaciones")
+    JornadaLaboral = safe_get_model("caja", "JornadaLaboral")
+    Transaccion = safe_get_model("caja", "Transaccion")
 
-    # Pedidos del día
-    hoy = date.today()
-    pedidos_hoy = Pedido.objects.filter(fecha__date=hoy)
-    total_pedidos_hoy = pedidos_hoy.count()
-    ventas_hoy = pedidos_hoy.filter(estado_pago='pagado').aggregate(Sum('total'))['total__sum'] or 0
+    # KPIs del sistema
+    kpis = {
+        "mesas": {
+            "total": Mesa.objects.count() if Mesa else 0,
+            "disponibles": safe_count(Mesa.objects, disponible=True) if Mesa else 0,
+            "admin_list": admin_url_for(Mesa),
+            "admin_add": admin_url_for(Mesa, "add"),
+        },
+        "productos": {
+            "total": Producto.objects.count() if Producto else 0,
+            "categorias": safe_count(Categoria.objects, activo=True) if Categoria else 0,
+            "stock_bajo": safe_count(Producto.objects, activo=True, stock_actual__lte=10) if Producto and hasattr(Producto, 'stock_actual') else 0,
+            "admin_list": admin_url_for(Producto),
+            "admin_add": admin_url_for(Producto, "add"),
+            "admin_categorias": admin_url_for(Categoria),
+        },
+        "pedidos": {
+            "total": Pedido.objects.count() if Pedido else 0,
+            "pendientes": safe_count(Pedido.objects, estado="pendiente") if Pedido else 0,
+            "en_cocina": safe_count(Pedido.objects, estado__in=["en_preparacion", "en_cocina"]) if Pedido else 0,
+            "listos": safe_count(Pedido.objects, estado="listo") if Pedido else 0,
+            "admin_list": admin_url_for(Pedido),
+            "admin_add": admin_url_for(Pedido, "add"),
+        },
+        "caja": {
+            # Contadores
+            "jornadas": JornadaLaboral.objects.count() if JornadaLaboral else 0,
+            "transacciones": Transaccion.objects.count() if Transaccion else 0,
+            "alertas_stock": AlertaStock.objects.count() if AlertaStock else 0,
+            "cierres": CierreCaja.objects.count() if CierreCaja else 0,
+            "jornada_activa": JornadaLaboral.hay_jornada_activa() if JornadaLaboral and hasattr(JornadaLaboral, 'hay_jornada_activa') else False,
 
-    # Reservas activas
-    reservas_activas = Reserva.objects.filter(
-        estado__in=['pendiente', 'confirmada'],
-        fecha_reserva__gte=hoy
-    ).count()
-
-    # Productos con stock bajo
-    productos_stock_bajo = Producto.objects.filter(
-        activo=True,
-        stock__lte=10
-    ).count()
-
-    # Últimos pedidos
-    ultimos_pedidos = Pedido.objects.select_related('mesa').order_by('-fecha')[:5]
-
-    # Últimas reservas
-    ultimas_reservas = Reserva.objects.select_related('mesa').order_by('-fecha_creacion')[:5]
-
-    context = {
-        'total_usuarios': total_usuarios,
-        'total_productos': total_productos,
-        'total_mesas': total_mesas,
-        'total_pedidos_hoy': total_pedidos_hoy,
-        'ventas_hoy': ventas_hoy,
-        'reservas_activas': reservas_activas,
-        'productos_stock_bajo': productos_stock_bajo,
-        'ultimos_pedidos': ultimos_pedidos,
-        'ultimas_reservas': ultimas_reservas,
+            # Enlaces al admin (todos los modelos registrados)
+            "alertas_list": admin_url_for(AlertaStock),
+            "alertas_add": admin_url_for(AlertaStock, "add"),
+            "cierres_list": admin_url_for(CierreCaja),
+            "cierres_add": admin_url_for(CierreCaja, "add"),
+            "detalles_pago_list": admin_url_for(DetallePago),
+            "historial_list": admin_url_for(HistMod),
+            "jornadas_list": admin_url_for(JornadaLaboral),
+            "jornadas_add": admin_url_for(JornadaLaboral, "add"),
+            "transacciones_list": admin_url_for(Transaccion),
+            "transacciones_add": admin_url_for(Transaccion, "add"),
+        },
+        "reservas": {
+            "total": Reserva.objects.count() if Reserva else 0,
+            "activas": safe_count(Reserva.objects, estado__in=['pendiente', 'confirmada'], fecha_reserva__gte=timezone.now()) if Reserva else 0,
+            "admin_list": admin_url_for(Reserva),
+            "admin_add": admin_url_for(Reserva, "add"),
+        },
+        "usuarios": {
+            "total": Usuario.objects.count() if Usuario else 0,
+            "activos": safe_count(Usuario.objects, is_active=True, activo=True) if Usuario else 0,
+            "admin_list": admin_url_for(Usuario),
+            "admin_add": admin_url_for(Usuario, "add"),
+        },
     }
 
-    return render(request, 'html/adminux/dashboard.html', context)
+    # Datos recientes
+    recientes = {
+        "pedidos": Pedido.objects.select_related('mesa').order_by("-id")[:8] if Pedido else [],
+        "transacciones": Transaccion.objects.order_by("-id")[:8] if Transaccion else [],
+        "reservas": Reserva.objects.order_by("-id")[:8] if Reserva else [],
+    }
+
+    ctx = {
+        "kpis": kpis,
+        "recientes": recientes,
+        "admin_home": reverse("admin:index"),
+        "user": request.user,
+    }
+
+    logger.info(f"AdminUX dashboard renderizado correctamente - Usuario: {request.user.username}")
+    return render(request, "adminux/dashboard.html", ctx)
 
 
 # ══════════════════════════════════════════════

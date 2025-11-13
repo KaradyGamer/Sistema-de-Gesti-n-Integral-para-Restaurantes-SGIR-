@@ -1,0 +1,133 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Acceso del Personal | SGIR{% endblock %}
+
+{% block extra_css %}
+<style>
+  .login-container {
+    @apply min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-100 to-slate-200;
+  }
+  .login-card {
+    @apply bg-white p-8 rounded-2xl shadow-xl w-full max-w-md;
+  }
+  .login-header {
+    @apply text-2xl font-bold mb-6 text-center text-slate-900;
+  }
+  .error-box {
+    @apply bg-red-50 border-l-4 border-red-500 text-red-700 p-3 rounded mb-4;
+  }
+  .form-label {
+    @apply block text-sm font-medium text-slate-700 mb-1;
+  }
+  .form-input {
+    @apply w-full border border-slate-300 rounded-lg p-3 mb-4 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all;
+  }
+  .login-btn {
+    @apply w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg p-3 transition-colors shadow-md hover:shadow-lg;
+  }
+  .info-text {
+    @apply text-xs text-slate-500 mt-4 p-3 bg-slate-50 rounded-lg;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="login-container">
+  <div class="login-card">
+    <!-- Logo/Header -->
+    <div class="text-center mb-6">
+      <div class="w-16 h-16 bg-blue-600 rounded-full mx-auto flex items-center justify-center mb-3">
+        <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
+        </svg>
+      </div>
+      <h1 class="login-header">Acceso del Personal</h1>
+      <p class="text-sm text-slate-600">Sistema de Gestión Integral para Restaurantes</p>
+    </div>
+
+    <!-- Error Message -->
+    {% if error %}
+    <div class="error-box">
+      <div class="flex items-center">
+        <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+          <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path>
+        </svg>
+        <span class="font-medium">{{ error }}</span>
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Login Form -->
+    <form method="post" novalidate>
+      {% csrf_token %}
+      <input type="hidden" name="next" value="{{ next }}">
+
+      <div>
+        <label for="id_username" class="form-label">Usuario</label>
+        <input
+          type="text"
+          id="id_username"
+          name="username"
+          class="form-input"
+          placeholder="Ingresa tu usuario"
+          autofocus
+          required
+        >
+      </div>
+
+      <div>
+        <label for="id_password" class="form-label">Contraseña</label>
+        <input
+          type="password"
+          id="id_password"
+          name="password"
+          class="form-input"
+          placeholder="Ingresa tu contraseña"
+          required
+        >
+      </div>
+
+      <button type="submit" class="login-btn">
+        <span class="flex items-center justify-center">
+          <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"></path>
+          </svg>
+          Ingresar al Sistema
+        </span>
+      </button>
+    </form>
+
+    <!-- Info Box -->
+    <div class="info-text">
+      <p class="font-semibold mb-2">ℹ️ Información de Acceso</p>
+      <ul class="space-y-1">
+        <li>• <strong>Superusuario</strong> → Admin Django (gestión completa)</li>
+        <li>• <strong>Staff</strong> → AdminUX (panel moderno)</li>
+        <li>• Si olvidaste tu contraseña, contacta al administrador</li>
+      </ul>
+    </div>
+
+    <!-- Footer -->
+    <div class="text-center mt-6">
+      <p class="text-xs text-slate-400">SGIR v38.8 &copy; 2025</p>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  // Auto-focus en el primer input con error
+  document.addEventListener('DOMContentLoaded', function() {
+    const errorBox = document.querySelector('.error-box');
+    if (errorBox) {
+      const firstInput = document.getElementById('id_username');
+      if (firstInput) {
+        firstInput.focus();
+        firstInput.select();
+      }
+    }
+  });
+</script>
+{% endblock %}

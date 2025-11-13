@@ -4,8 +4,11 @@ from . import views
 app_name = 'adminux'
 
 urlpatterns = [
-    # Dashboard principal
-    path('', views.dashboard, name='dashboard'),
+    # ══════════════════════════════════════════
+    # LOGIN Y DASHBOARD
+    # ══════════════════════════════════════════
+    path('login/', views.staff_login, name='login'),
+    path('', views.adminux_dashboard, name='dashboard'),
 
     # ══════════════════════════════════════════
     # GESTIÓN DE USUARIOS

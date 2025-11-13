@@ -8,11 +8,13 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = config('SECRET_KEY')
 DEBUG = config('DEBUG', default=False, cast=bool)
 
-# ✅ CORREGIDO: Permitir acceso desde cualquier IP en modo desarrollo (para QR móviles)
-if DEBUG:
-    ALLOWED_HOSTS = ['*']  # Permitir todas las IPs en desarrollo
-else:
-    ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1').split(',')  # Solo acceso local en producción
+# ✅ SEGURIDAD: Leer ALLOWED_HOSTS desde .env siempre
+# En desarrollo puedes agregar '*' al .env si necesitas acceso desde cualquier IP
+ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1').split(',')
+
+# ⚠️ Validación de seguridad: si DEBUG=False y ALLOWED_HOSTS vacío, Django lanzará error
+if not DEBUG and not ALLOWED_HOSTS:
+    raise ValueError('ALLOWED_HOSTS debe estar configurado cuando DEBUG=False')
 
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(minutes=config('JWT_ACCESS_TOKEN_LIFETIME', default=60, cast=int)),  # ✅ 60 minutos por defecto
@@ -84,7 +86,8 @@ TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
         'DIRS': [
-            BASE_DIR / 'templates' / 'html',  # Archivos HTML dentro de templates/html/
+            BASE_DIR / 'templates',           # Busca en templates/ (para base.html)
+            BASE_DIR / 'templates' / 'html',  # Busca en templates/html/ (para otros templates)
         ],
         'APP_DIRS': True,
         'OPTIONS': {
@@ -174,9 +177,11 @@ REST_FRAMEWORK = {
 }
 
 # ✅ CONFIGURACIÓN DE AUTENTICACIÓN COMPLETA
-LOGIN_URL = '/login/'  # ✅ Tu página de login personalizada
-LOGIN_REDIRECT_URL = '/'  # ✅ Redirigir al home después del login
-LOGOUT_REDIRECT_URL = '/login/'  # ✅ Redirigir al login después del logout
+# LOGIN_URL se mantiene en /admin/login/ para el admin nativo
+# AdminUX usa /staff/login/ en sus decorators
+LOGIN_URL = '/admin/login/'  # ✅ Login por defecto (admin nativo)
+LOGIN_REDIRECT_URL = '/adminux/'  # ✅ Redirección después del login (panel UX)
+LOGOUT_REDIRECT_URL = '/staff/login/'  # ✅ Redirección después del logout (login del personal)
 
 # 🛡️ Prevenir redirección automática al admin
 ADMIN_URL = '/admin/'  # ✅ Mantener admin en su propia ruta

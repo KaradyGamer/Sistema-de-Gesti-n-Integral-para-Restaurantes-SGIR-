@@ -4,15 +4,23 @@
 *.so
 __pycache__/
 *.pyc
+*.pyo
+*.pyd
+.Python
+pip-log.txt
+pip-delete-this-directory.txt
 
 # Django
 *.log
 db.sqlite3
 db.sqlite3-journal
+*.pot
+/media/
 /media/qrcodes/*.png
 /staticfiles/
 restaurante_qr_project/static_collected/
 static_collected/
+local_settings.py
 
 # Virtual Environment
 env/
@@ -20,6 +28,7 @@ venv/
 ENV/
 env.bak/
 venv.bak/
+.venv/
 
 # IDE
 .vscode/
@@ -27,16 +36,23 @@ venv.bak/
 *.swp
 *.swo
 *~
+.spyderproject
+.spyproject
+.ropeproject
 
 # OS
 .DS_Store
 Thumbs.db
 nul
+desktop.ini
 
 # Archivos sensibles
 *.env
+.env
 .env.local
 .env.*.local
+.env.production
+.env.development
 
 # Archivos temporales
 *.tmp
@@ -49,3 +65,33 @@ INSTALACION_*.md
 # Logs
 logs/
 *.log
+*.log.*
+
+# Coverage reports
+htmlcov/
+.coverage
+.coverage.*
+coverage.xml
+*.cover
+.pytest_cache/
+.tox/
+
+# Backups
+backups/
+*.sql
+*.dump
+
+# Celery
+celerybeat-schedule
+celerybeat.pid
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# pyenv
+.python-version
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
