@@ -6,6 +6,7 @@ from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from django.db import transaction
 from django.db.models import Sum, Q
+from django.core.cache import cache
 from decimal import Decimal
 from datetime import date, datetime
 import json
@@ -1627,6 +1628,10 @@ def api_jornada_iniciar(request):
             observaciones_apertura=observaciones
         )
 
+        # ✅ OPTIMIZACIÓN: Invalidar caché del middleware
+        cache.delete('jornada_laboral_activa')
+        logger.debug("Caché de jornada invalidado - nueva jornada activa")
+
         cajero_nombre = f"{request.user.first_name} {request.user.last_name}".strip() or request.user.username
 
         logger.debug(f"Jornada iniciada por {cajero_nombre}")
@@ -1670,6 +1675,11 @@ def api_jornada_finalizar(request):
         # Intentar finalizar (puede lanzar ValidationError si hay pedidos pendientes)
         try:
             jornada.finalizar(request.user, observaciones)
+
+            # ✅ OPTIMIZACIÓN: Invalidar caché del middleware
+            cache.delete('jornada_laboral_activa')
+            logger.debug("Caché de jornada invalidado - jornada finalizada")
+
         except Exception as validation_error:
             return Response({
                 'success': False,

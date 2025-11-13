@@ -161,9 +161,9 @@ CSRF_TRUSTED_ORIGINS = config(
     default='http://localhost:8000,http://127.0.0.1:8000'
 ).split(',')
 
-# ✅ Permitir todos los orígenes en desarrollo (para escaneo QR desde celular)
-if DEBUG:
-    CORS_ALLOW_ALL_ORIGINS = True
+# 🔒 SEGURIDAD: NUNCA usar CORS_ALLOW_ALL_ORIGINS (ni en desarrollo)
+# Para desarrollo con celular, agregar IPs explícitas a CORS_ALLOWED_ORIGINS en .env
+# Ejemplo: CORS_ALLOWED_ORIGINS=http://192.168.1.100:8000,http://10.0.0.5:8000
 
 # 🔐 Configuración de DRF y JWT
 REST_FRAMEWORK = {
@@ -188,7 +188,12 @@ ADMIN_URL = '/admin/'  # ✅ Mantener admin en su propia ruta
 
 # 🔧 Configuración de sesiones
 SESSION_COOKIE_AGE = 86400  # 24 horas
-SESSION_SAVE_EVERY_REQUEST = True
+
+# 🔒 SEGURIDAD: False para evitar sobrecarga de BD
+# Django solo guardará la sesión si hay cambios (no en cada request)
+# Esto reduce writes innecesarios y mejora performance
+SESSION_SAVE_EVERY_REQUEST = False
+
 SESSION_EXPIRE_AT_BROWSER_CLOSE = False
 
 # 🛡️ Seguridad de cookies (desde variables de entorno)

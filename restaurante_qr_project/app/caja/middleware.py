@@ -1,13 +1,20 @@
 """
 Middleware para validar que la jornada laboral esté activa
 Los empleados (meseros y cocineros) no pueden interactuar si la jornada está inactiva
+
+✅ OPTIMIZADO: Implementa caché para reducir consultas a BD
 """
 import logging
 from django.shortcuts import redirect
 from django.contrib import messages
 from django.urls import reverse
+from django.core.cache import cache
 
 logger = logging.getLogger('app.caja.middleware')
+
+# Constantes para caché
+CACHE_KEY_JORNADA = 'jornada_laboral_activa'
+CACHE_TIMEOUT = 300  # 5 minutos
 
 
 class JornadaLaboralMiddleware:
@@ -67,8 +74,18 @@ class JornadaLaboralMiddleware:
         if user_rol in ['mesero', 'cocinero']:
             from .models import JornadaLaboral
 
-            # Consultar SIEMPRE la BD (sin caché para evitar problemas)
-            jornada_activa = JornadaLaboral.hay_jornada_activa()
+            # ✅ OPTIMIZADO: Usar caché para reducir consultas a BD
+            jornada_activa = cache.get(CACHE_KEY_JORNADA)
+
+            if jornada_activa is None:
+                # No está en caché, consultar BD
+                jornada_activa = JornadaLaboral.hay_jornada_activa()
+                # Guardar en caché por 5 minutos
+                cache.set(CACHE_KEY_JORNADA, jornada_activa, CACHE_TIMEOUT)
+                logger.debug(f"[MIDDLEWARE] Jornada consultada en BD y cacheada: {jornada_activa}")
+            else:
+                logger.debug(f"[MIDDLEWARE] Jornada obtenida de caché: {jornada_activa}")
+
             logger.info(f"[MIDDLEWARE] Jornada activa: {jornada_activa} para usuario {request.user.username}")
 
             # Verificar si hay jornada activa

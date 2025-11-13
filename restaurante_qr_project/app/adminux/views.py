@@ -17,6 +17,7 @@ from app.mesas.models import Mesa
 from app.pedidos.models import Pedido
 from app.reservas.models import Reserva
 from app.caja.models import JornadaLaboral, Transaccion
+from .forms import UsuarioForm, ProductoForm, CategoriaForm, MesaForm, ReservaForm
 
 logger = logging.getLogger("app.adminux")
 
@@ -255,48 +256,53 @@ def usuarios_list(request):
 
 @admin_requerido
 def usuarios_crear(request):
-    """Crear nuevo usuario"""
+    """✅ SEGURO: Crear nuevo usuario con Django Forms"""
     if request.method == 'POST':
-        try:
-            usuario = Usuario.objects.create_user(
-                username=request.POST['username'],
-                email=request.POST.get('email', ''),
-                first_name=request.POST['first_name'],
-                last_name=request.POST['last_name'],
-                password=request.POST['password'],
-                rol=request.POST['rol'],
-                is_active=request.POST.get('is_active') == 'on'
-            )
-            messages.success(request, f'✅ Usuario {usuario.username} creado exitosamente')
-            return redirect('adminux:usuarios')
-        except Exception as e:
-            messages.error(request, f'❌ Error al crear usuario: {str(e)}')
-    return render(request, 'html/adminux/usuarios/form.html')
+        form = UsuarioForm(request.POST)
+        if form.is_valid():
+            try:
+                usuario = form.save()
+                messages.success(request, f'✅ Usuario {usuario.username} creado exitosamente')
+                logger.info(f"AdminUX: Usuario {usuario.username} creado por {request.user.username}")
+                return redirect('adminux:usuarios')
+            except Exception as e:
+                logger.exception(f"AdminUX: Error al crear usuario - {e}")
+                messages.error(request, f'❌ Error al crear usuario: {str(e)}')
+        else:
+            # Mostrar errores de validación
+            for field, errors in form.errors.items():
+                for error in errors:
+                    messages.error(request, f'{field}: {error}')
+    else:
+        form = UsuarioForm()
+
+    return render(request, 'html/adminux/usuarios/form.html', {'form': form})
 
 
 @admin_requerido
 def usuarios_editar(request, pk):
-    """Editar usuario existente"""
+    """✅ SEGURO: Editar usuario existente con Django Forms"""
     usuario = get_object_or_404(Usuario, pk=pk)
+
     if request.method == 'POST':
-        try:
-            usuario.email = request.POST.get('email', '')
-            usuario.first_name = request.POST['first_name']
-            usuario.last_name = request.POST['last_name']
-            usuario.rol = request.POST['rol']
-            usuario.is_active = request.POST.get('is_active') == 'on'
+        form = UsuarioForm(request.POST, instance=usuario)
+        if form.is_valid():
+            try:
+                usuario = form.save()
+                messages.success(request, f'✅ Usuario {usuario.username} actualizado exitosamente')
+                logger.info(f"AdminUX: Usuario {usuario.username} editado por {request.user.username}")
+                return redirect('adminux:usuarios')
+            except Exception as e:
+                logger.exception(f"AdminUX: Error al editar usuario - {e}")
+                messages.error(request, f'❌ Error al actualizar usuario: {str(e)}')
+        else:
+            for field, errors in form.errors.items():
+                for error in errors:
+                    messages.error(request, f'{field}: {error}')
+    else:
+        form = UsuarioForm(instance=usuario)
 
-            # Cambiar contraseña solo si se proporciona una nueva
-            password = request.POST.get('password', '').strip()
-            if password:
-                usuario.set_password(password)
-
-            usuario.save()
-            messages.success(request, f'✅ Usuario {usuario.username} actualizado exitosamente')
-            return redirect('adminux:usuarios')
-        except Exception as e:
-            messages.error(request, f'❌ Error al actualizar usuario: {str(e)}')
-    context = {'usuario': usuario}
+    context = {'form': form, 'usuario': usuario}
     return render(request, 'html/adminux/usuarios/form.html', context)
 
 
