@@ -3,9 +3,17 @@
    SOLO AFECTA AL DASHBOARD
    ======================================== */
 
-/* Fondo oscuro en toda el área de contenido cuando estés en el dashboard */
-.adminux-dashboard {
-    /* Forzar fondo oscuro */
+/* Forzar tema oscuro en TODA la página cuando hay dashboard */
+body:has(.adminux-dashboard) {
+    background: #101010 !important;
+}
+
+body:has(.adminux-dashboard) .adminux-main {
+    background: #101010 !important;
+}
+
+body:has(.adminux-dashboard) .adminux-page {
+    background: #101010 !important;
 }
 
 /* Quitamos padding de adminux-page SOLO cuando tiene dashboard dentro */
@@ -20,29 +28,29 @@ body:has(.adminux-dashboard) .adminux-page {
 
 /* CONTENEDOR PRINCIPAL DEL DASHBOARD */
 .adminux-dashboard {
-    background: #101010;
-    margin: 0;
-    padding: 2rem 2.5rem 3rem;
-    min-height: calc(100vh - 64px);
-    display: flex;
-    flex-direction: column;
-    gap: 2rem;
+    background: #101010 !important;
+    margin: 0 !important;
+    padding: 2rem 2.5rem 3rem !important;
+    min-height: calc(100vh - 64px) !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 2rem !important;
 }
 
 /* Ahora el hero y la fila de gráficas usan todo el ancho disponible */
 .dashboard-hero,
 .charts-row {
-    width: 100%;
+    width: 100% !important;
 }
 
 /* CABECERA */
 
 .dashboard-hero {
-    background: radial-gradient(circle at top left, #171717, #0f0f0f 40%, #080808);
-    border-radius: 20px;
-    padding: 2rem 2.5rem;
-    border: 1px solid #1f1f1f;
-    box-shadow: 0 24px 60px rgba(0,0,0,0.6);
+    background: radial-gradient(circle at top left, #171717, #0f0f0f 40%, #080808) !important;
+    border-radius: 20px !important;
+    padding: 2rem 2.5rem !important;
+    border: 1px solid #1f1f1f !important;
+    box-shadow: 0 24px 60px rgba(0,0,0,0.6) !important;
 }
 
 .hero-inner {
@@ -53,63 +61,66 @@ body:has(.adminux-dashboard) .adminux-page {
 }
 
 .hero-clock-digits {
-    font-size: 3.6rem;
-    letter-spacing: 0.18em;
-    font-weight: 700;
-    color: white;
+    font-size: 3.6rem !important;
+    letter-spacing: 0.18em !important;
+    font-weight: 700 !important;
+    color: #ffffff !important;
 }
 
 .hero-clock-date {
-    margin-top: .75rem;
-    font-size: .95rem;
-    color: #d0d0d0;
+    margin-top: .75rem !important;
+    font-size: .95rem !important;
+    color: #d0d0d0 !important;
 }
 
 /* BOTONES */
 
 .hero-period {
-    display: flex;
-    background: #050505;
-    padding: .35rem;
-    border-radius: 999px;
-    box-shadow: 0 14px 30px rgba(0,0,0,0.65);
+    display: flex !important;
+    background: #050505 !important;
+    padding: .35rem !important;
+    border-radius: 999px !important;
+    box-shadow: 0 14px 30px rgba(0,0,0,0.65) !important;
 }
 
 .period-btn {
-    border: none;
-    background: transparent;
-    color: #bfbfbf;
-    padding: .45rem 1.6rem;
-    border-radius: 999px;
-    cursor: pointer;
-    font-size: .9rem;
+    border: none !important;
+    background: transparent !important;
+    color: #bfbfbf !important;
+    padding: .45rem 1.6rem !important;
+    border-radius: 999px !important;
+    cursor: pointer !important;
+    font-size: .9rem !important;
+    transition: all 0.3s ease !important;
 }
 
 .period-btn-active {
-    background: linear-gradient(135deg, #84B067, #6F9357);
-    color: #000;
+    background: linear-gradient(135deg, #84B067, #6F9357) !important;
+    color: #000 !important;
+    font-weight: 600 !important;
 }
 
 /* GRAFICAS */
 
 .charts-row {
-    display: grid;
-    grid-template-columns: minmax(0, 1.3fr) minmax(0, 1.7fr);
-    gap: 2rem;
+    display: grid !important;
+    grid-template-columns: minmax(0, 1.3fr) minmax(0, 1.7fr) !important;
+    gap: 2rem !important;
 }
 
 .chart-card {
-    background: #131313;
-    border-radius: 18px;
-    padding: 1.6rem;
-    border: 1px solid #222;
-    box-shadow: 0 18px 40px rgba(0,0,0,0.55);
+    background: #131313 !important;
+    border-radius: 18px !important;
+    padding: 1.6rem !important;
+    border: 1px solid #222 !important;
+    box-shadow: 0 18px 40px rgba(0,0,0,0.55) !important;
 }
 
 .chart-card h3 {
-    margin-bottom: 1rem;
-    font-size: 1rem;
-    color: #f1f1f1;
+    margin-bottom: 1rem !important;
+    font-size: 1rem !important;
+    color: #f1f1f1 !important;
+    font-weight: 600 !important;
 }
 
 .chart-card canvas {
