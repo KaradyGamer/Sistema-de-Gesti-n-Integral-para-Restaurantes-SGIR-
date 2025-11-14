@@ -3,22 +3,36 @@
    SOLO AFECTA AL DASHBOARD
    ======================================== */
 
+/* Fondo oscuro en toda el área de contenido cuando estés en el dashboard */
+.adminux-dashboard {
+    /* Forzar fondo oscuro */
+}
+
+/* Quitamos padding de adminux-page SOLO cuando tiene dashboard dentro */
+.adminux-page:has(.adminux-dashboard) {
+    padding: 0 !important;
+}
+
+/* Fallback para navegadores que no soportan :has() */
+body:has(.adminux-dashboard) .adminux-page {
+    padding: 0 !important;
+}
+
+/* CONTENEDOR PRINCIPAL DEL DASHBOARD */
 .adminux-dashboard {
     background: #101010;
-    /* IMPORTANTE: sin márgenes negativos para que no se meta bajo el sidebar */
     margin: 0;
-    padding: 2rem 2.5rem 2.5rem;
+    padding: 2rem 2.5rem 3rem;
     min-height: calc(100vh - 64px);
     display: flex;
     flex-direction: column;
     gap: 2rem;
 }
 
-/* LIMITAR ANCHO Y CENTRAR CONTENIDO PRINCIPAL */
+/* Ahora el hero y la fila de gráficas usan todo el ancho disponible */
 .dashboard-hero,
 .charts-row {
-    max-width: 1200px;
-    margin: 0 auto;
+    width: 100%;
 }
 
 /* CABECERA */
@@ -80,7 +94,7 @@
 
 .charts-row {
     display: grid;
-    grid-template-columns: 1.3fr 1.7fr;
+    grid-template-columns: minmax(0, 1.3fr) minmax(0, 1.7fr);
     gap: 2rem;
 }
 
