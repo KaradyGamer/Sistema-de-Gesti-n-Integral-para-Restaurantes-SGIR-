@@ -30,11 +30,11 @@ body:has(.adminux-dashboard) .adminux-page {
 .adminux-dashboard {
     background: #101010 !important;
     margin: 0 !important;
-    padding: 2rem 2.5rem 3rem !important;
+    padding: 3rem 4rem 4rem !important;
     min-height: calc(100vh - 64px) !important;
     display: flex !important;
     flex-direction: column !important;
-    gap: 2rem !important;
+    gap: 3rem !important;
 }
 
 /* Ahora el hero y la fila de gráficas usan todo el ancho disponible */
@@ -48,18 +48,22 @@ body:has(.adminux-dashboard) .adminux-page {
 .dashboard-hero {
     background: radial-gradient(circle at top left, #171717, #0f0f0f 40%, #080808) !important;
     border-radius: 20px !important;
-    padding: 2.5rem 3rem !important;
+    padding: 3rem 4rem !important;
     border: 1px solid #1f1f1f !important;
     box-shadow: 0 24px 60px rgba(0,0,0,0.6) !important;
-    min-height: 180px !important;
+    min-height: 220px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
 }
 
 .hero-inner {
     display: flex !important;
     justify-content: space-between !important;
     align-items: center !important;
-    gap: 2rem !important;
+    gap: 4rem !important;
     width: 100% !important;
+    max-width: none !important;
 }
 
 .hero-clock {
@@ -67,20 +71,21 @@ body:has(.adminux-dashboard) .adminux-page {
 }
 
 .hero-clock-digits {
-    font-size: 4rem !important;
-    letter-spacing: 0.2em !important;
+    font-size: 5rem !important;
+    letter-spacing: 0.25em !important;
     font-weight: 700 !important;
     color: #ffffff !important;
-    line-height: 1 !important;
-    margin-bottom: 0.5rem !important;
-    text-shadow: 0 2px 8px rgba(0,0,0,0.4) !important;
+    line-height: 1.2 !important;
+    margin-bottom: 1rem !important;
+    text-shadow: 0 4px 12px rgba(0,0,0,0.5) !important;
 }
 
 .hero-clock-date {
-    margin-top: .5rem !important;
-    font-size: 1rem !important;
+    margin-top: 0 !important;
+    font-size: 1.1rem !important;
     color: #d0d0d0 !important;
     font-weight: 400 !important;
+    line-height: 1.4 !important;
 }
 
 /* BOTONES */
@@ -88,7 +93,7 @@ body:has(.adminux-dashboard) .adminux-page {
 .hero-period {
     display: flex !important;
     background: #050505 !important;
-    padding: .35rem !important;
+    padding: .5rem !important;
     border-radius: 999px !important;
     box-shadow: 0 14px 30px rgba(0,0,0,0.65) !important;
 }
@@ -97,17 +102,18 @@ body:has(.adminux-dashboard) .adminux-page {
     border: none !important;
     background: transparent !important;
     color: #bfbfbf !important;
-    padding: .45rem 1.6rem !important;
+    padding: .65rem 2rem !important;
     border-radius: 999px !important;
     cursor: pointer !important;
-    font-size: .9rem !important;
+    font-size: 1rem !important;
     transition: all 0.3s ease !important;
+    font-weight: 500 !important;
 }
 
 .period-btn-active {
     background: linear-gradient(135deg, #84B067, #6F9357) !important;
     color: #000 !important;
-    font-weight: 600 !important;
+    font-weight: 700 !important;
 }
 
 /* GRAFICAS */
@@ -121,24 +127,24 @@ body:has(.adminux-dashboard) .adminux-page {
 .chart-card {
     background: #131313 !important;
     border-radius: 18px !important;
-    padding: 2rem !important;
+    padding: 2.5rem !important;
     border: 1px solid #222 !important;
     box-shadow: 0 18px 40px rgba(0,0,0,0.55) !important;
-    min-height: 380px !important;
+    min-height: 450px !important;
     display: flex !important;
     flex-direction: column !important;
 }
 
 .chart-card h3 {
-    margin: 0 0 1.5rem 0 !important;
-    font-size: 1.1rem !important;
+    margin: 0 0 2rem 0 !important;
+    font-size: 1.2rem !important;
     color: #f1f1f1 !important;
     font-weight: 600 !important;
 }
 
 .chart-card canvas {
     width: 100% !important;
-    height: 320px !important;
+    height: 380px !important;
     flex: 1 !important;
 }
 
