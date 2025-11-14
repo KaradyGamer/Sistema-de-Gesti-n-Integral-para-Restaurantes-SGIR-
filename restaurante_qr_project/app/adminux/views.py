@@ -248,7 +248,7 @@ def adminux_dashboard(request):
     }
 
     logger.info(f"AdminUX dashboard renderizado correctamente - Usuario: {request.user.username}")
-    return render(request, "adminux/dashboard.html", ctx)
+    return render(request, "html/adminux/dashboard.html", ctx)
 
 
 # ══════════════════════════════════════════════
