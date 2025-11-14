@@ -43,9 +43,9 @@
 {% block extra_js %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-    // =======================
-    // RELOJ EN TIEMPO REAL
-    // =======================
+    /* ============================
+       RELOJ
+       ============================ */
     function updateDashboardClock() {
         const clockEl = document.getElementById("dashboard-clock");
         const dateEl  = document.getElementById("dashboard-date");
@@ -73,9 +73,9 @@
     setInterval(updateDashboardClock, 1000);
     updateDashboardClock();
 
-    // =======================
-    // TOGGLE HOY / SEMANA / MES (solo visual)
-    // =======================
+    /* ============================
+       TOGGLE HOY/SEMANA/MES
+       ============================ */
     document.querySelectorAll(".period-btn").forEach(btn => {
         btn.addEventListener("click", () => {
             document.querySelectorAll(".period-btn").forEach(b => b.classList.remove("period-btn-active"));
@@ -83,19 +83,18 @@
         });
     });
 
-    // =======================
-    // GRÁFICAS CHART.JS
-    // =======================
+    /* ============================
+       GRAFICAS CHART.JS
+       ============================ */
     document.addEventListener("DOMContentLoaded", function () {
         const ordersCtx = document.getElementById("ordersChart").getContext("2d");
         const salesCtx  = document.getElementById("salesChart").getContext("2d");
 
-        // Estos vienen desde la vista de Django
         const labels     = {{ chart_labels|safe }};
         const ordersData = {{ chart_orders|safe }};
         const salesData  = {{ chart_sales|safe }};
 
-        // BARRAS - PEDIDOS
+        /* BARRAS */
         new Chart(ordersCtx, {
             type: "bar",
             data: {
@@ -112,19 +111,13 @@
                 maintainAspectRatio: false,
                 plugins: { legend: { display: false } },
                 scales: {
-                    x: {
-                        ticks: { color: "#cccccc" },
-                        grid: { display: false }
-                    },
-                    y: {
-                        ticks: { color: "#999999" },
-                        grid: { color: "#222222" }
-                    }
+                    x: { ticks: { color: "#ccc" }, grid: { display: false } },
+                    y: { ticks: { color: "#999" }, grid: { color: "#222" } }
                 }
             }
         });
 
-        // LÍNEA - VENTAS
+        /* LINEA */
         new Chart(salesCtx, {
             type: "line",
             data: {
@@ -133,11 +126,10 @@
                     label: "Ventas",
                     data: salesData,
                     borderColor: "#84B067",
-                    backgroundColor: "rgba(132, 176, 103, 0.25)",
+                    backgroundColor: "rgba(132,176,103,0.3)",
                     tension: 0.35,
                     fill: true,
                     pointRadius: 3,
-                    pointHoverRadius: 5
                 }]
             },
             options: {
@@ -145,14 +137,8 @@
                 maintainAspectRatio: false,
                 plugins: { legend: { display: false } },
                 scales: {
-                    x: {
-                        ticks: { color: "#cccccc" },
-                        grid: { display: false }
-                    },
-                    y: {
-                        ticks: { color: "#999999" },
-                        grid: { color: "#222222" }
-                    }
+                    x: { ticks: { color: "#ccc" }, grid: { display: false } },
+                    y: { ticks: { color: "#999" }, grid: { color: "#222" } }
                 }
             }
         });
