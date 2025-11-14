@@ -1,57 +1,40 @@
+{% extends "html/adminux/base_adminux.html" %}
 {% load static %}
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    {% include '_ui_head_snippet.html' %}
-    <title>{% block title %}Lista{% endblock %} - AdminUX</title>
-    <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
-    <link rel="stylesheet" href="{% static 'css/adminux/main.css' %}?v=1.0">
-</head>
-<body>
-    <div class="admin-wrapper">
-        {% include 'html/adminux/components/sidebar.html' %}
 
-        <div class="main-content">
-            {% include 'html/adminux/components/topbar.html' %}
+{# Título de la pestaña del navegador #}
+{% block title %}{% block page_title %}Listado{% endblock %} - AdminUX{% endblock %}
 
-            <div class="content-area">
-                <div class="page-header">
-                    <div>
-                        <h1>{% block page_title %}Lista{% endblock %}</h1>
-                        <p class="text-muted">{% block page_description %}Gestión de elementos{% endblock %}</p>
-                    </div>
-                    <div class="header-actions">
-                        {% block header_actions %}
-                        <a href="{% block create_url %}#{% endblock %}" class="btn btn-primary">
-                            <i class='bx bx-plus'></i> Nuevo
-                        </a>
-                        {% endblock %}
-                    </div>
-                </div>
-
-                <div class="card">
-                    <div class="card-header">
-                        <div class="search-filter-bar">
-                            <div class="search-box">
-                                <i class='bx bx-search'></i>
-                                <input type="text" placeholder="Buscar..." id="searchInput">
-                            </div>
-                            {% block filters %}{% endblock %}
-                        </div>
-                    </div>
-
-                    <div class="card-body">
-                        {% block content %}
-                        <p>Contenido de la lista</p>
-                        {% endblock %}
-                    </div>
-                </div>
-            </div>
+{# 🔴 ESTE BLOQUE RELLENA EL BLOCK "content" DE base_adminux.html #}
+{% block content %}
+<div class="adminux-list-page">
+    <div class="page-header">
+        <div>
+            <h1>{% block page_heading %}{% endblock %}</h1>
+            <p class="text-muted">{% block page_description %}{% endblock %}</p>
+        </div>
+        <div class="header-actions">
+            {% block header_actions %}{% endblock %}
         </div>
     </div>
 
-    <script src="/static/js/adminux/main.js?v=1.0"></script>
-    {% block extra_js %}{% endblock %}
-</body>
-</html>
+    <div class="card">
+        <div class="card-header">
+            <div class="search-filter-bar">
+                <div class="search-box">
+                    <i class='bx bx-search'></i>
+                    <input type="text" placeholder="Buscar..." id="searchInput">
+                </div>
+                {% block filters %}{% endblock %}
+            </div>
+        </div>
+
+        <div class="card-body">
+            {# 🔴 AQUÍ VA TODA LA TABLA / CONTENIDO DE CADA MÓDULO #}
+            {% block page_content %}{% endblock %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{# JS extra específico de cada lista (filtros, etc.) #}
+{% block extra_js %}{% endblock %}

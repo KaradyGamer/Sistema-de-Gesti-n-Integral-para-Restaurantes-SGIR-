@@ -1,14 +1,14 @@
 {% extends 'html/adminux/base_list.html' %}
 
-{% block title %}Usuarios{% endblock %}
-{% block page_title %}Gestión de Usuarios{% endblock %}
+{% block page_title %}Usuarios{% endblock %}
+{% block page_heading %}Gestión de Usuarios{% endblock %}
 {% block page_description %}Lista de todos los usuarios del sistema{% endblock %}
 
-{% block breadcrumb %}
-<span>Usuarios</span>
+{% block header_actions %}
+<a href="{% url 'adminux:usuario_crear' %}" class="btn btn-primary">
+    <i class='bx bx-plus'></i> Nuevo
+</a>
 {% endblock %}
-
-{% block create_url %}{% url 'adminux:usuario_crear' %}{% endblock %}
 
 {% block filters %}
 <select class="form-select" id="rolFilter" onchange="filtrarPorRol()">
@@ -26,7 +26,7 @@
 </select>
 {% endblock %}
 
-{% block content %}
+{% block page_content %}
 <div class="table-responsive">
     <table class="data-table">
         <thead>
@@ -85,7 +85,7 @@
         </tbody>
     </table>
 </div>
-{% endblock %}
+{% endblock page_content %}
 
 {% block extra_js %}
 <script>

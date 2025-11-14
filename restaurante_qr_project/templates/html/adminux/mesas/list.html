@@ -1,14 +1,14 @@
 {% extends 'html/adminux/base_list.html' %}
 
-{% block title %}Mesas{% endblock %}
-{% block page_title %}Gestión de Mesas{% endblock %}
+{% block page_title %}Mesas{% endblock %}
+{% block page_heading %}Gestión de Mesas{% endblock %}
 {% block page_description %}Administración de mesas del restaurante{% endblock %}
 
-{% block breadcrumb %}
-<span>Mesas</span>
+{% block header_actions %}
+<a href="{% url 'adminux:mesa_crear' %}" class="btn btn-primary">
+    <i class='bx bx-plus'></i> Nuevo
+</a>
 {% endblock %}
-
-{% block create_url %}{% url 'adminux:mesa_crear' %}{% endblock %}
 
 {% block filters %}
 <select class="form-select" id="estadoFilter" onchange="filtrarPorEstado()">
@@ -19,7 +19,7 @@
 </select>
 {% endblock %}
 
-{% block content %}
+{% block page_content %}
 <div class="table-responsive">
     <table class="data-table">
         <thead>
@@ -97,7 +97,7 @@
         </tbody>
     </table>
 </div>
-{% endblock %}
+{% endblock page_content %}
 
 {% block extra_js %}
 <script>

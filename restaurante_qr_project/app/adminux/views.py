@@ -9,6 +9,7 @@ from django.urls import reverse, NoReverseMatch
 from django.apps import apps
 from django.views.decorators.csrf import csrf_protect
 from datetime import date
+import json
 
 from app.usuarios.models import Usuario
 from app.usuarios.decorators import admin_requerido
@@ -231,11 +232,19 @@ def adminux_dashboard(request):
         "reservas": Reserva.objects.order_by("-id")[:8] if Reserva else [],
     }
 
+    # Datos para gráficas (Chart.js)
+    labels = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"]
+    chart_orders = [5, 8, 3, 10, 6, 4, 7]
+    chart_sales = [120, 340, 180, 500, 260, 210, 430]
+
     ctx = {
         "kpis": kpis,
         "recientes": recientes,
         "admin_home": reverse("admin:index"),
         "user": request.user,
+        "chart_labels": json.dumps(labels),
+        "chart_orders": json.dumps(chart_orders),
+        "chart_sales": json.dumps(chart_sales),
     }
 
     logger.info(f"AdminUX dashboard renderizado correctamente - Usuario: {request.user.username}")
@@ -324,7 +333,7 @@ def usuarios_eliminar(request, pk):
 def productos_list(request):
     """Lista de todos los productos"""
     productos = Producto.objects.filter(activo=True).select_related('categoria').order_by('categoria', 'nombre')
-    categorias = Categoria.objects.filter(activa=True)
+    categorias = Categoria.objects.filter(activo=True)
     context = {'productos': productos, 'categorias': categorias}
     return render(request, 'html/adminux/productos/list.html', context)
 
@@ -347,7 +356,7 @@ def productos_crear(request):
             return redirect('adminux:productos')
         except Exception as e:
             messages.error(request, f'❌ Error al crear producto: {str(e)}')
-    categorias = Categoria.objects.filter(activa=True)
+    categorias = Categoria.objects.filter(activo=True)
     context = {'categorias': categorias}
     return render(request, 'html/adminux/productos/form.html', context)
 
@@ -374,7 +383,7 @@ def productos_editar(request, pk):
             return redirect('adminux:productos')
         except Exception as e:
             messages.error(request, f'❌ Error al actualizar producto: {str(e)}')
-    categorias = Categoria.objects.filter(activa=True)
+    categorias = Categoria.objects.filter(activo=True)
     context = {'producto': producto, 'categorias': categorias}
     return render(request, 'html/adminux/productos/form.html', context)
 
@@ -396,9 +405,9 @@ def productos_eliminar(request, pk):
 @admin_requerido
 def categorias_list(request):
     """Lista de todas las categorías"""
-    categorias = Categoria.objects.filter(activa=True).annotate(
+    categorias = Categoria.objects.filter(activo=True).annotate(
         total_productos=Count('productos', filter=Q(productos__activo=True))
-    ).order_by('orden', 'nombre')
+    ).order_by('nombre')
     context = {'categorias': categorias}
     return render(request, 'html/adminux/categorias/list.html', context)
 

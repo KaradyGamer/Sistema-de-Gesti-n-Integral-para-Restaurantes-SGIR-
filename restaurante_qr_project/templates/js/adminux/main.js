@@ -24,7 +24,8 @@ if (toggleBtn) {
 }
 
 if (mobileToggle) {
-    mobileToggle.addEventListener('click', () => {
+    mobileToggle.addEventListener('click', (e) => {
+        e.stopPropagation();
         sidebar.classList.toggle('active');
     });
 }
@@ -36,8 +37,8 @@ if (localStorage.getItem('sidebarCollapsed') === 'true') {
 
 // Cerrar sidebar en móvil al hacer clic fuera
 document.addEventListener('click', (e) => {
-    if (window.innerWidth <= 768) {
-        if (!sidebar.contains(e.target) && !mobileToggle.contains(e.target)) {
+    if (window.innerWidth <= 768 && sidebar) {
+        if (!sidebar.contains(e.target) && mobileToggle && !mobileToggle.contains(e.target)) {
             sidebar.classList.remove('active');
         }
     }

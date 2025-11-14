@@ -1,14 +1,14 @@
 {% extends 'html/adminux/base_list.html' %}
 
-{% block title %}Productos{% endblock %}
-{% block page_title %}Gestión de Productos{% endblock %}
+{% block page_title %}Productos{% endblock %}
+{% block page_heading %}Gestión de Productos{% endblock %}
 {% block page_description %}Lista de productos disponibles en el menú{% endblock %}
 
-{% block breadcrumb %}
-<span>Productos</span>
+{% block header_actions %}
+<a href="{% url 'adminux:producto_crear' %}" class="btn btn-primary">
+    <i class='bx bx-plus'></i> Nuevo
+</a>
 {% endblock %}
-
-{% block create_url %}{% url 'adminux:producto_crear' %}{% endblock %}
 
 {% block filters %}
 <select class="form-select" id="categoriaFilter" onchange="filtrarPorCategoria()">
@@ -24,7 +24,7 @@
 </select>
 {% endblock %}
 
-{% block content %}
+{% block page_content %}
 <div class="table-responsive">
     <table class="data-table">
         <thead>
@@ -97,7 +97,7 @@
         </tbody>
     </table>
 </div>
-{% endblock %}
+{% endblock page_content %}
 
 {% block extra_js %}
 <script>

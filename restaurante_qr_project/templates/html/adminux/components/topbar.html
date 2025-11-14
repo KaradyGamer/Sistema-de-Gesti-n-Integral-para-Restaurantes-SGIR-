@@ -1,45 +1,31 @@
-<div class="topbar">
-    <div class="topbar-left">
-        <button class="mobile-toggle" id="mobileToggle">
+<div class="topbar-premium">
+    <div class="topbar-left-premium">
+        <button class="mobile-toggle-premium" id="mobileToggle">
             <i class='bx bx-menu'></i>
         </button>
-        <div class="breadcrumb">
+        <div class="breadcrumb-premium">
             <a href="{% url 'adminux:dashboard' %}"><i class='bx bx-home'></i></a>
+            <i class='bx bx-chevron-right'></i>
             {% block breadcrumb %}
             <span>Dashboard</span>
             {% endblock %}
         </div>
     </div>
 
-    <div class="topbar-right">
-        <div class="search-box">
-            <i class='bx bx-search'></i>
-            <input type="text" placeholder="Buscar..." id="globalSearch">
-        </div>
-
-        <button class="icon-btn" id="notificationsBtn" title="Notificaciones">
-            <i class='bx bx-bell'></i>
-            <span class="badge-dot"></span>
+    <div class="topbar-right-premium">
+        <button class="icon-btn-premium" onclick="toggleDark()" title="Cambiar tema">
+            <i class='bx bx-moon'></i>
         </button>
 
-        <button class="icon-btn" id="settingsBtn" title="Configuración">
-            <i class='bx bx-cog'></i>
-        </button>
+        {# Django Admin button removed per client request #}
 
-        <div class="user-dropdown">
-            <button class="user-btn" id="userDropdownBtn">
+        <div class="user-dropdown-premium">
+            <button class="user-btn-premium" id="userDropdownBtn">
                 <i class='bx bx-user-circle'></i>
                 <span>{{ request.user.username }}</span>
                 <i class='bx bx-chevron-down'></i>
             </button>
-            <div class="dropdown-menu" id="userDropdownMenu">
-                <a href="/admin/" target="_blank">
-                    <i class='bx bx-shield'></i> Django Admin
-                </a>
-                <a href="{% url 'adminux:configuracion' %}">
-                    <i class='bx bx-cog'></i> Configuración
-                </a>
-                <div class="dropdown-divider"></div>
+            <div class="dropdown-menu-premium" id="userDropdownMenu">
                 <a href="/usuarios/logout/" class="text-danger">
                     <i class='bx bx-log-out'></i> Cerrar Sesión
                 </a>

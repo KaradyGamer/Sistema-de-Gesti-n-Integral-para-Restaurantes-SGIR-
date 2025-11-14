@@ -48,7 +48,7 @@
     <div class="form-group">
         <label for="hora_reserva" class="required">Hora de Reserva</label>
         <input type="time" id="hora_reserva" name="hora_reserva" class="form-control"
-               value="{{ reserva.fecha_reserva|date:'H:i'|default:'12:00' }}" required>
+               value="{{ reserva.hora_reserva|date:'H:i'|default:'12:00' }}" required>
     </div>
 
     <div class="form-group">

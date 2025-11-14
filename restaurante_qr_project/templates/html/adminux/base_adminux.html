@@ -1,0 +1,28 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}AdminUX{% endblock %}</title>
+    <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+    <link rel="stylesheet" href="{% static 'css/adminux/main.css' %}">
+    {% block extra_css %}{% endblock %}
+</head>
+<body class="adminux-body">
+    <div class="adminux-layout">
+        {% include "html/adminux/components/sidebar.html" %}
+
+        <main class="adminux-main">
+            {% include "html/adminux/components/topbar.html" %}
+
+            <section class="adminux-page">
+                {% block content %}{% endblock %}
+            </section>
+        </main>
+    </div>
+
+    <script src="{% static 'js/adminux/main.js' %}"></script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

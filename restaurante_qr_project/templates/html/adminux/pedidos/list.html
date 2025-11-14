@@ -1,12 +1,8 @@
 {% extends 'html/adminux/base_list.html' %}
 
-{% block title %}Pedidos{% endblock %}
-{% block page_title %}Gestión de Pedidos{% endblock %}
+{% block page_title %}Pedidos{% endblock %}
+{% block page_heading %}Gestión de Pedidos{% endblock %}
 {% block page_description %}Lista de todos los pedidos del sistema{% endblock %}
-
-{% block breadcrumb %}
-<span>Pedidos</span>
-{% endblock %}
 
 {% block header_actions %}
 <a href="{% url 'adminux:pedidos' %}" class="btn btn-secondary" onclick="location.reload()">
@@ -31,7 +27,7 @@
 </select>
 {% endblock %}
 
-{% block content %}
+{% block page_content %}
 <div class="table-responsive">
     <table class="data-table">
         <thead>
@@ -97,7 +93,7 @@
         </tbody>
     </table>
 </div>
-{% endblock %}
+{% endblock page_content %}
 
 {% block extra_js %}
 <script>
