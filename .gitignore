@@ -1,97 +1,62 @@
-# Python
-*.py[cod]
-*$py.class
-*.so
+# === Python / Django básicos ===
 __pycache__/
-*.pyc
+*.py[cod]
 *.pyo
 *.pyd
-.Python
-pip-log.txt
-pip-delete-this-directory.txt
-
-# Django
 *.log
-db.sqlite3
-db.sqlite3-journal
-*.pot
-/media/
-/media/qrcodes/*.png
-/staticfiles/
-restaurante_qr_project/static_collected/
-static_collected/
-local_settings.py
 
-# Virtual Environment
+# Base de datos local (no subir a producción)
+# db.sqlite3  # Comentado: mantener en repo para desarrollo/universidad
+
+# Entornos virtuales
 env/
 venv/
-ENV/
-env.bak/
-venv.bak/
-.venv/
+.env
+.env.*
+.envrc
 
-# IDE
+# Archivos de configuración sensibles
+*.secret
+*.key
+
+# Archivos estáticos generados
+restaurante_qr_project/static_collected/
+restaurante_qr_project/media/
+
+# Logs
+restaurante_qr_project/logs/
+*.log
+
+# VSCode y otros editores
 .vscode/
 .idea/
 *.swp
 *.swo
 *~
-.spyderproject
-.spyproject
-.ropeproject
 
-# OS
+# Sistema operativo
 .DS_Store
 Thumbs.db
-nul
 desktop.ini
 
-# Archivos sensibles
-*.env
-.env
-.env.local
-.env.*.local
-.env.production
-.env.development
+# Herramientas de IA / auxiliares
+.claude/
+
+# Compilados front (si llegas a usar)
+node_modules/
+dist/
+build/
 
 # Archivos temporales
 *.tmp
 *.bak
-*.cache
-TAREAS_PENDIENTES.txt
-AUDITORIA_*.md
-INSTALACION_*.md
+*.old
 
-# Logs
-logs/
-*.log
-*.log.*
-
-# Coverage reports
-htmlcov/
+# Coverage y testing
 .coverage
-.coverage.*
-coverage.xml
-*.cover
+htmlcov/
 .pytest_cache/
 .tox/
 
-# Backups
-backups/
-*.sql
-*.dump
-
-# Celery
-celerybeat-schedule
-celerybeat.pid
-
-# Jupyter Notebook
-.ipynb_checkpoints
-
-# pyenv
-.python-version
-
-# mypy
-.mypy_cache/
-.dmypy.json
-dmypy.json
+# Jupyter Notebooks
+.ipynb_checkpoints/

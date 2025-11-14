@@ -1,0 +1,21 @@
+{% extends "html/adminux/base_adminux.html" %}
+{% load static %}
+
+{% block title %}Página no encontrada - SGIR{% endblock %}
+
+{% block content %}
+<div class="adminux-dashboard" style="min-height: calc(100vh - 64px); display:flex; align-items:center; justify-content:center;">
+    <div style="text-align:center; color:#fff; max-width:480px;">
+        <h1 style="font-size:4rem; margin-bottom:0.5rem;">404</h1>
+        <h2 style="font-size:1.4rem; margin-bottom:1rem;">Página no encontrada</h2>
+        <p style="color:#bfbfbf; margin-bottom:1.5rem;">
+            Lo sentimos, la página que estás buscando no existe o ha sido movida.
+        </p>
+        <a href="{% url 'adminux:dashboard' %}"
+           style="display:inline-block; padding:0.6rem 1.6rem; border-radius:999px;
+                  background:linear-gradient(135deg,#84B067,#6F9357); color:#000; text-decoration:none;">
+            Volver al panel
+        </a>
+    </div>
+</div>
+{% endblock %}
