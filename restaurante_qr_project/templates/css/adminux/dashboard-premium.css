@@ -1,162 +1,155 @@
-/* ========================================
-   ADMINUX - DASHBOARD PREMIUM
-   SOLO AFECTA AL DASHBOARD
-   ======================================== */
+/* ======== FONDO Y CONTENEDOR ======== */
 
-/* Forzar tema oscuro en TODA la página cuando hay dashboard */
-body:has(.adminux-dashboard) {
-    background: #101010 !important;
+.adminux-main {
+    background: #050509;
 }
 
-body:has(.adminux-dashboard) .adminux-main {
-    background: #101010 !important;
+.adminux-content {
+    padding: 2rem 2.5rem;
+    display: flex;
+    justify-content: center;
 }
 
-body:has(.adminux-dashboard) .adminux-page {
-    background: #101010 !important;
-}
-
-/* Quitamos padding de adminux-page SOLO cuando tiene dashboard dentro */
-.adminux-page:has(.adminux-dashboard) {
-    padding: 0 !important;
-}
-
-/* Fallback para navegadores que no soportan :has() */
-body:has(.adminux-dashboard) .adminux-page {
-    padding: 0 !important;
-}
-
-/* CONTENEDOR PRINCIPAL DEL DASHBOARD */
+/* Contenedor central del dashboard */
 .adminux-dashboard {
-    background: #101010 !important;
-    margin: 0 !important;
-    padding: 3rem 4rem 4rem !important;
-    min-height: calc(100vh - 64px) !important;
+    width: 100% !important;
+    max-width: 1280px;
+    margin: 0 auto;
     display: flex !important;
     flex-direction: column !important;
-    gap: 3rem !important;
+    gap: 2rem;
 }
 
-/* Ahora el hero y la fila de gráficas usan todo el ancho disponible */
-.dashboard-hero,
-.charts-row {
-    width: 100% !important;
-}
-
-/* CABECERA */
+/* ======== HERO HORIZONTAL (RELOJ + BOTONES) ======== */
 
 .dashboard-hero {
-    background: radial-gradient(circle at top left, #171717, #0f0f0f 40%, #080808) !important;
-    border-radius: 20px !important;
-    padding: 3rem 4rem !important;
-    border: 1px solid #1f1f1f !important;
-    box-shadow: 0 24px 60px rgba(0,0,0,0.6) !important;
-    min-height: 220px !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
+    width: 100% !important;
+    min-height: auto !important;
+    background: radial-gradient(circle at top left, #2b2b32 0, #15151b 40%, #09090d 100%);
+    border-radius: 20px;
+    padding: 2.5rem 3rem;
+    border: 1px solid #1f1f1f;
+    box-shadow: 0 24px 60px rgba(0,0,0,0.6);
+    transform: none !important;
 }
 
 .hero-inner {
     display: flex !important;
+    flex-direction: row !important;
     justify-content: space-between !important;
     align-items: center !important;
-    gap: 4rem !important;
-    width: 100% !important;
-    max-width: none !important;
-}
-
-.hero-clock {
-    display: block !important;
-}
-
-.hero-clock-digits {
-    font-size: 5rem !important;
-    letter-spacing: 0.25em !important;
-    font-weight: 700 !important;
-    color: #ffffff !important;
-    line-height: 1.2 !important;
-    margin-bottom: 1rem !important;
-    text-shadow: 0 4px 12px rgba(0,0,0,0.5) !important;
-}
-
-.hero-clock-date {
-    margin-top: 0 !important;
-    font-size: 1.1rem !important;
-    color: #d0d0d0 !important;
-    font-weight: 400 !important;
-    line-height: 1.4 !important;
-}
-
-/* BOTONES */
-
-.hero-period {
-    display: flex !important;
-    background: #050505 !important;
-    padding: .5rem !important;
-    border-radius: 999px !important;
-    box-shadow: 0 14px 30px rgba(0,0,0,0.65) !important;
-}
-
-.period-btn {
-    border: none !important;
-    background: transparent !important;
-    color: #bfbfbf !important;
-    padding: .65rem 2rem !important;
-    border-radius: 999px !important;
-    cursor: pointer !important;
-    font-size: 1rem !important;
-    transition: all 0.3s ease !important;
-    font-weight: 500 !important;
-}
-
-.period-btn-active {
-    background: linear-gradient(135deg, #84B067, #6F9357) !important;
-    color: #000 !important;
-    font-weight: 700 !important;
-}
-
-/* GRAFICAS */
-
-.charts-row {
-    display: grid !important;
-    grid-template-columns: minmax(0, 1.3fr) minmax(0, 1.7fr) !important;
     gap: 2rem !important;
 }
 
+/* RELOJ */
+
+.hero-clock-digits {
+    font-size: 3rem;
+    letter-spacing: 0.18em;
+    font-weight: 700;
+    color: #ffffff;
+    white-space: nowrap;
+}
+
+.hero-clock-date {
+    margin-top: 0.5rem;
+    font-size: 0.9rem;
+    color: #aaaaaa;
+}
+
+/* BOTONES HOY / SEMANA / MES */
+
+.hero-period {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px;
+    border-radius: 999px;
+    background: #050505;
+    box-shadow: 0 18px 40px rgba(0,0,0,0.7);
+    gap: 0.25rem;
+}
+
+.period-btn {
+    border: none;
+    outline: none;
+    padding: 0.45rem 1.4rem;
+    border-radius: 999px;
+    font-size: 0.9rem;
+    cursor: pointer;
+    background: transparent;
+    color: #e3e3e3;
+    transition: background 0.2s ease, color 0.2s ease, transform 0.1s ease;
+}
+
+.period-btn-active {
+    background: linear-gradient(135deg, #9ad94a, #b4ff5c);
+    color: #111;
+    font-weight: 600;
+}
+
+/* ======== FILA DE GRÁFICAS ======== */
+
+.charts-row {
+    width: 100% !important;
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 2rem !important;
+    align-items: stretch !important;
+}
+
+/* Tarjetas de gráficas */
+
 .chart-card {
-    background: #131313 !important;
-    border-radius: 18px !important;
-    padding: 2.5rem !important;
-    border: 1px solid #222 !important;
-    box-shadow: 0 18px 40px rgba(0,0,0,0.55) !important;
-    min-height: 450px !important;
-    display: flex !important;
-    flex-direction: column !important;
+    width: 100% !important;
+    background: #111118;
+    border-radius: 18px;
+    padding: 1.5rem;
+    border: 1px solid #1f1f1f;
+    box-shadow: 0 18px 40px rgba(0,0,0,0.7);
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    transform: none !important;
 }
 
 .chart-card h3 {
-    margin: 0 0 2rem 0 !important;
-    font-size: 1.2rem !important;
-    color: #f1f1f1 !important;
-    font-weight: 600 !important;
+    margin: 0;
+    font-size: 0.95rem;
+    color: #d7d7d7;
 }
 
-.chart-card canvas {
+/* Wrapper para que el canvas se estire bien */
+
+.chart-wrapper {
+    position: relative;
+    width: 100%;
+    height: 320px;
+}
+
+.chart-wrapper canvas {
+    position: absolute;
+    inset: 0;
     width: 100% !important;
-    height: 380px !important;
-    flex: 1 !important;
+    height: 100% !important;
 }
 
-/* RESPONSIVE */
+/* ======== RESPONSIVE ======== */
 
 @media (max-width: 992px) {
+    .adminux-content {
+        padding: 1rem;
+    }
+
     .hero-inner {
-        flex-direction: column;
-        align-items: flex-start;
+        flex-direction: column !important;
+        align-items: flex-start !important;
     }
 
     .charts-row {
-        grid-template-columns: 1fr;
+        grid-template-columns: minmax(0, 1fr) !important;
+    }
+
+    .chart-wrapper {
+        height: 240px;
     }
 }

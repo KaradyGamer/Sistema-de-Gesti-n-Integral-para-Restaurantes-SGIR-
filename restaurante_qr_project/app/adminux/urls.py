@@ -17,6 +17,7 @@ urlpatterns = [
     path('usuarios/crear/', views.usuarios_crear, name='usuario_crear'),
     path('usuarios/<int:pk>/editar/', views.usuarios_editar, name='usuario_editar'),
     path('usuarios/<int:pk>/eliminar/', views.usuarios_eliminar, name='usuario_eliminar'),
+    path('usuarios/<int:pk>/generar-qr/', views.usuario_generar_qr, name='usuario_generar_qr'),
 
     # ══════════════════════════════════════════
     # GESTIÓN DE PRODUCTOS

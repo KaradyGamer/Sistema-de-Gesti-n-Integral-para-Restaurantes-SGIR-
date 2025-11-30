@@ -325,6 +325,37 @@ def usuarios_eliminar(request, pk):
     return redirect('adminux:usuarios')
 
 
+@login_required
+@admin_requerido
+def usuario_generar_qr(request, pk):
+    """Generar token QR para un usuario (AJAX)"""
+    from django.http import JsonResponse
+
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'error': 'Método no permitido'}, status=405)
+
+    try:
+        usuario = get_object_or_404(Usuario, pk=pk)
+
+        # Generar nuevo token QR
+        qr_token = usuario.generar_qr_token()
+
+        logger.info(f"AdminUX: Token QR generado para {usuario.username} por {request.user.username}")
+
+        return JsonResponse({
+            'success': True,
+            'qr_token': str(qr_token),
+            'message': 'Token QR generado exitosamente'
+        })
+
+    except Exception as e:
+        logger.exception(f"AdminUX: Error al generar QR para usuario {pk}: {e}")
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
+
+
 # ══════════════════════════════════════════════
 # 🍕 GESTIÓN DE PRODUCTOS
 # ══════════════════════════════════════════════
@@ -639,7 +670,29 @@ def reportes_productos(request):
 # ⚙️ CONFIGURACIÓN
 # ══════════════════════════════════════════════
 
+@login_required
 @admin_requerido
 def configuracion(request):
     """Configuración del sistema"""
-    return render(request, 'adminux/configuracion.html')
+    from app.configuracion.models import ConfiguracionSistema
+    from app.configuracion.forms import ConfiguracionSistemaForm
+
+    config = ConfiguracionSistema.get_configuracion()
+
+    if request.method == 'POST':
+        form = ConfiguracionSistemaForm(request.POST, request.FILES, instance=config)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Configuración actualizada exitosamente.')
+            logger.info(f"Configuración del sistema actualizada por {request.user.username}")
+            return redirect('adminux:configuracion')
+        else:
+            messages.error(request, 'Error al actualizar la configuración.')
+    else:
+        form = ConfiguracionSistemaForm(instance=config)
+
+    context = {
+        'form': form,
+        'config': config,
+    }
+    return render(request, 'html/adminux/configuracion.html', context)

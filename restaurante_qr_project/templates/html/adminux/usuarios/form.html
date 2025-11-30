@@ -63,6 +63,33 @@
     </div>
 </div>
 
+<!-- Sección PIN y QR -->
+<div class="form-section">
+    <h3>Autenticación Adicional</h3>
+    <div class="form-grid">
+        <div class="form-group">
+            <label for="pin">PIN</label>
+            <input type="text" id="pin" name="pin" class="form-control"
+                   value="{{ usuario.pin|default:'' }}" maxlength="6" pattern="[0-9]*">
+            <small class="form-text">PIN numérico de 4-6 dígitos (solo para cajeros/gerentes)</small>
+        </div>
+
+        {% if usuario %}
+        <div class="form-group">
+            <label for="qr_token">Token QR</label>
+            <div class="d-flex gap-2">
+                <input type="text" id="qr_token" class="form-control"
+                       value="{{ usuario.qr_token|default:'Sin token' }}" readonly>
+                <button type="button" class="btn btn-secondary" id="btnGenerarQr">
+                    <i class="bi bi-qr-code"></i> Generar QR
+                </button>
+            </div>
+            <small class="form-text">Token para login con código QR (meseros/cocineros)</small>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
 {% if not usuario %}
 <div class="form-section">
     <h3>Contraseña</h3>
@@ -123,5 +150,35 @@ form.addEventListener('submit', (e) => {
     }
     {% endif %}
 });
+
+{% if usuario %}
+// Generar QR token
+const btnGenerarQr = document.getElementById('btnGenerarQr');
+if (btnGenerarQr) {
+    btnGenerarQr.addEventListener('click', async () => {
+        try {
+            const response = await fetch("{% url 'adminux:usuario_generar_qr' usuario.pk %}", {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}',
+                    'Content-Type': 'application/json',
+                }
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                document.getElementById('qr_token').value = data.qr_token;
+                window.adminUX.mostrarNotificacion('Token QR generado exitosamente', 'success');
+            } else {
+                window.adminUX.mostrarNotificacion(data.error || 'Error al generar QR', 'error');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            window.adminUX.mostrarNotificacion('Error al conectar con el servidor', 'error');
+        }
+    });
+}
+{% endif %}
 </script>
 {% endblock %}

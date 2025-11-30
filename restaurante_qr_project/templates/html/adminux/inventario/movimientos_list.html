@@ -1,0 +1,110 @@
+{% extends 'html/adminux/base_list.html' %}
+{% load static %}
+
+{% block title %}Movimientos de Inventario - AdminUX{% endblock %}
+
+{% block list_title %}Historial de Movimientos{% endblock %}
+
+{% block list_actions %}
+<a href="{% url 'inventario:insumos' %}" class="btn btn-secondary">
+    <i class="bi bi-arrow-left"></i> Volver a Insumos
+</a>
+{% endblock %}
+
+{% block list_filters %}
+<form method="get" class="row g-3 mb-3">
+    <div class="col-md-5">
+        <select name="insumo" class="form-select">
+            <option value="">Todos los insumos</option>
+            {% for ins in insumos %}
+            <option value="{{ ins.id }}" {% if insumo_id == ins.id|stringformat:"s" %}selected{% endif %}>
+                {{ ins.nombre }}
+            </option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="col-md-5">
+        <select name="tipo" class="form-select">
+            <option value="">Todos los tipos</option>
+            <option value="entrada" {% if tipo == 'entrada' %}selected{% endif %}>Entrada</option>
+            <option value="salida" {% if tipo == 'salida' %}selected{% endif %}>Salida</option>
+            <option value="ajuste" {% if tipo == 'ajuste' %}selected{% endif %}>Ajuste</option>
+        </select>
+    </div>
+    <div class="col-md-2">
+        <button type="submit" class="btn btn-primary w-100">
+            <i class="bi bi-search"></i> Filtrar
+        </button>
+    </div>
+</form>
+{% endblock %}
+
+{% block list_content %}
+<div class="table-responsive">
+    <table class="table table-hover table-sm">
+        <thead>
+            <tr>
+                <th>Fecha</th>
+                <th>Insumo</th>
+                <th>Tipo</th>
+                <th>Cantidad</th>
+                <th>Motivo</th>
+                <th>Usuario</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for mov in movimientos %}
+            <tr>
+                <td>
+                    <small>{{ mov.fecha_creacion|date:"d/m/Y H:i" }}</small>
+                </td>
+                <td>
+                    <strong>{{ mov.insumo.nombre }}</strong>
+                </td>
+                <td>
+                    {% if mov.tipo == 'entrada' %}
+                        <span class="badge bg-success">Entrada</span>
+                    {% elif mov.tipo == 'salida' %}
+                        <span class="badge bg-danger">Salida</span>
+                    {% else %}
+                        <span class="badge bg-warning text-dark">Ajuste</span>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if mov.tipo == 'entrada' %}
+                        <span class="text-success"><strong>+{{ mov.cantidad }}</strong></span>
+                    {% elif mov.tipo == 'salida' %}
+                        <span class="text-danger"><strong>-{{ mov.cantidad|abs }}</strong></span>
+                    {% else %}
+                        <span class="text-warning"><strong>{{ mov.cantidad|stringformat:"+d" }}</strong></span>
+                    {% endif %}
+                    {{ mov.insumo.get_unidad_display }}
+                </td>
+                <td>
+                    <small>{{ mov.motivo|truncatewords:10 }}</small>
+                </td>
+                <td>
+                    {% if mov.creado_por %}
+                        <small class="text-muted">{{ mov.creado_por.username }}</small>
+                    {% else %}
+                        <small class="text-muted">Sistema</small>
+                    {% endif %}
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="6" class="text-center text-muted py-4">
+                    No hay movimientos registrados.
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<div class="mt-3">
+    <p class="text-muted">
+        Mostrando últimos 100 movimientos. Total en la base de datos: <strong>{{ total }}</strong>
+    </p>
+</div>
+{% endblock %}

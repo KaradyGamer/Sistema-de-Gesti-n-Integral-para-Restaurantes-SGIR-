@@ -2,26 +2,35 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{% block title %}AdminUX{% endblock %}</title>
     <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+    <link rel="stylesheet" href="{% static 'css/adminux/prototipo-vars.css' %}">
     <link rel="stylesheet" href="{% static 'css/adminux/main.css' %}">
-    {% block extra_css %}{% endblock %}
+    {% block extra_head %}{% endblock %}
 </head>
-<body class="adminux-body">
-    <div class="adminux-layout">
-        {% include "html/adminux/components/sidebar.html" %}
-
-        <main class="adminux-main">
-            {% include "html/adminux/components/topbar.html" %}
-
-            <section class="adminux-page">
-                {% block content %}{% endblock %}
-            </section>
-        </main>
+<body class="adminux-body dark-theme">
+    <!-- Loader del prototipo -->
+    <div id="adminuxLoader" class="loader-overlay loader-hide">
+        <div class="loader"></div>
     </div>
 
+    <div class="adminux-layout">
+        {% include 'html/adminux/components/sidebar.html' %}
+
+        <div class="adminux-main">
+            {% include 'html/adminux/components/topbar.html' %}
+
+            <main class="adminux-main-inner">
+                {% block adminux_page %}
+                {% block content %}{% endblock %}
+                {% endblock %}
+            </main>
+        </div>
+    </div>
+
+    <script src="{% static 'js/adminux/loader.js' %}"></script>
     <script src="{% static 'js/adminux/main.js' %}"></script>
     {% block extra_js %}{% endblock %}
 </body>

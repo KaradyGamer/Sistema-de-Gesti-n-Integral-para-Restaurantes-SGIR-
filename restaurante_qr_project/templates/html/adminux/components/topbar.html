@@ -1,9 +1,9 @@
-<div class="topbar-premium">
-    <div class="topbar-left-premium">
-        <button class="mobile-toggle-premium" id="mobileToggle">
+<div class="topbar">
+    <div class="topbar-left">
+        <button class="mobile-toggle" id="mobileToggle">
             <i class='bx bx-menu'></i>
         </button>
-        <div class="breadcrumb-premium">
+        <div class="breadcrumb">
             <a href="{% url 'adminux:dashboard' %}"><i class='bx bx-home'></i></a>
             <i class='bx bx-chevron-right'></i>
             {% block breadcrumb %}
@@ -12,20 +12,20 @@
         </div>
     </div>
 
-    <div class="topbar-right-premium">
-        <button class="icon-btn-premium" onclick="toggleDark()" title="Cambiar tema">
+    <div class="topbar-right">
+        <button class="icon-btn" title="Cambiar tema">
             <i class='bx bx-moon'></i>
         </button>
 
         {# Django Admin button removed per client request #}
 
-        <div class="user-dropdown-premium">
-            <button class="user-btn-premium" id="userDropdownBtn">
+        <div class="user-dropdown">
+            <button class="user-btn" id="userDropdownBtn">
                 <i class='bx bx-user-circle'></i>
                 <span>{{ request.user.username }}</span>
                 <i class='bx bx-chevron-down'></i>
             </button>
-            <div class="dropdown-menu-premium" id="userDropdownMenu">
+            <div class="dropdown-menu" id="userDropdownMenu">
                 <a href="/usuarios/logout/" class="text-danger">
                     <i class='bx bx-log-out'></i> Cerrar Sesión
                 </a>

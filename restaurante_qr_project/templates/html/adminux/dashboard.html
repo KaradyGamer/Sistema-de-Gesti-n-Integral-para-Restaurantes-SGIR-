@@ -4,144 +4,274 @@
 {% block title %}Dashboard - AdminUX{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'css/adminux/dashboard-premium.css' %}">
+<style>
+/* ====== LAYOUT PROPIO DEL DASHBOARD (SIN CHOCAR CON ADMINUX) ====== */
+
+/* RESETEAR contenedor AdminUX */
+.adminux-content {
+    display: block !important;
+    padding: 0 !important;
+}
+
+.uxdash-root {
+    width: 100% !important;
+    max-width: 1280px !important;
+    margin: 0 auto !important;
+    padding: 2rem 2.5rem !important;
+    display: block !important;
+}
+
+/* HERO ARRIBA */
+
+.uxdash-hero {
+    width: 100% !important;
+    max-width: none !important;
+    background: radial-gradient(circle at top left, #2b2b32 0, #15151b 40%, #09090d 100%);
+    border-radius: 20px;
+    padding: 2.5rem 3rem;
+    border: 1px solid #1f1f1f;
+    box-shadow: 0 24px 60px rgba(0,0,0,0.6);
+    display: flex !important;
+    flex-direction: row !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    gap: 2rem !important;
+}
+
+.uxdash-clock-time {
+    font-size: 3rem;
+    letter-spacing: 0.18em;
+    font-weight: 700;
+    color: #ffffff;
+    white-space: nowrap;
+}
+
+.uxdash-clock-date {
+    margin-top: 0.5rem;
+    font-size: 0.9rem;
+    color: #aaaaaa;
+}
+
+/* Botones Hoy / Semana / Mes */
+
+.uxdash-period {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px;
+    border-radius: 999px;
+    background: #050505;
+    box-shadow: 0 18px 40px rgba(0,0,0,0.7);
+    gap: 0.25rem;
+}
+
+.uxdash-period-btn {
+    border: none;
+    outline: none;
+    padding: 0.45rem 1.4rem;
+    border-radius: 999px;
+    font-size: 0.9rem;
+    cursor: pointer;
+    background: transparent;
+    color: #e3e3e3;
+    transition: background 0.2s ease, color 0.2s ease, transform 0.1s ease;
+}
+
+.uxdash-period-btn--active {
+    background: linear-gradient(135deg, #9ad94a, #b4ff5c);
+    color: #111;
+    font-weight: 600;
+}
+
+/* FILA DE GRÁFICAS */
+
+.uxdash-charts {
+    width: 100% !important;
+    margin-top: 2rem !important;
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important;
+    gap: 2rem !important;
+}
+
+.uxdash-card {
+    width: 100% !important;
+    max-width: none !important;
+    min-width: 0 !important;
+    background: #111118;
+    border-radius: 18px;
+    padding: 1.5rem;
+    border: 1px solid #1f1f1f;
+    box-shadow: 0 18px 40px rgba(0,0,0,0.7);
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 1rem !important;
+}
+
+.uxdash-card-title {
+    margin: 0;
+    font-size: 0.95rem;
+    color: #d7d7d7;
+}
+
+/* Canvas bien estirado */
+
+.uxdash-chart-wrapper {
+    position: relative;
+    width: 100%;
+    height: 260px;
+}
+
+.uxdash-chart-wrapper canvas {
+    position: absolute;
+    inset: 0;
+    width: 100% !important;
+    height: 100% !important;
+}
+
+/* Responsive */
+
+@media (max-width: 992px) {
+    .uxdash-root {
+        padding: 1rem;
+    }
+
+    .uxdash-hero {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .uxdash-charts {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .uxdash-chart-wrapper {
+        height: 220px;
+    }
+}
+</style>
 {% endblock %}
 
 {% block content %}
-<div class="adminux-dashboard">
-    <!-- CABECERA GRANDE -->
-    <section class="dashboard-hero">
-        <div class="hero-inner">
-            <div class="hero-clock">
-                <div id="dashboard-clock" class="hero-clock-digits">00 : 00 : 00</div>
-                <div id="dashboard-date" class="hero-clock-date">---</div>
-            </div>
+<div class="uxdash-root">
 
-            <div class="hero-period">
-                <button class="period-btn period-btn-active" data-period="day">Hoy</button>
-                <button class="period-btn" data-period="week">Semana</button>
-                <button class="period-btn" data-period="month">Mes</button>
+    <!-- HERO ARRIBA -->
+    <section class="uxdash-hero">
+        <div class="uxdash-clock">
+            <div id="dashboard-clock" class="uxdash-clock-time">00 : 00 : 00</div>
+            <div id="dashboard-date" class="uxdash-clock-date">---</div>
+        </div>
+
+        <div class="uxdash-period">
+            <button class="uxdash-period-btn uxdash-period-btn--active" data-period="day">Hoy</button>
+            <button class="uxdash-period-btn" data-period="week">Semana</button>
+            <button class="uxdash-period-btn" data-period="month">Mes</button>
+        </div>
+    </section>
+
+    <!-- DOS TARJETAS ABAJO -->
+    <section class="uxdash-charts">
+        <div class="uxdash-card">
+            <h3 class="uxdash-card-title">Pedidos (últimos 7 días)</h3>
+            <div class="uxdash-chart-wrapper">
+                <canvas id="ordersChart"></canvas>
+            </div>
+        </div>
+
+        <div class="uxdash-card">
+            <h3 class="uxdash-card-title">Ventas (últimos 7 días)</h3>
+            <div class="uxdash-chart-wrapper">
+                <canvas id="salesChart"></canvas>
             </div>
         </div>
     </section>
 
-    <!-- FILA DE GRÁFICAS -->
-    <section class="charts-row">
-        <div class="chart-card">
-            <h3>Pedidos (últimos 7 días)</h3>
-            <canvas id="ordersChart"></canvas>
-        </div>
-
-        <div class="chart-card">
-            <h3>Ventas (últimos 7 días)</h3>
-            <canvas id="salesChart"></canvas>
-        </div>
-    </section>
 </div>
 {% endblock %}
 
 {% block extra_js %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-    /* ============================
-       RELOJ
-       ============================ */
-    function updateDashboardClock() {
-        const clockEl = document.getElementById("dashboard-clock");
-        const dateEl  = document.getElementById("dashboard-date");
-        if (!clockEl || !dateEl) return;
+// ===== Reloj =====
+function updateDashboardClock() {
+    const now = new Date();
+    const clockEl = document.getElementById("dashboard-clock");
+    const dateEl  = document.getElementById("dashboard-date");
+    if (!clockEl || !dateEl) return;
 
-        const now = new Date();
+    const hh = String(now.getHours()).padStart(2, "0");
+    const mm = String(now.getMinutes()).padStart(2, "0");
+    const ss = String(now.getSeconds()).padStart(2, "0");
+    clockEl.textContent = `${hh} : ${mm} : ${ss}`;
 
-        const hh = String(now.getHours()).padStart(2, "0");
-        const mm = String(now.getMinutes()).padStart(2, "0");
-        const ss = String(now.getSeconds()).padStart(2, "0");
-        clockEl.textContent = `${hh} : ${mm} : ${ss}`;
+    const dias = ["Domingo","Lunes","Martes","Miércoles","Jueves","Viernes","Sábado"];
+    const meses = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
+    const fechaTexto = `${dias[now.getDay()]}, ${now.getDate()} de ${meses[now.getMonth()]} de ${now.getFullYear()}`;
+    dateEl.textContent = fechaTexto;
+}
+setInterval(updateDashboardClock, 1000);
+updateDashboardClock();
 
-        const dias = ["Domingo","Lunes","Martes","Miércoles","Jueves","Viernes","Sábado"];
-        const meses = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio",
-                       "Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
+// ===== Datos de los charts (vienen del backend) =====
+const labels = {{ chart_labels|safe }};
+const ordersData = {{ chart_orders|safe }};
+const salesData = {{ chart_sales|safe }};
 
-        const diaNombre = dias[now.getDay()];
-        const diaNum    = now.getDate();
-        const mesNombre = meses[now.getMonth()];
-        const anio      = now.getFullYear();
-
-        dateEl.textContent = `${diaNombre}, ${diaNum} de ${mesNombre} de ${anio}`;
-    }
-
-    setInterval(updateDashboardClock, 1000);
-    updateDashboardClock();
-
-    /* ============================
-       TOGGLE HOY/SEMANA/MES
-       ============================ */
-    document.querySelectorAll(".period-btn").forEach(btn => {
-        btn.addEventListener("click", () => {
-            document.querySelectorAll(".period-btn").forEach(b => b.classList.remove("period-btn-active"));
-            btn.classList.add("period-btn-active");
-        });
-    });
-
-    /* ============================
-       GRAFICAS CHART.JS
-       ============================ */
-    document.addEventListener("DOMContentLoaded", function () {
-        const ordersCtx = document.getElementById("ordersChart").getContext("2d");
-        const salesCtx  = document.getElementById("salesChart").getContext("2d");
-
-        const labels     = {{ chart_labels|safe }};
-        const ordersData = {{ chart_orders|safe }};
-        const salesData  = {{ chart_sales|safe }};
-
-        /* BARRAS */
-        new Chart(ordersCtx, {
-            type: "bar",
-            data: {
-                labels: labels,
-                datasets: [{
-                    label: "Pedidos",
-                    data: ordersData,
-                    backgroundColor: "rgba(132, 176, 103, 0.7)",
-                    borderRadius: 8,
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: { legend: { display: false } },
-                scales: {
-                    x: { ticks: { color: "#ccc" }, grid: { display: false } },
-                    y: { ticks: { color: "#999" }, grid: { color: "#222" } }
-                }
+// ===== Gráfica de Pedidos =====
+const ordersCtx = document.getElementById('ordersChart');
+if (ordersCtx) {
+    new Chart(ordersCtx, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Pedidos',
+                data: ordersData,
+                borderWidth: 1,
+                backgroundColor: 'rgba(154, 217, 74, 0.8)'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: { beginAtZero: true }
             }
-        });
-
-        /* LINEA */
-        new Chart(salesCtx, {
-            type: "line",
-            data: {
-                labels: labels,
-                datasets: [{
-                    label: "Ventas",
-                    data: salesData,
-                    borderColor: "#84B067",
-                    backgroundColor: "rgba(132,176,103,0.3)",
-                    tension: 0.35,
-                    fill: true,
-                    pointRadius: 3,
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: { legend: { display: false } },
-                scales: {
-                    x: { ticks: { color: "#ccc" }, grid: { display: false } },
-                    y: { ticks: { color: "#999" }, grid: { color: "#222" } }
-                }
-            }
-        });
+        }
     });
+}
+
+// ===== Gráfica de Ventas =====
+const salesCtx = document.getElementById('salesChart');
+if (salesCtx) {
+    new Chart(salesCtx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Ventas',
+                data: salesData,
+                borderWidth: 2,
+                tension: 0.4,
+                fill: false,
+                borderColor: 'rgba(154, 217, 74, 1)'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: { beginAtZero: true }
+            }
+        }
+    });
+}
+
+// ===== Toggle de botones Hoy / Semana / Mes =====
+document.querySelectorAll('.uxdash-period-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        document.querySelectorAll('.uxdash-period-btn').forEach(b => b.classList.remove('uxdash-period-btn--active'));
+        btn.classList.add('uxdash-period-btn--active');
+        // Aquí en el futuro puedes cambiar los datos según data-period
+    });
+});
 </script>
 {% endblock %}

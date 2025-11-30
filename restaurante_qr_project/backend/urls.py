@@ -78,6 +78,9 @@ urlpatterns = [
 
     # 🎨 ADMINUX - Panel de administración moderno
     path('adminux/', include('app.adminux.urls')),
+
+    # 📦 INVENTARIO - Gestión de insumos
+    path('adminux/inventario/', include('app.inventario.urls')),
 ]
 
 # ✅ ARCHIVOS ESTÁTICOS Y MEDIA

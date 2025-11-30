@@ -51,6 +51,8 @@ INSTALLED_APPS = [
     'app.pedidos',
     'app.caja',  # Módulo de caja
     'app.adminux',  # Panel de administración moderno
+    'app.inventario',  # Gestión de insumos
+    'app.configuracion',  # Configuración del sistema
 
     #reportes contables
     'app.reportes',
