@@ -382,9 +382,9 @@
             {% for reserva in reservas %}
             <li>
                 <div class="reserva-info">
-                    <div class="reserva-cliente">{{ reserva.nombre_cliente }}</div>
+                    <div class="reserva-cliente">{{ reserva.nombre_completo }}</div>
                     <div class="reserva-meta">
-                        {{ reserva.fecha|date:"d/m/Y" }} · {{ reserva.hora }} · Mesa {{ reserva.mesa.numero }} · {{ reserva.numero_personas }} personas
+                        {{ reserva.fecha_reserva|date:"d/m/Y" }} · {{ reserva.hora_reserva }} · Mesa {{ reserva.mesa.numero }} · {{ reserva.numero_personas }} personas
                     </div>
                 </div>
                 <span class="chip chip-amber">Reserva</span>

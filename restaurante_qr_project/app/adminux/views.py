@@ -248,7 +248,7 @@ def adminux_dashboard(request):
     if Reserva:
         reservas_demo = Reserva.objects.filter(
             fecha_reserva__gte=timezone.now().date()
-        ).select_related('mesa').order_by('-created_at')[:3]
+        ).select_related('mesa').order_by('-fecha_creacion')[:3]
 
     # Actividades del sistema (demo)
     actividades_demo = [
