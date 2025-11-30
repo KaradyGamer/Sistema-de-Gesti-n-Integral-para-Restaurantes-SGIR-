@@ -232,10 +232,72 @@ def adminux_dashboard(request):
         "reservas": Reserva.objects.order_by("-id")[:8] if Reserva else [],
     }
 
-    # Datos para gráficas (Chart.js)
+    # Datos para gráficas (Chart.js) - Datos de demostración
     labels = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"]
     chart_orders = [5, 8, 3, 10, 6, 4, 7]
     chart_sales = [120, 340, 180, 500, 260, 210, 430]
+
+    # Ventas por hora (demo) para el dashboard
+    ventas_por_hora = [
+        {"hora": h, "total": sum([15, 22, 35, 40, 55, 80, 93, 85, 70, 62, 48, 30, 25, 20, 18, 15, 12, 10, 8, 5, 3, 2, 1, 1][h:h+1] or [0])}
+        for h in range(10, 18)  # 10:00 a 17:00
+    ]
+
+    # Reservas recientes (demo)
+    reservas_demo = []
+    if Reserva:
+        reservas_demo = Reserva.objects.filter(
+            fecha_reserva__gte=timezone.now().date()
+        ).select_related('mesa').order_by('-created_at')[:3]
+
+    # Actividades del sistema (demo)
+    actividades_demo = [
+        {
+            "titulo": "Apertura de caja",
+            "descripcion": f"Hoy · 09:00 · Usuario: {request.user.username}",
+            "tipo": "caja"
+        },
+        {
+            "titulo": "Nueva reserva",
+            "descripcion": "Hoy · 09:30 · Usuario: karady · Mesa 4 · 2 personas",
+            "tipo": "reservas"
+        },
+        {
+            "titulo": "Comanda enviada",
+            "descripcion": "Hoy · 09:45 · Mesa 2 · 3 items · Usuario: mozo01",
+            "tipo": "comandas"
+        },
+        {
+            "titulo": "Nuevo usuario",
+            "descripcion": "Ayer · 18:00 · mozo01 creado por admin",
+            "tipo": "usuarios"
+        },
+    ]
+
+    # Top productos (demo)
+    top_productos_demo = []
+    if Producto:
+        # Intentar obtener productos reales con conteo de pedidos
+        try:
+            from app.pedidos.models import DetallePedido
+            top_productos_demo = Producto.objects.filter(
+                activo=True
+            ).annotate(
+                total_vendido=Count('detallepedido__id')
+            ).filter(
+                total_vendido__gt=0
+            ).order_by('-total_vendido')[:5]
+        except:
+            # Fallback: productos sin contar ventas
+            productos = list(Producto.objects.filter(activo=True)[:5])
+            for idx, p in enumerate(productos):
+                p.total_vendido = [120, 98, 76, 65, 43][idx] if idx < 5 else 10
+            top_productos_demo = productos
+
+    # Estado de caja
+    caja_abierta = False
+    if JornadaLaboral and hasattr(JornadaLaboral, 'hay_jornada_activa'):
+        caja_abierta = JornadaLaboral.hay_jornada_activa()
 
     ctx = {
         "kpis": kpis,
@@ -245,6 +307,12 @@ def adminux_dashboard(request):
         "chart_labels": json.dumps(labels),
         "chart_orders": json.dumps(chart_orders),
         "chart_sales": json.dumps(chart_sales),
+        # Nuevos datos para el dashboard del prototipo
+        "ventas_por_hora": json.dumps(ventas_por_hora),
+        "reservas": reservas_demo,
+        "actividades": actividades_demo,
+        "top_productos": top_productos_demo,
+        "caja_abierta": caja_abierta,
     }
 
     logger.info(f"AdminUX dashboard renderizado correctamente - Usuario: {request.user.username}")
