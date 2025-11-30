@@ -328,7 +328,7 @@ def usuarios_list(request):
     """Lista de todos los usuarios"""
     usuarios = Usuario.objects.filter(activo=True).order_by('-date_joined')
     context = {'usuarios': usuarios}
-    return render(request, 'adminux/usuarios/list.html', context)
+    return render(request, 'html/adminux/usuarios/list.html', context)
 
 
 @admin_requerido
@@ -719,19 +719,19 @@ def reservas_eliminar(request, pk):
 @admin_requerido
 def reportes(request):
     """Panel de reportes"""
-    return render(request, 'adminux/reportes/index.html')
+    return render(request, 'html/adminux/reportes/index.html')
 
 
 @admin_requerido
 def reportes_ventas(request):
     """Reporte de ventas"""
-    return render(request, 'adminux/reportes/ventas.html')
+    return render(request, 'html/adminux/reportes/ventas.html')
 
 
 @admin_requerido
 def reportes_productos(request):
     """Reporte de productos más vendidos"""
-    return render(request, 'adminux/reportes/productos.html')
+    return render(request, 'html/adminux/reportes/productos.html')
 
 
 # ══════════════════════════════════════════════
