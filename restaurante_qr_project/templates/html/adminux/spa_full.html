@@ -1855,8 +1855,240 @@
     </div>
   </div>
 
+  <!-- DATOS DE DJANGO PARA EL JAVASCRIPT -->
+  <script id="django-data" type="application/json">
+  {
+    "mesas": [
+      {% for mesa in mesas %}
+      {
+        "id": {{ mesa.id }},
+        "numero": {{ mesa.numero }},
+        "capacidad": {{ mesa.capacidad }},
+        "estado": "{{ mesa.estado }}",
+        "ubicacion": "{{ mesa.ubicacion|default:'' }}",
+        "pedido_actual": {% if mesa.pedido_actual %}{{ mesa.pedido_actual.id }}{% else %}null{% endif %}
+      }{% if not forloop.last %},{% endif %}
+      {% endfor %}
+    ],
+    "productos": [
+      {% for producto in productos %}
+      {
+        "id": {{ producto.id }},
+        "nombre": "{{ producto.nombre|escapejs }}",
+        "descripcion": "{{ producto.descripcion|default:''|escapejs }}",
+        "precio": {{ producto.precio }},
+        "categoria": {
+          "id": {{ producto.categoria.id }},
+          "nombre": "{{ producto.categoria.nombre|escapejs }}"
+        },
+        "disponible": {{ producto.disponible|yesno:"true,false" }},
+        "imagen": {% if producto.imagen %}"{{ producto.imagen.url }}"{% else %}null{% endif %},
+        "stock": {% if producto.stock %}{{ producto.stock }}{% else %}0{% endif %}
+      }{% if not forloop.last %},{% endif %}
+      {% endfor %}
+    ],
+    "categorias": [
+      {% for categoria in categorias %}
+      {
+        "id": {{ categoria.id }},
+        "nombre": "{{ categoria.nombre|escapejs }}",
+        "descripcion": "{{ categoria.descripcion|default:''|escapejs }}"
+      }{% if not forloop.last %},{% endif %}
+      {% endfor %}
+    ],
+    "usuarios": [
+      {% for usuario in usuarios %}
+      {
+        "id": {{ usuario.id }},
+        "username": "{{ usuario.username|escapejs }}",
+        "email": "{{ usuario.email|default:''|escapejs }}",
+        "first_name": "{{ usuario.first_name|default:''|escapejs }}",
+        "last_name": "{{ usuario.last_name|default:''|escapejs }}",
+        "rol": "{{ usuario.rol|default:'mesero'|escapejs }}",
+        "is_active": {{ usuario.is_active|yesno:"true,false" }},
+        "last_login": {% if usuario.last_login %}"{{ usuario.last_login|date:'Y-m-d H:i:s' }}"{% else %}null{% endif %}
+      }{% if not forloop.last %},{% endif %}
+      {% endfor %}
+    ],
+    "reservas": [
+      {% for reserva in todas_reservas %}
+      {
+        "id": {{ reserva.id }},
+        "nombre_completo": "{{ reserva.nombre_completo|escapejs }}",
+        "telefono": "{{ reserva.telefono|escapejs }}",
+        "email": "{{ reserva.email|default:''|escapejs }}",
+        "fecha_reserva": "{{ reserva.fecha_reserva|date:'Y-m-d' }}",
+        "hora_reserva": "{{ reserva.hora_reserva }}",
+        "numero_personas": {{ reserva.numero_personas }},
+        "mesa": {
+          "id": {{ reserva.mesa.id }},
+          "numero": {{ reserva.mesa.numero }}
+        },
+        "estado": "{{ reserva.estado }}",
+        "observaciones": "{{ reserva.observaciones|default:''|escapejs }}"
+      }{% if not forloop.last %},{% endif %}
+      {% endfor %}
+    ],
+    "insumos": [
+      {% for insumo in insumos %}
+      {
+        "id": {{ insumo.id }},
+        "nombre": "{{ insumo.nombre|escapejs }}",
+        "categoria": {
+          "id": {{ insumo.categoria.id }},
+          "nombre": "{{ insumo.categoria.nombre|escapejs }}"
+        },
+        "unidad_medida": "{{ insumo.unidad_medida }}",
+        "stock_actual": {{ insumo.stock_actual }},
+        "stock_minimo": {{ insumo.stock_minimo }},
+        "precio_unitario": {{ insumo.precio_unitario }}
+      }{% if not forloop.last %},{% endif %}
+      {% endfor %}
+    ],
+    "configuracion": {
+      {% if configuracion %}
+      "nombre_restaurante": "{{ configuracion.nombre_restaurante|escapejs }}",
+      "direccion": "{{ configuracion.direccion|default:''|escapejs }}",
+      "telefono": "{{ configuracion.telefono|default:''|escapejs }}",
+      "email": "{{ configuracion.email|default:''|escapejs }}",
+      "moneda": "{{ configuracion.moneda|default:'Bs'|escapejs }}",
+      "igv": {{ configuracion.igv|default:0 }}
+      {% else %}
+      "nombre_restaurante": "SGIR - Sistema de Gestión",
+      "direccion": "",
+      "telefono": "",
+      "email": "",
+      "moneda": "Bs",
+      "igv": 0
+      {% endif %}
+    }
+  }
+  </script>
+
   <!-- JS -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <!-- Script para cargar datos de Django ANTES del main.js -->
+  <script>
+    // Cargar datos de Django y hacerlos disponibles globalmente
+    window.DJANGO_DATA = JSON.parse(document.getElementById('django-data').textContent);
+    console.log('✅ Datos de Django cargados:', window.DJANGO_DATA);
+
+    // Transformar datos de Django al formato que espera el prototipo
+    window.DJANGO_PRODUCTOS = window.DJANGO_DATA.productos.map(p => ({
+      id: p.id,
+      nombre: p.nombre,
+      descripcion: p.descripcion || '',
+      precio: parseFloat(p.precio),
+      categoriaId: p.categoria.nombre.toLowerCase().replace(/\s+/g, '-'),
+      imagenes: p.imagen ? [p.imagen] : [],
+      requiereInventario: false,
+      stockActual: p.stock || 0,
+      stockMinimo: 5,
+      disponible: p.disponible,
+      opciones: [],
+      receta: []
+    }));
+
+    window.DJANGO_MESAS = window.DJANGO_DATA.mesas.map(m => ({
+      id: m.id,
+      numero: m.numero,
+      capacidad: m.capacidad,
+      estado: m.estado,
+      ubicacion: m.ubicacion || '',
+      pedidoActual: m.pedido_actual
+    }));
+
+    window.DJANGO_USUARIOS = window.DJANGO_DATA.usuarios.map(u => ({
+      id: u.id,
+      username: u.username,
+      email: u.email || '',
+      nombre: u.first_name || '',
+      apellido: u.last_name || '',
+      rol: u.rol || 'mesero',
+      estado: u.is_active ? 'activo' : 'inactivo',
+      ultimoAcceso: u.last_login
+    }));
+
+    window.DJANGO_RESERVAS = window.DJANGO_DATA.reservas.map(r => ({
+      id: r.id,
+      nombreCliente: r.nombre_completo,
+      telefono: r.telefono,
+      email: r.email || '',
+      fecha: r.fecha_reserva,
+      hora: r.hora_reserva,
+      personas: r.numero_personas,
+      mesaId: r.mesa.id,
+      mesaNumero: r.mesa.numero,
+      estado: r.estado,
+      observaciones: r.observaciones || ''
+    }));
+
+    window.DJANGO_INSUMOS = window.DJANGO_DATA.insumos.map(i => ({
+      id: i.id,
+      nombre: i.nombre,
+      categoriaId: i.categoria.nombre.toLowerCase().replace(/\s+/g, '-'),
+      unidad: i.unidad_medida,
+      stockActual: parseFloat(i.stock_actual),
+      stockMinimo: parseFloat(i.stock_minimo),
+      precioUnitario: parseFloat(i.precio_unitario)
+    }));
+
+    console.log('✅ Productos transformados:', window.DJANGO_PRODUCTOS.length);
+    console.log('✅ Mesas transformadas:', window.DJANGO_MESAS.length);
+    console.log('✅ Usuarios transformados:', window.DJANGO_USUARIOS.length);
+    console.log('✅ Reservas transformadas:', window.DJANGO_RESERVAS.length);
+    console.log('✅ Insumos transformados:', window.DJANGO_INSUMOS.length);
+  </script>
+
   <script src="{% static 'js/adminux/main.js' %}"></script>
+
+  <!-- Script para sobrescribir datos del prototipo con datos de Django -->
+  <script>
+    // Esperar a que el DOM esté cargado
+    document.addEventListener('DOMContentLoaded', function() {
+      // Sobrescribir las variables globales del prototipo
+      if (window.DJANGO_PRODUCTOS && window.DJANGO_PRODUCTOS.length > 0) {
+        productos = window.DJANGO_PRODUCTOS;
+        console.log('✅ productos sobrescrito con datos de Django');
+      }
+
+      if (window.DJANGO_MESAS && window.DJANGO_MESAS.length > 0) {
+        mesas = window.DJANGO_MESAS;
+        console.log('✅ mesas sobrescrito con datos de Django');
+      }
+
+      if (window.DJANGO_USUARIOS && window.DJANGO_USUARIOS.length > 0) {
+        usuarios = window.DJANGO_USUARIOS;
+        console.log('✅ usuarios sobrescrito con datos de Django');
+      }
+
+      if (window.DJANGO_RESERVAS && window.DJANGO_RESERVAS.length > 0) {
+        reservas = window.DJANGO_RESERVAS;
+        console.log('✅ reservas sobrescrito con datos de Django');
+      }
+
+      if (window.DJANGO_INSUMOS && window.DJANGO_INSUMOS.length > 0) {
+        insumos = window.DJANGO_INSUMOS;
+        console.log('✅ insumos sobrescrito con datos de Django');
+      }
+
+      // Re-renderizar las tablas si ya están inicializadas
+      setTimeout(() => {
+        if (typeof renderProductosTable === 'function') {
+          renderProductosTable();
+          console.log('✅ Tabla de productos re-renderizada');
+        }
+        if (typeof renderMesasTable === 'function') {
+          renderMesasTable();
+          console.log('✅ Tabla de mesas re-renderizada');
+        }
+        if (typeof renderUsuariosTable === 'function') {
+          renderUsuariosTable();
+          console.log('✅ Tabla de usuarios re-renderizada');
+        }
+      }, 1000);
+    });
+  </script>
 </body>
 </html>

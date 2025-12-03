@@ -299,6 +299,37 @@ def adminux_dashboard(request):
     if JornadaLaboral and hasattr(JornadaLaboral, 'hay_jornada_activa'):
         caja_abierta = JornadaLaboral.hay_jornada_activa()
 
+    # ===== DATOS PARA TODAS LAS SECCIONES DE LA SPA =====
+
+    # MESAS - Todas las mesas del sistema
+    todas_mesas = Mesa.objects.all().order_by('numero') if Mesa else []
+
+    # PRODUCTOS - Todos los productos y categorías
+    todos_productos = Producto.objects.filter(activo=True).select_related('categoria').order_by('nombre') if Producto else []
+    todas_categorias = Categoria.objects.filter(activo=True).order_by('nombre') if Categoria else []
+
+    # USUARIOS - Todos los usuarios del sistema
+    todos_usuarios = Usuario.objects.all().order_by('-date_joined') if Usuario else []
+
+    # RESERVAS - Todas las reservas
+    todas_reservas = Reserva.objects.select_related('mesa').order_by('-fecha_reserva')[:50] if Reserva else []
+
+    # INVENTARIO - Insumos y categorías
+    try:
+        from app.inventario.models import Insumo, CategoriaInsumo
+        todos_insumos = Insumo.objects.select_related('categoria').order_by('nombre')
+        categorias_insumos = CategoriaInsumo.objects.all().order_by('nombre')
+    except:
+        todos_insumos = []
+        categorias_insumos = []
+
+    # CONFIGURACIÓN - Obtener configuración del sistema
+    try:
+        from app.configuracion.models import ConfiguracionSistema
+        configuracion = ConfiguracionSistema.get_configuracion()
+    except:
+        configuracion = None
+
     ctx = {
         "kpis": kpis,
         "recientes": recientes,
@@ -307,12 +338,26 @@ def adminux_dashboard(request):
         "chart_labels": json.dumps(labels),
         "chart_orders": json.dumps(chart_orders),
         "chart_sales": json.dumps(chart_sales),
-        # Nuevos datos para el dashboard del prototipo
+        # Dashboard
         "ventas_por_hora": json.dumps(ventas_por_hora),
         "reservas": reservas_demo,
         "actividades": actividades_demo,
         "top_productos": top_productos_demo,
         "caja_abierta": caja_abierta,
+        # Mesas
+        "mesas": todas_mesas,
+        # Productos
+        "productos": todos_productos,
+        "categorias": todas_categorias,
+        # Usuarios
+        "usuarios": todos_usuarios,
+        # Reservas
+        "todas_reservas": todas_reservas,
+        # Inventario
+        "insumos": todos_insumos,
+        "categorias_insumos": categorias_insumos,
+        # Configuración
+        "configuracion": configuracion,
     }
 
     logger.info(f"AdminUX dashboard renderizado correctamente - Usuario: {request.user.username}")
