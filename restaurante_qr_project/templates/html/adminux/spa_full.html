@@ -1961,6 +1961,40 @@
       "moneda": "Bs",
       "igv": 0
       {% endif %}
+    },
+    "dashboard": {
+      "reservas_recientes": [
+        {% for reserva in reservas %}
+        {
+          "id": {{ reserva.id }},
+          "nombre": "{{ reserva.nombre_completo|escapejs }}",
+          "mesa": "Mesa {{ reserva.mesa.numero }}",
+          "personas": {{ reserva.numero_personas }},
+          "fecha": "{{ reserva.fecha_reserva|date:'d/m/Y' }}",
+          "hora": "{{ reserva.hora_reserva }}"
+        }{% if not forloop.last %},{% endif %}
+        {% endfor %}
+      ],
+      "top_productos": [
+        {% for producto in top_productos %}
+        {
+          "id": {{ producto.id }},
+          "nombre": "{{ producto.nombre|escapejs }}",
+          "ventas": {{ producto.total_vendido|default:0 }}
+        }{% if not forloop.last %},{% endif %}
+        {% endfor %}
+      ],
+      "actividades": [
+        {% for actividad in actividades %}
+        {
+          "titulo": "{{ actividad.titulo|escapejs }}",
+          "meta": "{{ actividad.descripcion|escapejs }}",
+          "tag": "{{ actividad.tipo|escapejs }}"
+        }{% if not forloop.last %},{% endif %}
+        {% endfor %}
+      ],
+      "ventas_por_hora": {{ ventas_por_hora|safe }},
+      "caja_abierta": {{ caja_abierta|yesno:"true,false" }}
     }
   }
   </script>
@@ -2034,11 +2068,29 @@
       precioUnitario: parseFloat(i.precio_unitario)
     }));
 
+    // Transformar datos del Dashboard
+    window.DJANGO_DASHBOARD = {
+      reservasRecientes: window.DJANGO_DATA.dashboard.reservas_recientes,
+      topProductos: window.DJANGO_DATA.dashboard.top_productos,
+      actividades: window.DJANGO_DATA.dashboard.actividades,
+      ventasPorHora: window.DJANGO_DATA.dashboard.ventas_por_hora,
+      cajaAbierta: window.DJANGO_DATA.dashboard.caja_abierta
+    };
+
+    // Transformar categorías
+    window.DJANGO_CATEGORIAS = window.DJANGO_DATA.categorias.map(c => ({
+      id: c.nombre.toLowerCase().replace(/\s+/g, '-'),
+      nombre: c.nombre,
+      descripcion: c.descripcion || ''
+    }));
+
     console.log('✅ Productos transformados:', window.DJANGO_PRODUCTOS.length);
     console.log('✅ Mesas transformadas:', window.DJANGO_MESAS.length);
     console.log('✅ Usuarios transformados:', window.DJANGO_USUARIOS.length);
     console.log('✅ Reservas transformadas:', window.DJANGO_RESERVAS.length);
     console.log('✅ Insumos transformados:', window.DJANGO_INSUMOS.length);
+    console.log('✅ Categorías transformadas:', window.DJANGO_CATEGORIAS.length);
+    console.log('✅ Dashboard transformado:', window.DJANGO_DASHBOARD);
   </script>
 
   <script src="{% static 'js/adminux/main.js' %}"></script>
@@ -2073,8 +2125,133 @@
         console.log('✅ insumos sobrescrito con datos de Django');
       }
 
-      // Re-renderizar las tablas si ya están inicializadas
+      if (window.DJANGO_CATEGORIAS && window.DJANGO_CATEGORIAS.length > 0) {
+        categorias = window.DJANGO_CATEGORIAS;
+        console.log('✅ categorias sobrescrito con datos de Django');
+      }
+
+      // ===== SOBRESCRIBIR DATOS DEL DASHBOARD =====
       setTimeout(() => {
+        const reservasList = document.getElementById('reservasList');
+        if (reservasList && window.DJANGO_DASHBOARD.reservasRecientes) {
+          const reservasData = window.DJANGO_DASHBOARD.reservasRecientes;
+          if (reservasData.length > 0) {
+            reservasList.innerHTML = reservasData.map(r => `
+              <li class="reserva-item">
+                <div class="reserva-main">
+                  <span class="reserva-title">${r.nombre}</span>
+                  <span class="reserva-meta">${r.fecha} · ${r.hora} · ${r.mesa} · ${r.personas} personas</span>
+                </div>
+                <span class="reserva-tag">Reserva</span>
+              </li>
+            `).join('');
+            console.log('✅ Lista de reservas del dashboard actualizada con datos reales');
+          } else {
+            reservasList.innerHTML = '<li class="reserva-item"><div class="reserva-main"><span class="reserva-title">No hay reservas recientes</span></div></li>';
+          }
+        }
+
+        const topProductosList = document.getElementById('topProductosList');
+        if (topProductosList && window.DJANGO_DASHBOARD.topProductos) {
+          const topProductos = window.DJANGO_DASHBOARD.topProductos;
+          if (topProductos.length > 0) {
+            topProductosList.innerHTML = topProductos.map(p => `
+              <li class="topproductos-item">
+                <span class="topproductos-nombre">${p.nombre}</span>
+                <span class="topproductos-ventas">${p.ventas} ventas</span>
+              </li>
+            `).join('');
+            console.log('✅ Top productos del dashboard actualizado con datos reales');
+          } else {
+            topProductosList.innerHTML = '<li class="topproductos-item"><span class="topproductos-nombre">Sin datos de ventas</span></li>';
+          }
+        }
+
+        const activityList = document.getElementById('activityList');
+        if (activityList && window.DJANGO_DASHBOARD.actividades) {
+          const actividades = window.DJANGO_DASHBOARD.actividades;
+          if (actividades.length > 0) {
+            activityList.innerHTML = actividades.map(a => `
+              <li class="activity-item">
+                <div class="activity-main">
+                  <span class="activity-title">${a.titulo}</span>
+                  <span class="activity-meta">${a.meta}</span>
+                </div>
+                <span class="activity-tag">${a.tag}</span>
+              </li>
+            `).join('');
+            console.log('✅ Actividades del dashboard actualizadas con datos reales');
+          } else {
+            activityList.innerHTML = '<li class="activity-item"><div class="activity-main"><span class="activity-title">Sin actividades recientes</span></div></li>';
+          }
+        }
+
+        // Actualizar gráfica de ventas
+        if (window.DJANGO_DASHBOARD.ventasPorHora && window.Chart) {
+          const ventasData = window.DJANGO_DASHBOARD.ventasPorHora;
+          const ventasCanvas = document.getElementById('ventasChart');
+          if (ventasCanvas && ventasData.length > 0) {
+            const ctx = ventasCanvas.getContext('2d');
+            new Chart(ctx, {
+              type: 'bar',
+              data: {
+                labels: ventasData.map(v => v.hora + ':00'),
+                datasets: [{
+                  label: 'Ventas (Bs)',
+                  data: ventasData.map(v => v.total),
+                  backgroundColor: 'rgba(132, 176, 103, 0.8)',
+                  borderColor: 'rgba(132, 176, 103, 1)',
+                  borderWidth: 1,
+                  borderRadius: 8
+                }]
+              },
+              options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                  legend: { display: false },
+                  tooltip: {
+                    backgroundColor: 'rgba(0,0,0,0.8)',
+                    padding: 12,
+                    titleColor: '#fff',
+                    bodyColor: '#fff',
+                    borderColor: '#84b067',
+                    borderWidth: 1
+                  }
+                },
+                scales: {
+                  y: {
+                    beginAtZero: true,
+                    grid: { color: 'rgba(255,255,255,0.05)' },
+                    ticks: { color: '#9ca3af' }
+                  },
+                  x: {
+                    grid: { display: false },
+                    ticks: { color: '#9ca3af' }
+                  }
+                }
+              }
+            });
+            console.log('✅ Gráfica de ventas del dashboard actualizada con datos reales');
+          }
+        }
+
+        // Actualizar estado de caja
+        const estadoCajaBtn = document.getElementById('estadoCajaBtn');
+        if (estadoCajaBtn) {
+          if (window.DJANGO_DASHBOARD.cajaAbierta) {
+            estadoCajaBtn.classList.remove('estado-caja--offline');
+            estadoCajaBtn.classList.add('estado-caja--online');
+            estadoCajaBtn.textContent = 'Caja abierta';
+          } else {
+            estadoCajaBtn.classList.remove('estado-caja--online');
+            estadoCajaBtn.classList.add('estado-caja--offline');
+            estadoCajaBtn.textContent = 'Caja cerrada';
+          }
+          console.log('✅ Estado de caja actualizado:', window.DJANGO_DASHBOARD.cajaAbierta ? 'ABIERTA' : 'CERRADA');
+        }
+
+        // Re-renderizar otras tablas
         if (typeof renderProductosTable === 'function') {
           renderProductosTable();
           console.log('✅ Tabla de productos re-renderizada');
