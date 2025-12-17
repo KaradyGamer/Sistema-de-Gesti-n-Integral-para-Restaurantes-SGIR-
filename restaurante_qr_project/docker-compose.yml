@@ -1,0 +1,53 @@
+services:
+  # Servicio PostgreSQL
+  db:
+    image: postgres:16-alpine
+    container_name: sgir_db
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-sgir}
+      POSTGRES_USER: ${POSTGRES_USER:-sgir_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-super_password}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+    networks:
+      - sgir_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-sgir_user}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Servicio Django + Gunicorn
+  web:
+    build: .
+    container_name: sgir_web
+    env_file:
+      - .env
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ./media:/app/media
+      - ./logs:/app/logs
+    command: >
+      sh -c "python manage.py migrate &&
+             python manage.py collectstatic --noinput &&
+             gunicorn backend.wsgi:application --bind 0.0.0.0:8000 --workers 4 --timeout 120"
+    restart: unless-stopped
+    networks:
+      - sgir_network
+
+# Volúmenes persistentes
+volumes:
+  pgdata:
+    driver: local
+
+# Red personalizada
+networks:
+  sgir_network:
+    driver: bridge

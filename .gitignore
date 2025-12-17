@@ -5,8 +5,9 @@ __pycache__/
 *.pyd
 *.log
 
-# Base de datos local (no subir a producción)
-# db.sqlite3  # Comentado: mantener en repo para desarrollo/universidad
+# Base de datos local (NO SUBIR A PRODUCCIÓN)
+*.sqlite3
+db.sqlite3
 
 # Entornos virtuales
 env/
@@ -20,10 +21,15 @@ venv/
 *.key
 
 # Archivos estáticos generados
+static_collected/
 restaurante_qr_project/static_collected/
+
+# Media files (uploads de usuarios)
+media/
 restaurante_qr_project/media/
 
 # Logs
+logs/
 restaurante_qr_project/logs/
 *.log
 

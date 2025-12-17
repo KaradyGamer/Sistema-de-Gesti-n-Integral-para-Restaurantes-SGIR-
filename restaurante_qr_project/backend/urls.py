@@ -21,9 +21,13 @@ from rest_framework_simplejwt.views import TokenRefreshView
 from app.usuarios.views_empleado import panel_empleado
 from app.usuarios.views import qr_login  # ✅ NUEVO: Para login por QR
 from app.adminux.views import staff_login  # ✅ NUEVO: Login del personal
+from backend.healthcheck import healthcheck  # ✅ NUEVO: Healthcheck endpoint
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+
+    # 🏥 HEALTHCHECK
+    path('health/', healthcheck, name='healthcheck'),  # ✅ NUEVO: Endpoint de monitoreo
 
     # 🔐 SISTEMA DE LOGIN
     path('login/', TemplateView.as_view(template_name='login.html'), name='login'),

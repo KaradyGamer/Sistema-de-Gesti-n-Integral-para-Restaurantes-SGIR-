@@ -1,0 +1,81 @@
+# ====================================
+# SGIR - Archivos a ignorar en Docker build
+# ====================================
+
+# Entornos virtuales
+env/
+venv/
+.venv/
+ENV/
+
+# Variables de entorno sensibles
+.env
+.env.*
+
+# Base de datos local
+*.sqlite3
+db.sqlite3
+
+# Python cache
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+
+# Logs
+logs/
+*.log
+
+# Media files (se montan como volumen)
+media/
+
+# Archivos est�ticos colectados (se generan en build)
+static_collected/
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# IDE y editores
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Testing y coverage
+.coverage
+htmlcov/
+.pytest_cache/
+.tox/
+
+# Sistema operativo
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Docker
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# Documentaci�n (opcional, comentar si quieres incluirla)
+README.md
+AUDITORIA_BASE_DATOS.md
+
+# Herramientas de desarrollo
+.claude/
+
+# Node modules (si usas frontend)
+node_modules/
+npm-debug.log
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Backups
+*.bak
+*.old
+*.tmp
