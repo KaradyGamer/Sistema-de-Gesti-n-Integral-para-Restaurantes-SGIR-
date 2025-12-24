@@ -90,12 +90,22 @@ class Insumo(models.Model):
             return 'ok'
 
     def agregar_stock(self, cantidad, motivo="", usuario=None):
-        """Agrega stock y registra el movimiento"""
+        """v40.5.1: Agrega stock usando F() y registra el movimiento"""
+        from django.db.models import F
+
         if cantidad <= 0:
             raise ValueError("La cantidad debe ser positiva")
 
-        self.stock_actual += cantidad
-        self.save()
+        # v40.5.1: Usar F() para update atómico
+        updated = Insumo.objects.filter(id=self.id).update(
+            stock_actual=F('stock_actual') + cantidad
+        )
+
+        if updated == 0:
+            raise ValueError(f"No se pudo actualizar el stock del insumo {self.nombre}")
+
+        # Refrescar para obtener el nuevo valor
+        self.refresh_from_db()
 
         # Registrar movimiento
         MovimientoInsumo.objects.create(
@@ -110,15 +120,28 @@ class Insumo(models.Model):
         return True
 
     def descontar_stock(self, cantidad, motivo="", usuario=None):
-        """Descuenta stock y registra el movimiento"""
+        """v40.5.1: Descuenta stock con F() y update condicional"""
+        from django.db.models import F
+
         if cantidad <= 0:
             raise ValueError("La cantidad debe ser positiva")
 
-        if self.stock_actual < cantidad:
-            raise ValueError(f"Stock insuficiente. Disponible: {self.stock_actual} {self.unidad}")
+        # v40.5.1: Update condicional para evitar stock negativo
+        updated = Insumo.objects.filter(
+            id=self.id,
+            stock_actual__gte=cantidad
+        ).update(stock_actual=F('stock_actual') - cantidad)
 
-        self.stock_actual -= cantidad
-        self.save()
+        if updated == 0:
+            # Verificar si es por stock insuficiente
+            self.refresh_from_db()
+            if self.stock_actual < cantidad:
+                raise ValueError(f"Stock insuficiente. Disponible: {self.stock_actual} {self.unidad}, Requerido: {cantidad}")
+            else:
+                raise ValueError(f"No se pudo actualizar el stock del insumo {self.nombre}")
+
+        # Refrescar para obtener el nuevo valor
+        self.refresh_from_db()
 
         # Registrar movimiento
         MovimientoInsumo.objects.create(
@@ -137,10 +160,15 @@ class Insumo(models.Model):
         return True
 
     def ajustar_stock(self, cantidad_nueva, motivo="", usuario=None):
-        """Ajusta el stock a un valor específico"""
+        """v40.5.1: Ajusta el stock a un valor específico con validación"""
+        if cantidad_nueva < 0:
+            raise ValueError("El stock no puede ser negativo")
+
         diferencia = cantidad_nueva - self.stock_actual
+
+        # Actualizar directamente (no usar F() aquí porque queremos un valor absoluto)
         self.stock_actual = cantidad_nueva
-        self.save()
+        self.save(update_fields=['stock_actual'])
 
         # Registrar movimiento
         MovimientoInsumo.objects.create(
