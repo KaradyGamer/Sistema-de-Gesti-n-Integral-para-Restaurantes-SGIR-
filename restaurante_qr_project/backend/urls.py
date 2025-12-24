@@ -85,6 +85,9 @@ urlpatterns = [
 
     # 📦 INVENTARIO - Gestión de insumos
     path('adminux/inventario/', include('app.inventario.urls')),
+
+    # 🏭 PRODUCCIÓN - Recetas y fabricación (v40.5.0)
+    path('api/produccion/', include('app.produccion.urls')),
 ]
 
 # ✅ ARCHIVOS ESTÁTICOS Y MEDIA
