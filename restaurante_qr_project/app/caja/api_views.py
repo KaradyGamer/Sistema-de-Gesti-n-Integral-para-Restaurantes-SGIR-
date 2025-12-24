@@ -262,24 +262,35 @@ def api_procesar_pago_simple(request):
                 'error': 'Faltan datos requeridos'
             }, status=status.HTTP_400_BAD_REQUEST)
 
-        # Obtener pedido con cuenta y mesa
-        pedido = get_object_or_404(Pedido.objects.select_related('cuenta', 'mesa'), id=pedido_id)
+        # v40.5.1: LOCK Pedido para evitar race conditions
+        pedido = get_object_or_404(
+            Pedido.objects.select_related('cuenta', 'mesa').select_for_update(),
+            id=pedido_id
+        )
 
         # v40.4.0: Determinar cuenta (fix para pedidos legacy)
         cuenta = pedido.cuenta
         if not cuenta:
-            # Pedido legacy: buscar/crear cuenta para esta mesa
-            cuenta = CuentaMesa.objects.filter(mesa=pedido.mesa, estado='abierta').first()
+            # Pedido legacy: buscar/crear cuenta para esta mesa con lock
+            cuenta = CuentaMesa.objects.select_for_update().filter(
+                mesa=pedido.mesa,
+                estado='abierta'
+            ).first()
+
             if not cuenta:
+                # Crear nueva cuenta (ya estamos en transacción atómica)
                 cuenta = CuentaMesa.objects.create(
                     mesa=pedido.mesa,
                     estado='abierta',
-                    total_acumulado=0,
-                    monto_pagado=0,
+                    total_acumulado=Decimal('0.00'),
+                    monto_pagado=Decimal('0.00'),
                     abierta_por=request.user
                 )
             pedido.cuenta = cuenta
             pedido.save(update_fields=['cuenta'])
+        else:
+            # v40.5.1: LOCK cuenta existente
+            cuenta = CuentaMesa.objects.select_for_update().get(pk=cuenta.pk)
 
         # Verificar que no esté pagado
         if pedido.estado_pago == 'pagado':
@@ -297,25 +308,35 @@ def api_procesar_pago_simple(request):
                 'productos_sin_stock': productos_sin_stock
             }, status=status.HTTP_400_BAD_REQUEST)
 
-        # Calcular total final del pedido
-        total_final_pedido = calcular_total_con_descuento_propina(pedido)
+        # v40.5.1: Usar Decimal desde el inicio para evitar errores de redondeo
+        total_final_pedido = Decimal(str(calcular_total_con_descuento_propina(pedido)))
         pedido.total_final = total_final_pedido
 
-        # ✅ CORREGIDO: Convertir a float para evitar conflictos Decimal/float
-        total_final_pedido = float(total_final_pedido)
-
-        # ✅ NUEVO: Determinar monto de este pago (puede ser parcial)
-        # Si monto_recibido es menor al total pendiente, es un pago parcial
-        monto_pagado_anterior = float(pedido.monto_pagado or 0)
+        # v40.5.1: Determinar monto de este pago (puede ser parcial)
+        monto_pagado_anterior = Decimal(str(pedido.monto_pagado or 0))
         monto_pendiente = total_final_pedido - monto_pagado_anterior
 
-        # El monto de esta transacción es lo que se está pagando AHORA
-        monto_esta_transaccion = float(monto_recibido) if monto_recibido else total_final_pedido
+        # v40.5.1: Validar que haya saldo pendiente
+        if monto_pendiente <= Decimal('0.00'):
+            return Response({
+                'success': False,
+                'error': f'Pedido ya está completamente pagado. Total: Bs/ {total_final_pedido}, Pagado: Bs/ {monto_pagado_anterior}'
+            }, status=status.HTTP_400_BAD_REQUEST)
 
-        # Calcular cambio (si es efectivo)
-        cambio = 0
+        # El monto de esta transacción es lo que se está pagando AHORA
+        monto_esta_transaccion = Decimal(str(monto_recibido)) if monto_recibido else monto_pendiente
+
+        # v40.5.1: Validar que el monto sea positivo
+        if monto_esta_transaccion <= Decimal('0.00'):
+            return Response({
+                'success': False,
+                'error': 'El monto del pago debe ser mayor a cero'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        # v40.5.1: Calcular cambio (si es efectivo) usando Decimal
+        cambio = Decimal('0.00')
         if metodo_pago == 'efectivo' and monto_recibido:
-            cambio = calcular_cambio(monto_pendiente, monto_recibido)
+            cambio = Decimal(str(calcular_cambio(float(monto_pendiente), float(monto_recibido))))
 
         # v40.4.0: Crear transacción asociada a cuenta
         numero_factura = generar_numero_factura()
@@ -330,11 +351,11 @@ def api_procesar_pago_simple(request):
             referencia=referencia
         )
 
-        # ✅ NUEVO: Actualizar monto pagado acumulado
+        # v40.5.1: Actualizar monto pagado acumulado usando Decimal
         nuevo_monto_pagado = monto_pagado_anterior + monto_esta_transaccion
         pedido.monto_pagado = nuevo_monto_pagado
 
-        # ✅ NUEVO: Determinar si el pedido está completamente pagado
+        # v40.5.1: Determinar si el pedido está completamente pagado
         pago_completo = nuevo_monto_pagado >= total_final_pedido
 
         if pago_completo:
@@ -421,24 +442,35 @@ def api_procesar_pago_mixto(request):
                 'error': 'Faltan datos requeridos'
             }, status=status.HTTP_400_BAD_REQUEST)
 
-        # Obtener pedido con cuenta y mesa
-        pedido = get_object_or_404(Pedido.objects.select_related('cuenta', 'mesa'), id=pedido_id)
+        # v40.5.1: LOCK Pedido para evitar race conditions
+        pedido = get_object_or_404(
+            Pedido.objects.select_related('cuenta', 'mesa').select_for_update(),
+            id=pedido_id
+        )
 
         # v40.4.0: Determinar cuenta (fix para pedidos legacy)
         cuenta = pedido.cuenta
         if not cuenta:
-            # Pedido legacy: buscar/crear cuenta para esta mesa
-            cuenta = CuentaMesa.objects.filter(mesa=pedido.mesa, estado='abierta').first()
+            # Pedido legacy: buscar/crear cuenta para esta mesa con lock
+            cuenta = CuentaMesa.objects.select_for_update().filter(
+                mesa=pedido.mesa,
+                estado='abierta'
+            ).first()
+
             if not cuenta:
+                # Crear nueva cuenta (ya estamos en transacción atómica)
                 cuenta = CuentaMesa.objects.create(
                     mesa=pedido.mesa,
                     estado='abierta',
-                    total_acumulado=0,
-                    monto_pagado=0,
+                    total_acumulado=Decimal('0.00'),
+                    monto_pagado=Decimal('0.00'),
                     abierta_por=request.user
                 )
             pedido.cuenta = cuenta
             pedido.save(update_fields=['cuenta'])
+        else:
+            # v40.5.1: LOCK cuenta existente
+            cuenta = CuentaMesa.objects.select_for_update().get(pk=cuenta.pk)
 
         # Verificar que no esté pagado
         if pedido.estado_pago == 'pagado':
@@ -447,17 +479,41 @@ def api_procesar_pago_mixto(request):
                 'error': 'Este pedido ya ha sido pagado'
             }, status=status.HTTP_400_BAD_REQUEST)
 
-        # Calcular total final
-        total_final = calcular_total_con_descuento_propina(pedido)
+        # v40.5.1: Calcular total final usando Decimal
+        total_final = Decimal(str(calcular_total_con_descuento_propina(pedido)))
         pedido.total_final = total_final
 
-        # Validar que la suma de pagos coincida con el total
+        # v40.5.1: Validar que haya detalles de pago
+        if not detalles_pago or len(detalles_pago) == 0:
+            return Response({
+                'success': False,
+                'error': 'Debe proporcionar al menos un método de pago'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        # v40.5.1: Validar que no haya métodos duplicados
+        metodos_usados = [d.get('metodo') for d in detalles_pago]
+        if len(metodos_usados) != len(set(metodos_usados)):
+            return Response({
+                'success': False,
+                'error': 'No se permiten métodos de pago duplicados'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        # v40.5.1: Validar que la suma de pagos coincida EXACTAMENTE con el total
         suma_pagos = sum(Decimal(str(d.get('monto', 0))) for d in detalles_pago)
         if suma_pagos != total_final:
             return Response({
                 'success': False,
-                'error': f'La suma de pagos (Bs/ {suma_pagos}) no coincide con el total (Bs/ {total_final})'
+                'error': f'La suma de pagos (Bs/ {suma_pagos}) debe coincidir EXACTAMENTE con el total (Bs/ {total_final})'
             }, status=status.HTTP_400_BAD_REQUEST)
+
+        # v40.5.1: Validar que todos los montos sean positivos
+        for detalle in detalles_pago:
+            monto = Decimal(str(detalle.get('monto', 0)))
+            if monto <= Decimal('0.00'):
+                return Response({
+                    'success': False,
+                    'error': f'Todos los montos deben ser positivos. Método {detalle.get("metodo")}: Bs/ {monto}'
+                }, status=status.HTTP_400_BAD_REQUEST)
 
         # Validar stock
         es_valido, productos_sin_stock = validar_stock_pedido(pedido)

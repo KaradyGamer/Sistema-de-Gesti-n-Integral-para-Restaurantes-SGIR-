@@ -163,30 +163,31 @@ class CuentaMesa(models.Model):
 
     def recalcular_totales(self):
         """
-        Recalcula total_acumulado y monto_pagado basándose en pedidos y pagos reales.
+        v40.5.1: Recalcula total_acumulado y monto_pagado usando aggregate (SIN N+1).
         DEBE llamarse:
         - Al crear/eliminar pedido
         - Al crear/eliminar pago
         """
         from app.pedidos.models import Pedido
+        from django.db.models import Sum, Q
 
-        # Calcular total de pedidos NO cancelados
-        self.total_acumulado = sum(
-            Decimal(str(pedido.total_final if pedido.total_final > 0 else pedido.total))
-            for pedido in self.pedidos.exclude(estado='cancelado')
+        # v40.5.1: Usar aggregate para evitar queries N+1
+        pedidos_agregados = self.pedidos.exclude(estado='cancelado').aggregate(
+            total=Sum('total_final')
         )
+        self.total_acumulado = Decimal(str(pedidos_agregados['total'] or 0))
 
-        # Calcular total de pagos aplicados
-        self.monto_pagado = sum(
-            Decimal(str(pago.monto_total))
-            for pago in self.pagos.filter(estado='procesado')
+        # v40.5.1: Calcular total de pagos PROCESADOS solamente
+        pagos_agregados = self.pagos.filter(estado='procesado').aggregate(
+            total=Sum('monto_total')
         )
+        self.monto_pagado = Decimal(str(pagos_agregados['total'] or 0))
 
-        self.save()
+        self.save(update_fields=['total_acumulado', 'monto_pagado'])
 
     def cerrar_cuenta(self, usuario, pin_secundario_validado=False, motivo_deuda=None):
         """
-        Cierra la cuenta de la mesa.
+        v40.5.1: Cierra la cuenta de la mesa de forma ATÓMICA.
 
         Args:
             usuario: Usuario que cierra la cuenta (cajero)
@@ -200,39 +201,49 @@ class CuentaMesa(models.Model):
             ValidationError: Si no se puede cerrar
         """
         from django.core.exceptions import ValidationError
+        from django.db import transaction
 
-        # Recalcular antes de cerrar
-        self.recalcular_totales()
+        # v40.5.1: Hacer toda la operación atómica con lock
+        with transaction.atomic():
+            # Lock de la cuenta actual
+            cuenta_locked = CuentaMesa.objects.select_for_update().get(pk=self.pk)
 
-        if self.saldo > Decimal('0.00'):
-            # Hay deuda pendiente
-            if not pin_secundario_validado:
-                raise ValidationError(
-                    f'No se puede cerrar la cuenta. Saldo pendiente: Bs/ {self.saldo:.2f}. '
-                    f'Se requiere PIN secundario para autorizar cierre con deuda.'
+            # Recalcular totales dentro del lock
+            cuenta_locked.recalcular_totales()
+
+            # Validar cierre
+            if cuenta_locked.saldo > Decimal('0.00'):
+                # Hay deuda pendiente
+                if not pin_secundario_validado:
+                    raise ValidationError(
+                        f'No se puede cerrar la cuenta. Saldo pendiente: Bs/ {cuenta_locked.saldo:.2f}. '
+                        f'Se requiere PIN secundario para autorizar cierre con deuda.'
+                    )
+
+                # Cerrar con deuda autorizada
+                cuenta_locked.estado = 'con_deuda'
+                cuenta_locked.deuda_autorizada = True
+                cuenta_locked.autorizada_por = usuario
+                cuenta_locked.motivo_deuda = motivo_deuda or 'Cierre con deuda autorizado'
+                logger.warning(
+                    f"Cuenta Mesa {cuenta_locked.mesa.numero} cerrada CON DEUDA: Bs/ {cuenta_locked.saldo:.2f} "
+                    f"por {usuario.username}"
                 )
+            else:
+                # Cerrar normalmente
+                cuenta_locked.estado = 'cerrada'
+                logger.info(f"Cuenta Mesa {cuenta_locked.mesa.numero} cerrada correctamente por {usuario.username}")
 
-            # Cerrar con deuda autorizada
-            self.estado = 'con_deuda'
-            self.deuda_autorizada = True
-            self.autorizada_por = usuario
-            self.motivo_deuda = motivo_deuda or 'Cierre con deuda autorizado'
-            logger.warning(
-                f"Cuenta Mesa {self.mesa.numero} cerrada CON DEUDA: Bs/ {self.saldo:.2f} "
-                f"por {usuario.username}"
-            )
-        else:
-            # Cerrar normalmente
-            self.estado = 'cerrada'
-            logger.info(f"Cuenta Mesa {self.mesa.numero} cerrada correctamente por {usuario.username}")
+            cuenta_locked.fecha_cierre = timezone.now()
+            cuenta_locked.cerrada_por = usuario
+            cuenta_locked.save()
 
-        self.fecha_cierre = timezone.now()
-        self.cerrada_por = usuario
-        self.save()
+            # Liberar mesa dentro de la transacción
+            from app.mesas.utils import liberar_mesa
+            liberar_mesa(cuenta_locked.mesa)
 
-        # Liberar mesa
-        from app.mesas.utils import liberar_mesa
-        liberar_mesa(self.mesa)
+            # Actualizar instancia actual
+            self.refresh_from_db()
 
         return True
 
