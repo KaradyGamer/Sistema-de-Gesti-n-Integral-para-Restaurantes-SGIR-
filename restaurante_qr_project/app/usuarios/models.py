@@ -1,4 +1,5 @@
 from django.contrib.auth.models import AbstractUser
+from django.contrib.auth.hashers import make_password, check_password
 from django.db import models
 from django.core.validators import MinLengthValidator, RegexValidator
 import uuid
@@ -28,7 +29,7 @@ class Usuario(AbstractUser):
         default='cliente'
     )
 
-    # PIN para acceso rápido (SOLO para cajeros)
+    # PIN para acceso rápido (SOLO para cajeros) - DEPRECADO: usar pin_caja_hash
     pin = models.CharField(
         max_length=6,
         blank=True,
@@ -38,10 +39,26 @@ class Usuario(AbstractUser):
             MinLengthValidator(4),
             RegexValidator(r'^\d+$', 'El PIN debe contener solo números.')
         ],
-        help_text='PIN numérico de 4-6 dígitos - SOLO para cajeros'
+        help_text='DEPRECADO: PIN numérico de 4-6 dígitos - usar pin_caja_hash'
     )
 
-    # PIN secundario para operaciones sensibles (anular producción, cerrar con deuda, etc)
+    # PIN caja hasheado (para operaciones normales de cajero)
+    pin_caja_hash = models.CharField(
+        max_length=128,
+        blank=True,
+        null=True,
+        help_text='Hash del PIN de caja (PBKDF2) - NUNCA guardar texto plano'
+    )
+
+    # PIN secundario hasheado (para operaciones sensibles)
+    pin_secundario_hash = models.CharField(
+        max_length=128,
+        blank=True,
+        null=True,
+        help_text='Hash del PIN secundario para operaciones sensibles (anular producción, cerrar con deuda)'
+    )
+
+    # PIN secundario en texto plano - DEPRECADO: usar pin_secundario_hash
     pin_secundario = models.CharField(
         max_length=6,
         blank=True,
@@ -50,7 +67,7 @@ class Usuario(AbstractUser):
             MinLengthValidator(4),
             RegexValidator(r'^\d+$', 'El PIN secundario debe contener solo números.')
         ],
-        help_text='PIN secundario de 4-6 dígitos para operaciones sensibles'
+        help_text='DEPRECADO: usar pin_secundario_hash'
     )
 
     # Token único para autenticación por QR
@@ -100,9 +117,81 @@ class Usuario(AbstractUser):
     def __str__(self):
         return f"{self.get_full_name() or self.username} ({self.get_rol_display()})"
 
+    def set_pin_caja(self, pin_texto):
+        """
+        Establece el PIN de caja hasheado.
+
+        Args:
+            pin_texto: str, PIN de 4-6 dígitos numérico
+
+        Raises:
+            ValueError: Si el PIN no cumple formato
+        """
+        import re
+        if not pin_texto:
+            raise ValueError("El PIN no puede estar vacío")
+        if not re.match(r'^\d{4,6}$', str(pin_texto)):
+            raise ValueError("El PIN debe tener 4-6 dígitos numéricos")
+
+        self.pin_caja_hash = make_password(str(pin_texto))
+        # NO guardar en pin (campo deprecado)
+
+    def validar_pin_caja(self, pin_ingresado):
+        """
+        Valida el PIN de caja contra el hash almacenado.
+
+        Args:
+            pin_ingresado: str, PIN a validar
+
+        Returns:
+            bool: True si el PIN es correcto
+        """
+        if not self.pin_caja_hash:
+            # Fallback legacy: verificar pin deprecado
+            if self.pin:
+                return str(pin_ingresado) == str(self.pin)
+            return False
+        return check_password(str(pin_ingresado), self.pin_caja_hash)
+
+    def set_pin_secundario(self, pin_texto):
+        """
+        Establece el PIN secundario hasheado.
+
+        Args:
+            pin_texto: str, PIN de 4-6 dígitos numérico
+
+        Raises:
+            ValueError: Si el PIN no cumple formato
+        """
+        import re
+        if not pin_texto:
+            raise ValueError("El PIN secundario no puede estar vacío")
+        if not re.match(r'^\d{4,6}$', str(pin_texto)):
+            raise ValueError("El PIN secundario debe tener 4-6 dígitos numéricos")
+
+        self.pin_secundario_hash = make_password(str(pin_texto))
+        # NO guardar en pin_secundario (campo deprecado)
+
+    def validar_pin_secundario_hash(self, pin_ingresado):
+        """
+        Valida el PIN secundario contra el hash almacenado.
+
+        Args:
+            pin_ingresado: str, PIN a validar
+
+        Returns:
+            bool: True si el PIN es correcto
+        """
+        if not self.pin_secundario_hash:
+            # Fallback legacy: verificar pin_secundario deprecado
+            if self.pin_secundario:
+                return str(pin_ingresado) == str(self.pin_secundario)
+            return False
+        return check_password(str(pin_ingresado), self.pin_secundario_hash)
+
     def puede_usar_pin(self):
         """Verifica si el usuario puede usar PIN para login - SOLO CAJEROS"""
-        return self.rol == 'cajero' and self.pin
+        return self.rol == 'cajero' and (self.pin_caja_hash or self.pin)
 
     def puede_generar_qr(self):
         """Verifica si se puede generar QR para este usuario"""
@@ -175,6 +264,7 @@ class Usuario(AbstractUser):
     def validar_pin_secundario(self, pin_ingresado):
         """
         Valida el PIN secundario sin almacenarlo.
+        DELEGADO a validar_pin_secundario_hash para compatibilidad.
 
         Args:
             pin_ingresado: str, PIN a validar
@@ -182,9 +272,7 @@ class Usuario(AbstractUser):
         Returns:
             bool: True si el PIN es correcto
         """
-        if not self.pin_secundario:
-            return False
-        return str(pin_ingresado) == str(self.pin_secundario)
+        return self.validar_pin_secundario_hash(pin_ingresado)
 
     class Meta:
         verbose_name = 'Usuario'
