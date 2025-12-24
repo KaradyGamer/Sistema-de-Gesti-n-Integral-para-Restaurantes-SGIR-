@@ -38,6 +38,10 @@ class Producto(models.Model):
     stock_actual = models.IntegerField(default=0, validators=[MinValueValidator(0)])
     stock_minimo = models.IntegerField(default=5, validators=[MinValueValidator(0)])
     requiere_inventario = models.BooleanField(default=False)
+    es_fabricable = models.BooleanField(
+        default=False,
+        help_text='Indica si el producto se fabrica mediante producción (requiere receta)'
+    )
     activo = models.BooleanField(default=True)
     fecha_eliminacion = models.DateTimeField(null=True, blank=True)
     eliminado_por = models.ForeignKey("usuarios.Usuario", on_delete=models.SET_NULL, null=True, blank=True, related_name="productos_eliminados")

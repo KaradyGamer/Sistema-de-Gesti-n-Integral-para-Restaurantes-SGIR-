@@ -198,6 +198,12 @@ class MovimientoInsumo(models.Model):
         help_text="Cantidad movida (positiva para entrada, puede ser negativa para salida)"
     )
     motivo = models.TextField(help_text="Razón del movimiento")
+    referencia = models.CharField(
+        max_length=200,
+        blank=True,
+        null=True,
+        help_text='Referencia externa (ej: Producción #123, Compra #456)'
+    )
     fecha_creacion = models.DateTimeField(auto_now_add=True)
     creado_por = models.ForeignKey(
         settings.AUTH_USER_MODEL,

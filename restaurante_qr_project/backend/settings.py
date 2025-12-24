@@ -52,6 +52,7 @@ INSTALLED_APPS = [
     'app.caja',  # Módulo de caja
     'app.adminux',  # Panel de administración moderno
     'app.inventario',  # Gestión de insumos
+    'app.produccion',  # v40.5.0: Producción y Recetario
     'app.configuracion',  # Configuración del sistema
 
     #reportes contables

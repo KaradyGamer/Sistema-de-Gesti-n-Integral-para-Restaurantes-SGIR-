@@ -41,6 +41,18 @@ class Usuario(AbstractUser):
         help_text='PIN numérico de 4-6 dígitos - SOLO para cajeros'
     )
 
+    # PIN secundario para operaciones sensibles (anular producción, cerrar con deuda, etc)
+    pin_secundario = models.CharField(
+        max_length=6,
+        blank=True,
+        null=True,
+        validators=[
+            MinLengthValidator(4),
+            RegexValidator(r'^\d+$', 'El PIN secundario debe contener solo números.')
+        ],
+        help_text='PIN secundario de 4-6 dígitos para operaciones sensibles'
+    )
+
     # Token único para autenticación por QR
     qr_token = models.UUIDField(
         null=True,
@@ -159,6 +171,20 @@ class Usuario(AbstractUser):
         self.fecha_eliminacion = None
         self.eliminado_por = None
         self.save()
+
+    def validar_pin_secundario(self, pin_ingresado):
+        """
+        Valida el PIN secundario sin almacenarlo.
+
+        Args:
+            pin_ingresado: str, PIN a validar
+
+        Returns:
+            bool: True si el PIN es correcto
+        """
+        if not self.pin_secundario:
+            return False
+        return str(pin_ingresado) == str(self.pin_secundario)
 
     class Meta:
         verbose_name = 'Usuario'
