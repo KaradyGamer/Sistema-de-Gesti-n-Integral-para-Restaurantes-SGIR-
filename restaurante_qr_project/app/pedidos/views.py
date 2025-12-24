@@ -49,113 +49,132 @@ def confirmacion_pedido(request):
     }
     return render(request, 'cliente/confirmacion.html', context)
 
-#  FUNCIN CORREGIDA PARA CREAR PEDIDOS DEL CLIENTE
+# ══════════════════════════════════════════════
+# 🧾 SGIR v40.4.0: CREAR PEDIDO CON CUENTAMESA
+# ══════════════════════════════════════════════
 @api_view(['POST'])
-@authentication_classes([])  #  Sin autenticacin = sin CSRF
+@authentication_classes([])  # Sin autenticación = sin CSRF
 @permission_classes([AllowAny])
-@transaction.atomic  #  Garantiza atomicidad de la transaccin
+@transaction.atomic  # Garantiza atomicidad de la transacción
 def crear_pedido_cliente(request):
     """
-    Crear pedido desde el cliente - VERSIN CORREGIDA PARA COMPATIBILIDAD
+    Crear pedido desde el cliente - VERSIÓN v40.4.0 CON CUENTAMESA
+
+    Cambios v40.4.0:
+    - Usa CuentaMesa como entidad financiera central
+    - Permite múltiples pedidos por mesa
+    - Descuenta stock UNA sola vez (al crear)
+    - Validación anticipada (fail-fast)
+    - Rollback automático
     """
     try:
-        logger.info("Creando pedido del cliente")
-        logger.debug(f"Datos recibidos: {request.data}")
-        logger.debug(f"Mtodo: {request.method}, Content-Type: {request.content_type}")
-        
-        #  CORREGIDO: Obtener datos con mltiples nombres posibles
-        mesa_id = (
-            request.data.get('mesa_id') or 
-            request.data.get('mesa') or 
-            request.data.get('numero_mesa')
-        )
-        
-        productos_data = (
-            request.data.get('productos') or 
-            request.data.get('detalles') or 
-            []
-        )
-        
-        forma_pago = request.data.get('forma_pago', 'efectivo')
-        total_enviado = request.data.get('total', 0)
+        from django.db.models import F
+        from django.core.exceptions import ValidationError
+        from app.caja.models import CuentaMesa
 
-        #  NUEVO: Capturar mesero y nmero de personas
+        logger.info("=== CREAR PEDIDO v40.4.0 ===")
+
+        # ===== 1. EXTRACCIÓN DE DATOS =====
+        mesa_id = request.data.get('mesa_id') or request.data.get('mesa') or request.data.get('numero_mesa')
+        productos_data = request.data.get('productos') or request.data.get('detalles') or []
+        forma_pago = request.data.get('forma_pago', 'efectivo')
         mesero_id = request.data.get('mesero_id') or request.data.get('usuario_id')
         numero_personas = request.data.get('numero_personas')
 
-        logger.debug(f"Mesa ID: {mesa_id}, Productos: {len(productos_data)}, Forma pago: {forma_pago}, Total: {total_enviado}, Mesero: {mesero_id}, Personas: {numero_personas}")
-
-        #  Validaciones bsicas
+        # ===== 2. VALIDACIONES INICIALES =====
         if not mesa_id:
-            return Response({
-                'error': 'El nmero de mesa es requerido'
-            }, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'error': 'El número de mesa es requerido'}, status=status.HTTP_400_BAD_REQUEST)
 
         if not productos_data or len(productos_data) == 0:
-            return Response({
-                'error': 'Debe incluir al menos un producto en el pedido'
-            }, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'error': 'Debe incluir al menos un producto en el pedido'}, status=status.HTTP_400_BAD_REQUEST)
 
-        #  NUEVO: Validar nmero de personas (#6)
         if not numero_personas or int(numero_personas) < 1:
-            return Response({
-                'error': 'El nmero de personas debe ser al menos 1'
-            }, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'error': 'El número de personas debe ser al menos 1'}, status=status.HTTP_400_BAD_REQUEST)
 
         numero_personas = int(numero_personas)
 
-        #  CORREGIDO: Buscar la mesa con select_for_update para evitar condiciones de carrera
+        # ===== 3. LOCK DE MESA =====
         try:
-            # Intentar primero por nmero (ms comn) con bloqueo de fila
             mesa = Mesa.objects.select_for_update().get(numero=mesa_id)
-            logger.debug(f"Mesa encontrada por nmero (con bloqueo): {mesa}")
         except Mesa.DoesNotExist:
             try:
-                # Fallback: intentar por ID con bloqueo de fila
                 mesa = Mesa.objects.select_for_update().get(id=mesa_id)
-                logger.debug(f"Mesa encontrada por ID (con bloqueo): {mesa}")
             except Mesa.DoesNotExist:
-                logger.warning(f"Mesa {mesa_id} no encontrada")
-                return Response({
-                    'error': f'Mesa {mesa_id} no encontrada'
-                }, status=status.HTTP_404_NOT_FOUND)
+                return Response({'error': f'Mesa {mesa_id} no encontrada'}, status=status.HTTP_404_NOT_FOUND)
 
-        #  NUEVO: Validar que la mesa est disponible (#3)
-        if mesa.estado != 'disponible':
-            return Response({
-                'error': f'Mesa {mesa.numero} no est disponible (estado actual: {mesa.get_estado_display()})'
-            }, status=status.HTTP_400_BAD_REQUEST)
-
-        #  NUEVO: Verificar que no haya pedido activo en la mesa (#3)
-        pedido_existente = Pedido.objects.filter(
-            mesa=mesa,
-            estado__in=['pendiente', 'en preparacion', 'listo']
-        ).exists()
-
-        if pedido_existente:
-            return Response({
-                'error': f'Mesa {mesa.numero} ya tiene un pedido activo'
-            }, status=status.HTTP_409_CONFLICT)
-
-        #  NUEVO: Validar capacidad de la mesa (#6)
+        # Validar capacidad
         capacidad_real = mesa.capacidad_combinada if mesa.es_combinada else mesa.capacidad
         if numero_personas > capacidad_real:
             return Response({
                 'error': f'Mesa {mesa.numero} solo tiene capacidad para {capacidad_real} personas. Solicitado: {numero_personas}'
             }, status=status.HTTP_400_BAD_REQUEST)
 
-        #  Obtener mesero si se proporcion ID
-        mesero = None
+        # ===== 4. OBTENER O CREAR CUENTAMESA ABIERTA =====
+        cuenta = CuentaMesa.objects.select_for_update().filter(mesa=mesa, estado='abierta').first()
+
+        if not cuenta:
+            from app.usuarios.models import Usuario
+            mesero = None
+            if mesero_id:
+                try:
+                    mesero = Usuario.objects.get(id=mesero_id)
+                except Usuario.DoesNotExist:
+                    pass
+
+            cuenta = CuentaMesa.objects.create(
+                mesa=mesa,
+                estado='abierta',
+                total_acumulado=0,
+                monto_pagado=0,
+                abierta_por=mesero or (request.user if request.user.is_authenticated else None)
+            )
+            logger.info(f"✅ Nueva CuentaMesa creada para Mesa {mesa.numero}")
+        else:
+            logger.info(f"♻️  Usando CuentaMesa existente para Mesa {mesa.numero}")
+
+        # ===== 5. OBTENER MESERO =====
+        mesero = cuenta.abierta_por
         if mesero_id:
             from app.usuarios.models import Usuario
             try:
-                mesero = Usuario.objects.get(id=mesero_id)
+                mesero_nuevo = Usuario.objects.get(id=mesero_id)
+                mesero = mesero_nuevo
             except Usuario.DoesNotExist:
-                logger.warning(f"Mesero ID {mesero_id} no encontrado")
+                pass
 
-        #  Crear el pedido con mesero y nmero de personas
+        # ===== 6. VALIDACIÓN ANTICIPADA DE PRODUCTOS (FAIL-FAST) =====
+        productos_ids = []
+        productos_cantidades = {}
+
+        for item in productos_data:
+            producto_id = item.get('producto_id') or item.get('producto') or item.get('id')
+            cantidad = int(item.get('cantidad', 1))
+            if producto_id:
+                productos_ids.append(producto_id)
+                productos_cantidades[producto_id] = cantidad
+
+        if not productos_ids:
+            raise ValidationError('Debe incluir al menos un producto válido en el pedido')
+
+        productos = Producto.objects.select_for_update().filter(id__in=productos_ids)
+        productos_map = {p.id: p for p in productos}
+
+        for producto_id, cantidad in productos_cantidades.items():
+            if producto_id not in productos_map:
+                raise ValidationError(f'Producto ID {producto_id} no encontrado')
+
+            producto = productos_map[producto_id]
+
+            if producto.requiere_inventario and producto.stock_actual < cantidad:
+                raise ValidationError(
+                    f'Stock insuficiente de {producto.nombre}. '
+                    f'Disponible: {producto.stock_actual}, Solicitado: {cantidad}'
+                )
+
+        # ===== 7. CREAR PEDIDO =====
         pedido = Pedido.objects.create(
             mesa=mesa,
+            cuenta=cuenta,
             fecha=timezone.now(),
             forma_pago=forma_pago,
             estado='pendiente',
@@ -163,108 +182,90 @@ def crear_pedido_cliente(request):
             numero_personas=numero_personas
         )
 
-        #  NUEVO: Cambiar estado de la mesa a 'ocupada'
-        mesa.estado = 'ocupada'
-        mesa.save()
-
-        mesero_nombre = f"{mesero.first_name} {mesero.last_name}" if mesero else "N/A"
-        logger.info(f"Pedido #{pedido.id} creado - Mesa {mesa.numero} - {numero_personas} personas - Mesero: {mesero_nombre}")
-
+        # ===== 8. DESCONTAR STOCK Y CREAR DETALLES =====
         total_calculado = 0
         detalles_creados = []
-        
-        #  CORREGIDO: Procesar productos con mltiples formatos
-        for item in productos_data:
-            # Obtener ID del producto con mltiples nombres posibles
-            producto_id = (
-                item.get('producto_id') or
-                item.get('producto') or
-                item.get('id')
-            )
 
+        for item in productos_data:
+            producto_id = item.get('producto_id') or item.get('producto') or item.get('id')
             cantidad = int(item.get('cantidad', 1))
 
-            if not producto_id:
-                logger.warning(f"Item sin producto ID: {item}")
+            if not producto_id or producto_id not in productos_map:
                 continue
 
-            try:
-                producto = Producto.objects.get(id=producto_id)
+            producto = productos_map[producto_id]
 
-                #  NUEVO: Descontar stock ANTES de crear el detalle (#2)
-                stock_descontado = producto.descontar_stock(cantidad)
+            if producto.requiere_inventario:
+                updated = Producto.objects.filter(
+                    id=producto.id,
+                    stock_actual__gte=cantidad
+                ).update(stock_actual=F('stock_actual') - cantidad)
 
-                if not stock_descontado:
-                    # Stock insuficiente
-                    logger.warning(f"Stock insuficiente de {producto.nombre}. Disponible: {producto.stock_actual}, Solicitado: {cantidad}")
+                if updated == 0:
+                    raise ValidationError(
+                        f'Stock insuficiente de {producto.nombre} (race condition detectada)'
+                    )
 
-                    # Si requiere inventario y no hay stock, fallar
-                    if producto.requiere_inventario:
-                        # Rollback: eliminar pedido creado
-                        pedido.delete()
-                        mesa.estado = 'disponible'  # Restaurar estado
-                        mesa.save()
+                producto.refresh_from_db()
 
-                        return Response({
-                            'error': f'Stock insuficiente de {producto.nombre}. Disponible: {producto.stock_actual}, Solicitado: {cantidad}'
-                        }, status=status.HTTP_400_BAD_REQUEST)
+            subtotal = producto.precio * cantidad
+            total_calculado += subtotal
 
-                subtotal = producto.precio * cantidad
-                total_calculado += subtotal
+            DetallePedido.objects.create(
+                pedido=pedido,
+                producto=producto,
+                cantidad=cantidad,
+                precio_unitario=producto.precio,
+                subtotal=subtotal
+            )
 
-                #  NUEVO: Crear detalle del pedido con precio_unitario explcito
-                detalle = DetallePedido.objects.create(
-                    pedido=pedido,
-                    producto=producto,
-                    cantidad=cantidad,
-                    precio_unitario=producto.precio,  #  Snapshot del precio actual
-                    subtotal=subtotal
-                )
+            detalles_creados.append({
+                'producto': producto.nombre,
+                'cantidad': cantidad,
+                'precio_unitario': float(producto.precio),
+                'subtotal': float(subtotal),
+                'stock_restante': producto.stock_actual if producto.requiere_inventario else None
+            })
 
-                detalles_creados.append({
-                    'producto': producto.nombre,
-                    'cantidad': cantidad,
-                    'precio_unitario': float(producto.precio),
-                    'subtotal': float(subtotal),
-                    'stock_restante': producto.stock_actual if producto.requiere_inventario else None
-                })
-
-                logger.debug(f"Detalle: {cantidad}x {producto.nombre} = Bs/ {subtotal} (Stock restante: {producto.stock_actual if producto.requiere_inventario else 'N/A'})")
-
-            except Producto.DoesNotExist:
-                logger.error(f"Producto ID {producto_id} no encontrado")
-                # Continuar con los otros productos en lugar de fallar completamente
-                continue
-
-        #  Verificar que se crearon detalles
-        if not detalles_creados:
-            pedido.delete()  # Limpiar pedido sin detalles
-            return Response({
-                'error': 'No se pudieron procesar los productos del pedido'
-            }, status=status.HTTP_400_BAD_REQUEST)
-
-        #  Actualizar total del pedido
+        # ===== 9. ACTUALIZAR TOTALES =====
         pedido.total = total_calculado
+        pedido.total_final = total_calculado
         pedido.save()
 
-        mesero_nombre_completo = f"{mesero.first_name} {mesero.last_name}" if mesero else "Cliente directo"
-        logger.info(f"Pedido #{pedido.id} completado - Mesa {mesa.numero} - Total: Bs/ {total_calculado}")
+        # ===== 10. RECALCULAR CUENTA =====
+        cuenta.recalcular_totales()
+
+        # ===== 11. CAMBIAR ESTADO DE MESA =====
+        if mesa.estado != 'ocupada':
+            mesa.estado = 'ocupada'
+            mesa.save()
+
+        # ===== 12. RESPUESTA =====
+        logger.info(f"✅ Pedido #{pedido.id} creado - Mesa {mesa.numero} - Total: Bs/ {total_calculado} - Cuenta #{cuenta.id}")
 
         return Response({
             'success': True,
             'mensaje': 'Pedido creado exitosamente',
             'pedido_id': pedido.id,
+            'cuenta_id': cuenta.id,
             'mesa': mesa.numero,
             'numero_personas': numero_personas,
-            'mesero': mesero_nombre_completo,
+            'mesero': f"{mesero.first_name} {mesero.last_name}" if mesero else "Cliente directo",
             'total': float(total_calculado),
+            'cuenta_total_acumulado': float(cuenta.total_acumulado),
             'detalles': detalles_creados,
             'estado': pedido.estado
         }, status=status.HTTP_201_CREATED)
 
+    except ValidationError as e:
+        # ✅ FIX #2 v40.3.2: Capturar errores de validación (rollback automático por @transaction.atomic)
+        logger.warning(f"Validación fallida creando pedido: {str(e)}")
+        return Response({
+            'error': str(e)
+        }, status=status.HTTP_400_BAD_REQUEST)
+
     except Exception as e:
         logger.exception(f"Error grave creando pedido: {str(e)}")
-
         return Response({
             'error': f'Error interno del servidor: {str(e)}',
             'debug': 'Ver consola del servidor para detalles'

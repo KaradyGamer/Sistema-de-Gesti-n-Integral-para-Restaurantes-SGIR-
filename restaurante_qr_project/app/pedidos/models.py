@@ -27,6 +27,17 @@ class Pedido(models.Model):
 
     # Campos existentes
     mesa = models.ForeignKey('mesas.Mesa', on_delete=models.PROTECT, related_name='pedidos')
+
+    # ✅ SGIR v40.4.0: Relación con CuentaMesa (entidad financiera central)
+    cuenta = models.ForeignKey(
+        'caja.CuentaMesa',
+        on_delete=models.PROTECT,
+        related_name='pedidos',
+        help_text='Cuenta de mesa a la que pertenece este pedido',
+        null=True,  # Temporal para migración
+        blank=True
+    )
+
     estado = models.CharField(max_length=20, choices=ESTADO_CHOICES, default='pendiente')
     total = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     fecha = models.DateTimeField(default=timezone.now)
@@ -58,6 +69,11 @@ class Pedido(models.Model):
         ordering = ['-fecha']
         verbose_name = 'Pedido'
         verbose_name_plural = 'Pedidos'
+
+        # ✅ SGIR v40.4.0: CONSTRAINT ELIMINADO
+        # Ya NO se limita a 1 pedido por mesa
+        # La protección ahora es: 1 CuentaMesa ABIERTA por mesa
+        # Múltiples pedidos pueden existir en la misma cuenta
     
     def __str__(self):
         return f"Pedido #{self.id} - Mesa {self.mesa.numero if self.mesa else 'N/A'} - {self.get_estado_display()}"

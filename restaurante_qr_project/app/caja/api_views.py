@@ -18,7 +18,7 @@ from app.pedidos.models import Pedido, DetallePedido
 from app.mesas.models import Mesa
 from app.mesas.utils import liberar_mesa
 from app.productos.models import Producto
-from .models import Transaccion, DetallePago, CierreCaja, HistorialModificacion, AlertaStock, JornadaLaboral
+from .models import Transaccion, DetallePago, CierreCaja, HistorialModificacion, AlertaStock, JornadaLaboral, CuentaMesa
 from .utils import (
     generar_numero_factura,
     calcular_cambio,
@@ -245,6 +245,7 @@ def api_detalle_pedido(request, pedido_id):
 def api_procesar_pago_simple(request):
     """
     Procesa un pago simple con un solo método de pago
+    v40.4.0: Actualizado para usar CuentaMesa
     """
     try:
         pedido_id = request.data.get('pedido_id')
@@ -261,8 +262,24 @@ def api_procesar_pago_simple(request):
                 'error': 'Faltan datos requeridos'
             }, status=status.HTTP_400_BAD_REQUEST)
 
-        # Obtener pedido
-        pedido = get_object_or_404(Pedido, id=pedido_id)
+        # Obtener pedido con cuenta y mesa
+        pedido = get_object_or_404(Pedido.objects.select_related('cuenta', 'mesa'), id=pedido_id)
+
+        # v40.4.0: Determinar cuenta (fix para pedidos legacy)
+        cuenta = pedido.cuenta
+        if not cuenta:
+            # Pedido legacy: buscar/crear cuenta para esta mesa
+            cuenta = CuentaMesa.objects.filter(mesa=pedido.mesa, estado='abierta').first()
+            if not cuenta:
+                cuenta = CuentaMesa.objects.create(
+                    mesa=pedido.mesa,
+                    estado='abierta',
+                    total_acumulado=0,
+                    monto_pagado=0,
+                    abierta_por=request.user
+                )
+            pedido.cuenta = cuenta
+            pedido.save(update_fields=['cuenta'])
 
         # Verificar que no esté pagado
         if pedido.estado_pago == 'pagado':
@@ -300,10 +317,11 @@ def api_procesar_pago_simple(request):
         if metodo_pago == 'efectivo' and monto_recibido:
             cambio = calcular_cambio(monto_pendiente, monto_recibido)
 
-        # Crear transacción por el monto pagado en esta operación
+        # v40.4.0: Crear transacción asociada a cuenta
         numero_factura = generar_numero_factura()
         transaccion = Transaccion.objects.create(
             pedido=pedido,
+            cuenta=cuenta,  # v40.4.0: SIEMPRE asociar a cuenta
             cajero=request.user,
             monto_total=monto_esta_transaccion,
             metodo_pago=metodo_pago,
@@ -326,8 +344,8 @@ def api_procesar_pago_simple(request):
             pedido.cajero_responsable = request.user
             pedido.forma_pago = metodo_pago
 
-            # Descontar stock solo cuando se paga completo
-            descontar_stock_pedido(pedido)
+            # ✅ FIX #1 v40.3.2: Stock ya se descontó al CREAR el pedido
+            # NO volver a descontar aquí (eliminado: descontar_stock_pedido)
 
             # Liberar mesa solo cuando se paga completo
             if pedido.mesa:
@@ -338,6 +356,14 @@ def api_procesar_pago_simple(request):
             logger.info(f"Pago parcial - Pagado: Bs/ {nuevo_monto_pagado:.2f} de Bs/ {total_final_pedido:.2f}")
 
         pedido.save()
+
+        # v40.4.0: Recalcular totales de cuenta
+        cuenta.recalcular_totales()
+
+        # v40.4.0: Auto-cerrar cuenta si saldo = 0
+        if cuenta.saldo <= 0 and cuenta.estado == 'abierta':
+            cuenta.cerrar_cuenta(usuario=request.user)
+            logger.info(f"Cuenta #{cuenta.id} cerrada automáticamente - Saldo: Bs/ {cuenta.saldo}")
 
         # Verificar alertas de stock
         verificar_alertas_stock()
@@ -380,6 +406,7 @@ def api_procesar_pago_simple(request):
 def api_procesar_pago_mixto(request):
     """
     Procesa un pago mixto con múltiples métodos de pago
+    v40.4.0: Actualizado para usar CuentaMesa
     """
     try:
         pedido_id = request.data.get('pedido_id')
@@ -394,8 +421,24 @@ def api_procesar_pago_mixto(request):
                 'error': 'Faltan datos requeridos'
             }, status=status.HTTP_400_BAD_REQUEST)
 
-        # Obtener pedido
-        pedido = get_object_or_404(Pedido, id=pedido_id)
+        # Obtener pedido con cuenta y mesa
+        pedido = get_object_or_404(Pedido.objects.select_related('cuenta', 'mesa'), id=pedido_id)
+
+        # v40.4.0: Determinar cuenta (fix para pedidos legacy)
+        cuenta = pedido.cuenta
+        if not cuenta:
+            # Pedido legacy: buscar/crear cuenta para esta mesa
+            cuenta = CuentaMesa.objects.filter(mesa=pedido.mesa, estado='abierta').first()
+            if not cuenta:
+                cuenta = CuentaMesa.objects.create(
+                    mesa=pedido.mesa,
+                    estado='abierta',
+                    total_acumulado=0,
+                    monto_pagado=0,
+                    abierta_por=request.user
+                )
+            pedido.cuenta = cuenta
+            pedido.save(update_fields=['cuenta'])
 
         # Verificar que no esté pagado
         if pedido.estado_pago == 'pagado':
@@ -425,10 +468,11 @@ def api_procesar_pago_mixto(request):
                 'productos_sin_stock': productos_sin_stock
             }, status=status.HTTP_400_BAD_REQUEST)
 
-        # Crear transacción principal
+        # v40.4.0: Crear transacción principal asociada a cuenta
         numero_factura = generar_numero_factura()
         transaccion = Transaccion.objects.create(
             pedido=pedido,
+            cuenta=cuenta,  # v40.4.0: SIEMPRE asociar a cuenta
             cajero=request.user,
             monto_total=total_final,
             metodo_pago='mixto',
@@ -453,13 +497,21 @@ def api_procesar_pago_mixto(request):
         pedido.forma_pago = 'mixto'
         pedido.save()
 
-        # Descontar stock
-        descontar_stock_pedido(pedido)
+        # ✅ FIX #1 v40.3.2: Stock ya se descontó al CREAR el pedido
+        # NO volver a descontar aquí (eliminado: descontar_stock_pedido)
 
         # ✅ MEJORADO: Liberar mesa (incluso si está combinada)
         if pedido.mesa:
             liberar_mesa(pedido.mesa)
             logger.info(f"Mesa {pedido.mesa.numero} liberada después del pago")
+
+        # v40.4.0: Recalcular totales de cuenta
+        cuenta.recalcular_totales()
+
+        # v40.4.0: Auto-cerrar cuenta si saldo = 0
+        if cuenta.saldo <= 0 and cuenta.estado == 'abierta':
+            cuenta.cerrar_cuenta(usuario=request.user)
+            logger.info(f"Cuenta #{cuenta.id} cerrada automáticamente - Saldo: Bs/ {cuenta.saldo}")
 
         # Verificar alertas de stock
         verificar_alertas_stock()

@@ -16,6 +16,227 @@ METODO_PAGO_CHOICES = [
 ]
 
 
+# ══════════════════════════════════════════════
+# 🧾 SGIR v40.4.0: MODELO CENTRAL - CUENTAMESA
+# ══════════════════════════════════════════════
+
+class CuentaMesa(models.Model):
+    """
+    Entidad central financiera del sistema.
+    Una mesa puede tener múltiples pedidos, pero UNA sola cuenta abierta.
+
+    Reglas:
+    - Solo UNA cuenta ABIERTA por mesa (constraint en BD)
+    - Todos los pedidos de la mesa se acumulan aquí
+    - Los pagos se aplican a la cuenta, no a pedidos individuales
+    - Cierre de cuenta puede dejar deuda autorizada con PIN secundario
+    """
+
+    ESTADO_CHOICES = [
+        ('abierta', 'Abierta'),
+        ('cerrada', 'Cerrada'),
+        ('con_deuda', 'Cerrada con Deuda'),
+        ('cancelada', 'Cancelada'),
+    ]
+
+    # Relaciones
+    mesa = models.ForeignKey(
+        'mesas.Mesa',
+        on_delete=models.PROTECT,
+        related_name='cuentas',
+        help_text='Mesa asociada a esta cuenta'
+    )
+
+    # Estado y control
+    estado = models.CharField(
+        max_length=20,
+        choices=ESTADO_CHOICES,
+        default='abierta',
+        help_text='Estado de la cuenta'
+    )
+
+    # Montos
+    total_acumulado = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=Decimal('0.00'),
+        validators=[MinValueValidator(Decimal('0.00'))],
+        help_text='Suma de todos los pedidos de esta cuenta'
+    )
+
+    monto_pagado = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=Decimal('0.00'),
+        validators=[MinValueValidator(Decimal('0.00'))],
+        help_text='Total pagado hasta el momento'
+    )
+
+    # Auditoría
+    fecha_apertura = models.DateTimeField(
+        default=timezone.now,
+        help_text='Fecha y hora de apertura de la cuenta'
+    )
+
+    fecha_cierre = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text='Fecha y hora de cierre de la cuenta'
+    )
+
+    abierta_por = models.ForeignKey(
+        'usuarios.Usuario',
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name='cuentas_abiertas',
+        help_text='Usuario que abrió la cuenta (mesero/cliente)'
+    )
+
+    cerrada_por = models.ForeignKey(
+        'usuarios.Usuario',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='cuentas_cerradas',
+        help_text='Usuario que cerró la cuenta (cajero)'
+    )
+
+    # Deuda autorizada
+    deuda_autorizada = models.BooleanField(
+        default=False,
+        help_text='Si True, se cerró con deuda mediante PIN secundario'
+    )
+
+    autorizada_por = models.ForeignKey(
+        'usuarios.Usuario',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='deudas_autorizadas',
+        help_text='Usuario que autorizó el cierre con deuda'
+    )
+
+    motivo_deuda = models.TextField(
+        blank=True,
+        null=True,
+        help_text='Motivo por el que se autorizó cerrar con deuda'
+    )
+
+    observaciones = models.TextField(
+        blank=True,
+        null=True,
+        help_text='Observaciones generales de la cuenta'
+    )
+
+    class Meta:
+        verbose_name = 'Cuenta de Mesa'
+        verbose_name_plural = 'Cuentas de Mesa'
+        ordering = ['-fecha_apertura']
+
+        # ✅ CRÍTICO: Solo UNA cuenta ABIERTA por mesa
+        constraints = [
+            models.UniqueConstraint(
+                fields=['mesa'],
+                condition=models.Q(estado='abierta'),
+                name='unique_cuenta_abierta_por_mesa',
+                violation_error_message='Ya existe una cuenta abierta para esta mesa'
+            )
+        ]
+
+        indexes = [
+            models.Index(fields=['mesa', 'estado']),
+            models.Index(fields=['fecha_apertura']),
+        ]
+
+    def __str__(self):
+        return f"Cuenta Mesa {self.mesa.numero} - {self.get_estado_display()} - Bs/ {self.total_acumulado}"
+
+    @property
+    def saldo(self):
+        """Saldo pendiente (total - pagado)"""
+        return self.total_acumulado - self.monto_pagado
+
+    @property
+    def esta_saldada(self):
+        """Verifica si la cuenta está completamente pagada"""
+        return self.saldo <= Decimal('0.00')
+
+    def recalcular_totales(self):
+        """
+        Recalcula total_acumulado y monto_pagado basándose en pedidos y pagos reales.
+        DEBE llamarse:
+        - Al crear/eliminar pedido
+        - Al crear/eliminar pago
+        """
+        from app.pedidos.models import Pedido
+
+        # Calcular total de pedidos NO cancelados
+        self.total_acumulado = sum(
+            Decimal(str(pedido.total_final if pedido.total_final > 0 else pedido.total))
+            for pedido in self.pedidos.exclude(estado='cancelado')
+        )
+
+        # Calcular total de pagos aplicados
+        self.monto_pagado = sum(
+            Decimal(str(pago.monto_total))
+            for pago in self.pagos.filter(estado='procesado')
+        )
+
+        self.save()
+
+    def cerrar_cuenta(self, usuario, pin_secundario_validado=False, motivo_deuda=None):
+        """
+        Cierra la cuenta de la mesa.
+
+        Args:
+            usuario: Usuario que cierra la cuenta (cajero)
+            pin_secundario_validado: Si se validó PIN para cerrar con deuda
+            motivo_deuda: Motivo si se cierra con deuda
+
+        Returns:
+            bool: True si se cerró exitosamente
+
+        Raises:
+            ValidationError: Si no se puede cerrar
+        """
+        from django.core.exceptions import ValidationError
+
+        # Recalcular antes de cerrar
+        self.recalcular_totales()
+
+        if self.saldo > Decimal('0.00'):
+            # Hay deuda pendiente
+            if not pin_secundario_validado:
+                raise ValidationError(
+                    f'No se puede cerrar la cuenta. Saldo pendiente: Bs/ {self.saldo:.2f}. '
+                    f'Se requiere PIN secundario para autorizar cierre con deuda.'
+                )
+
+            # Cerrar con deuda autorizada
+            self.estado = 'con_deuda'
+            self.deuda_autorizada = True
+            self.autorizada_por = usuario
+            self.motivo_deuda = motivo_deuda or 'Cierre con deuda autorizado'
+            logger.warning(
+                f"Cuenta Mesa {self.mesa.numero} cerrada CON DEUDA: Bs/ {self.saldo:.2f} "
+                f"por {usuario.username}"
+            )
+        else:
+            # Cerrar normalmente
+            self.estado = 'cerrada'
+            logger.info(f"Cuenta Mesa {self.mesa.numero} cerrada correctamente por {usuario.username}")
+
+        self.fecha_cierre = timezone.now()
+        self.cerrada_por = usuario
+        self.save()
+
+        # Liberar mesa
+        from app.mesas.utils import liberar_mesa
+        liberar_mesa(self.mesa)
+
+        return True
+
+
 class Transaccion(models.Model):
     """
     Modelo para registrar transacciones de pago
@@ -29,7 +250,24 @@ class Transaccion(models.Model):
     ]
 
     # Relaciones
-    pedido = models.ForeignKey('pedidos.Pedido', on_delete=models.CASCADE, related_name='transacciones')
+    pedido = models.ForeignKey(
+        'pedidos.Pedido',
+        on_delete=models.CASCADE,
+        related_name='transacciones',
+        null=True,  # ✅ v40.4.0: Ahora opcional (pagos a cuenta, no a pedido individual)
+        blank=True
+    )
+
+    # ✅ SGIR v40.4.0: Relación con CuentaMesa (pagos se aplican a la cuenta)
+    cuenta = models.ForeignKey(
+        CuentaMesa,
+        on_delete=models.PROTECT,
+        related_name='pagos',
+        help_text='Cuenta de mesa a la que se aplica este pago',
+        null=True,  # Temporal para migración
+        blank=True
+    )
+
     cajero = models.ForeignKey('usuarios.Usuario', on_delete=models.SET_NULL, null=True, related_name='transacciones_realizadas')
 
     # Datos de la transacción
@@ -143,22 +381,39 @@ class CierreCaja(models.Model):
     def cerrar_caja(self, efectivo_real, observaciones=None):
         """
         Cierra el turno de caja y cierra todas las sesiones activas.
-        Valida que no haya pedidos pendientes antes de cerrar.
+        v40.4.0: Valida que no haya CuentaMesa abiertas antes de cerrar.
         """
         from django.contrib.sessions.models import Session
         from django.utils import timezone as tz
-        from app.pedidos.models import Pedido
         from django.core.exceptions import ValidationError
 
-        # ✅ NUEVO: Validar que no haya pedidos pendientes
-        pedidos_pendientes = Pedido.objects.filter(
-            estado__in=['pendiente', 'en preparacion', 'listo', 'entregado', 'solicitando_cuenta']
-        ).count()
+        # ✅ v40.4.0: Validar que NO haya cuentas ABIERTAS
+        cuentas_abiertas = CuentaMesa.objects.filter(estado='abierta')
 
-        if pedidos_pendientes > 0:
+        if cuentas_abiertas.exists():
+            # Generar lista detallada de cuentas abiertas
+            lista_cuentas = []
+            for cuenta in cuentas_abiertas[:5]:  # Mostrar máximo 5
+                lista_cuentas.append(
+                    f"Mesa {cuenta.mesa.numero} - "
+                    f"Total: Bs/ {cuenta.total_acumulado:.2f}, Pagado: Bs/ {cuenta.monto_pagado:.2f}, "
+                    f"Saldo: Bs/ {cuenta.saldo:.2f}"
+                )
+
             raise ValidationError(
-                f'No se puede cerrar la caja. Hay {pedidos_pendientes} pedido(s) pendiente(s) de pago. '
-                f'Por favor, procese todos los pagos antes de cerrar caja.'
+                f'No se puede cerrar la caja. Hay {cuentas_abiertas.count()} cuenta(s) abierta(s):\n' +
+                '\n'.join(lista_cuentas) +
+                '\n\nPor favor, cierre todas las cuentas antes de cerrar caja.'
+            )
+
+        # ⚠️ v40.4.0: PERMITIR (pero registrar) cuentas con deuda autorizada
+        cuentas_con_deuda = CuentaMesa.objects.filter(estado='con_deuda')
+        if cuentas_con_deuda.exists():
+            import logging
+            logger = logging.getLogger('app.caja')
+            logger.warning(
+                f"Cierre de caja con {cuentas_con_deuda.count()} cuenta(s) cerrada(s) con deuda. "
+                f"Mesas: {', '.join(str(c.mesa.numero) for c in cuentas_con_deuda)}"
             )
 
         self.efectivo_real = efectivo_real
@@ -325,24 +580,26 @@ class JornadaLaboral(models.Model):
         from app.pedidos.models import Pedido
         from django.core.exceptions import ValidationError
 
-        # ✅ CORREGIDO: Validar por estado_pago (no por estado de comanda)
-        # Solo impide finalizar si hay pedidos sin pagar (pendiente o parcial)
-        pedidos_pendientes = Pedido.objects.filter(
-            estado_pago='pendiente'
+        # ✅ FIX #4 v40.3.2: Validar DEUDA REAL antes de finalizar jornada
+        from django.db.models import F, Q
+
+        pedidos_con_deuda = Pedido.objects.filter(
+            Q(estado_pago__in=['pendiente', 'parcial']) |
+            Q(total_final__gt=F('monto_pagado'))
         ).exclude(
             estado='cancelado'
         )
 
-        if pedidos_pendientes.exists():
-            # Generar lista detallada de pedidos pendientes
+        if pedidos_con_deuda.exists():
+            # Generar lista detallada de pedidos con deuda
             lista_pedidos = ', '.join([
                 f"Pedido #{p.id} (Mesa {p.mesa.numero if p.mesa else 'N/A'}) - Bs/ {p.total_final or p.total}"
-                for p in pedidos_pendientes[:5]  # Mostrar máximo 5
+                for p in pedidos_con_deuda[:5]  # Mostrar máximo 5
             ])
 
             raise ValidationError(
                 f'No se puede finalizar la jornada laboral. '
-                f'Hay {pedidos_pendientes.count()} pedido(s) pendiente(s) de pago: {lista_pedidos}. '
+                f'Hay {pedidos_con_deuda.count()} pedido(s) pendiente(s) de pago: {lista_pedidos}. '
                 f'Por favor, procese todos los pagos antes de cerrar la jornada.'
             )
 
