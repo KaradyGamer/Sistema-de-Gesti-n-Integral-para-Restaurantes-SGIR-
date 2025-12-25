@@ -1,6 +1,7 @@
 # Generated manually for SGIR v40.5.1
 from django.db import migrations, models
 from django.contrib.auth.hashers import make_password
+from django.core.validators import MinLengthValidator, RegexValidator
 
 
 def hashear_pins_existentes(apps, schema_editor):
@@ -91,8 +92,8 @@ class Migration(migrations.Migration):
                 null=True,
                 unique=True,
                 validators=[
-                    models.validators.MinLengthValidator(4),
-                    models.validators.RegexValidator('^\\d+$', 'El PIN debe contener solo números.')
+                    MinLengthValidator(4),
+                    RegexValidator('^\\d+$', 'El PIN debe contener solo números.')
                 ]
             ),
         ),
@@ -105,8 +106,8 @@ class Migration(migrations.Migration):
                 max_length=6,
                 null=True,
                 validators=[
-                    models.validators.MinLengthValidator(4),
-                    models.validators.RegexValidator('^\\d+$', 'El PIN secundario debe contener solo números.')
+                    MinLengthValidator(4),
+                    RegexValidator('^\\d+$', 'El PIN secundario debe contener solo números.')
                 ]
             ),
         ),
