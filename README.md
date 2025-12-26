@@ -477,3 +477,4 @@ Este proyecto es privado y confidencial. Todos los derechos reservados.
 **Desarrollado con** ❤️ **usando Django + Python + Docker**
 
 **Arquitectura diseñada para**: Escalabilidad, Auditoría Completa, Seguridad Enterprise
+
