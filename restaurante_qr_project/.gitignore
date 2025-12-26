@@ -1,4 +1,4 @@
-# Python
+﻿# Python
 __pycache__/
 *.py[cod]
 *$py.class
@@ -8,30 +8,24 @@ __pycache__/
 # Virtual Environment
 env/
 venv/
-ENV/
 env.bak/
 venv.bak/
-
 # Django
 *.log
 logs/
 local_settings.py
 db.sqlite3
 db.sqlite3-journal
-
 # Media files (user-uploaded content)
 media/
 !media/.gitkeep
-
 # Static files (collected by collectstatic)
 staticfiles/
 !staticfiles/.gitkeep
 static_collected/
-
 # Environment variables
 .env
 .env.local
-
 # IDE
 .vscode/
 .idea/
@@ -39,16 +33,13 @@ static_collected/
 *.swo
 *~
 .claude/
-
 # OS
 .DS_Store
 Thumbs.db
-
 # Backup files
 *.backup
 *.bak
 *.old
-
 # Coverage reports
 htmlcov/
 .tox/
@@ -58,60 +49,27 @@ htmlcov/
 nosetests.xml
 coverage.xml
 *.cover
-
 # Translations
 *.mo
 *.pot
-
 # Sphinx documentation
 docs/_build/
-
 # PyBuilder
 target/
-
 # Jupyter Notebook
 .ipynb_checkpoints
-
 # pyenv
 .python-version
-
 # Celery
 celerybeat-schedule
 celerybeat.pid
-
 # SageMath parsed files
 *.sage.py
-
 # Environments
-.env
 .venv
-env/
-venv/
-ENV/
-env.bak/
-venv.bak/
-
 # mypy
 .mypy_cache/
 .dmypy.json
 dmypy.json
-
 # env files
-.env
 .env.*
-
-
-# env files
-.env
-.env.*
-
-
-# env files
-.env
-.env.*
-
-
-# env files
-.env
-.env.*
-
