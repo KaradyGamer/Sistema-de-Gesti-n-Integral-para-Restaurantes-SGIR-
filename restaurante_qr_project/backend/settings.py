@@ -53,6 +53,7 @@ INSTALLED_APPS = [
     'app.adminux',  # Panel de administración moderno
     'app.inventario',  # Gestión de insumos
     'app.produccion',  # v40.5.0: Producción y Recetario
+    'app.integraciones',  # v40.5.1: Integraciones (n8n, webhooks)
     'app.configuracion',  # Configuración del sistema
 
     #reportes contables
@@ -337,3 +338,6 @@ if not DEBUG:
     SECURE_HSTS_SECONDS = 31536000  # 1 año
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
     SECURE_HSTS_PRELOAD = True
+
+# 🔗 INTEGRACIONES EXTERNAS (n8n, webhooks)
+N8N_API_KEY = config('N8N_API_KEY', default='cambiar-api-key-en-env')

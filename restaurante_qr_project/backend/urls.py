@@ -88,6 +88,9 @@ urlpatterns = [
 
     # 🏭 PRODUCCIÓN - Recetas y fabricación (v40.5.0)
     path('api/produccion/', include('app.produccion.urls')),
+
+    # 🔗 INTEGRACIONES - n8n y webhooks (v40.5.1)
+    path('api/integraciones/', include('app.integraciones.urls')),
 ]
 
 # ✅ ARCHIVOS ESTÁTICOS Y MEDIA
