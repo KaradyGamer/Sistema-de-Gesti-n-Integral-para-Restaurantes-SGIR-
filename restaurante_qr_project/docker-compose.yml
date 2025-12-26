@@ -42,9 +42,69 @@ services:
     networks:
       - sgir_network
 
+  # Base de datos para n8n
+  n8n_db:
+    image: postgres:16-alpine
+    container_name: sgir_n8n_db
+    environment:
+      POSTGRES_DB: n8n
+      POSTGRES_USER: n8n
+      POSTGRES_PASSWORD: ${N8N_DB_PASSWORD:-n8n_password_seguro}
+    volumes:
+      - n8n_pgdata:/var/lib/postgresql/data
+    restart: unless-stopped
+    networks:
+      - sgir_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U n8n"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Servicio n8n (workflow automation)
+  n8n:
+    image: n8nio/n8n:latest
+    container_name: sgir_n8n
+    environment:
+      - DB_TYPE=postgresdb
+      - DB_POSTGRESDB_HOST=n8n_db
+      - DB_POSTGRESDB_PORT=5432
+      - DB_POSTGRESDB_DATABASE=n8n
+      - DB_POSTGRESDB_USER=n8n
+      - DB_POSTGRESDB_PASSWORD=${N8N_DB_PASSWORD:-n8n_password_seguro}
+      - N8N_BASIC_AUTH_ACTIVE=true
+      - N8N_BASIC_AUTH_USER=${N8N_BASIC_AUTH_USER:-admin}
+      - N8N_BASIC_AUTH_PASSWORD=${N8N_BASIC_AUTH_PASSWORD:-cambiar_password}
+      - N8N_ENCRYPTION_KEY=${N8N_ENCRYPTION_KEY:-generar_clave_32_caracteres_minimo}
+      - N8N_HOST=${N8N_HOST:-localhost}
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=http
+      - WEBHOOK_URL=${N8N_WEBHOOK_URL:-http://localhost:5678}
+    ports:
+      - "5678:5678"
+    depends_on:
+      n8n_db:
+        condition: service_healthy
+      web:
+        condition: service_started
+    volumes:
+      - n8n_data:/home/node/.n8n
+    restart: unless-stopped
+    networks:
+      - sgir_network
+    healthcheck:
+      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://localhost:5678/healthz || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
 # Volúmenes persistentes
 volumes:
   pgdata:
+    driver: local
+  n8n_pgdata:
+    driver: local
+  n8n_data:
     driver: local
 
 # Red personalizada
