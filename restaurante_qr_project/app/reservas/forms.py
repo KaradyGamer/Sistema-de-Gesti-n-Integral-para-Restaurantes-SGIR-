@@ -1,7 +1,6 @@
 from django import forms
 from .models import Reserva
-from app.mesas.models import Mesa
-from datetime import datetime, date, time, timedelta
+from datetime import datetime, date, time
 
 class ReservaForm(forms.ModelForm):
     class Meta:

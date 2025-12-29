@@ -7,7 +7,6 @@ Los empleados (meseros y cocineros) no pueden interactuar si la jornada está in
 import logging
 from django.shortcuts import redirect
 from django.contrib import messages
-from django.urls import reverse
 from django.core.cache import cache
 
 logger = logging.getLogger('app.caja.middleware')

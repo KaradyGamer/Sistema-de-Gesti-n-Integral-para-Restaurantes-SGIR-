@@ -1,7 +1,7 @@
 from django.db import models
 from django.utils import timezone
-from datetime import datetime, timedelta
-from django.db.models import Sum, Count, Avg
+from datetime import timedelta
+from django.db.models import Sum
 from django.db.models.functions import TruncDate
 from app.pedidos.models import Pedido, DetallePedido
 from app.productos.models import Producto

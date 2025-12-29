@@ -2,7 +2,6 @@ from django.test import TestCase, Client
 from django.urls import reverse
 from django.utils import timezone
 from decimal import Decimal
-from datetime import datetime, timedelta
 
 from app.usuarios.models import Usuario
 from app.mesas.models import Mesa

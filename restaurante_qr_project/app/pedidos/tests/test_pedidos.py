@@ -6,7 +6,6 @@ from decimal import Decimal
 from app.pedidos.models import Pedido, DetallePedido
 from app.productos.models import Producto, Categoria
 from app.mesas.models import Mesa
-from app.usuarios.models import Usuario
 
 
 class PedidoCreationTestCase(TestCase):

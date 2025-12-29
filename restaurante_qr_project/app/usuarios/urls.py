@@ -13,7 +13,6 @@ from .views import (
     qr_login,
     listar_empleados_qr
 )
-from .views_empleado import panel_empleado
 
 app_name = 'usuarios'
 

@@ -2,7 +2,6 @@
 Utilidades para gestión de mesas
 """
 import logging
-from decimal import Decimal
 from django.db import transaction
 from .models import Mesa
 

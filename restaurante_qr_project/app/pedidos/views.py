@@ -1,4 +1,5 @@
 from django.shortcuts import render, redirect
+from django.contrib import messages
 from django.utils import timezone
 from django.http import JsonResponse
 from django.db import transaction
@@ -13,7 +14,6 @@ from .models import Pedido, DetallePedido
 from .serializers import PedidoSerializer
 from app.mesas.models import Mesa
 from app.productos.models import Producto
-from app.usuarios.permisos import EsCocinero, EsMesero
 from app.reservas.models import Reserva
 
 from django.contrib.auth.decorators import login_required
@@ -546,7 +546,7 @@ def api_reservas_mesero(request):
             }
         }
         
-        logger.info(f" RESPUESTA FINAL:")
+        logger.info(" RESPUESTA FINAL:")
         logger.info(f"  - Reservas HOY: {len(reservas_hoy_data)}")
         logger.info(f"  - Reservas PRXIMAS: {len(reservas_proximas_data)}")
         logger.debug("="*50)
@@ -795,7 +795,7 @@ def pedidos_en_cocina_api(request):
                             'subtotal': float(pedido.total)
                         }
                     ]
-                    logger.info(f"   No hay detalles, creando genrico")
+                    logger.info("   No hay detalles, creando genrico")
             except Exception as e:
                 logger.info(f"   Error obteniendo detalles: {str(e)}")
                 # Fallback: usar datos bsicos
@@ -998,7 +998,6 @@ def modificar_pedido_api(request, pedido_id):
     """
     try:
         from .utils import modificar_pedido_con_stock
-        import json
 
         logger.info(f"Usuario {request.user} solicitando modificacin de pedido #{pedido_id}")
 

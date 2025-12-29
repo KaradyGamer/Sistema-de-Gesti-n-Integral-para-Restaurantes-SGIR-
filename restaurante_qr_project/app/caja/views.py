@@ -8,15 +8,13 @@ from django.views.decorators.csrf import ensure_csrf_cookie
 from datetime import date, datetime
 
 # Importar decoradores personalizados
-from app.usuarios.decorators import rol_requerido, solo_cajero
+from app.usuarios.decorators import solo_cajero
 
 from app.pedidos.models import Pedido
 from app.mesas.models import Mesa
 from app.productos.models import Producto
-from .models import Transaccion, CierreCaja, AlertaStock, HistorialModificacion
+from .models import Transaccion, CierreCaja, AlertaStock
 from .utils import (
-    obtener_pedidos_pendientes_pago,
-    verificar_alertas_stock,
     obtener_estadisticas_caja_dia
 )
 
@@ -532,7 +530,6 @@ def generar_qr_empleado(request, empleado_id):
         token = empleado.generar_qr_token()
 
         # Crear URL de autenticación usando variable de entorno
-        from django.conf import settings
         from decouple import config
 
         # Obtener host configurado o usar el del request

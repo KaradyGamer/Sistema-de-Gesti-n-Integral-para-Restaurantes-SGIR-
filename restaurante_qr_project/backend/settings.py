@@ -43,6 +43,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'django_filters',
     'corsheaders',
+    'django_extensions',  # Management commands (show_urls, etc.)
 
     # Apps del proyecto
     'app.usuarios',

@@ -1,7 +1,6 @@
 from django.utils import timezone
-from django.db.models import Sum, Count
+from django.db.models import Sum
 from decimal import Decimal
-from datetime import datetime, date
 import uuid
 
 

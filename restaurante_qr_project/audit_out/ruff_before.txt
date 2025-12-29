@@ -1,0 +1,88 @@
+F401 [*] `django.urls.reverse` imported but unused
+  --> app\adminux\tests\test_adminux.py:12:25
+   |
+10 | """
+11 | from django.test import TestCase, Client
+12 | from django.urls import reverse
+   |                         ^^^^^^^
+13 | from django.contrib.auth import get_user_model
+   |
+help: Remove unused import: `django.urls.reverse`
+
+F401 [*] `django.urls.reverse` imported but unused
+  --> app\adminux\tests\test_staff_login.py:13:25
+   |
+11 | """
+12 | from django.test import TestCase, Client
+13 | from django.urls import reverse
+   |                         ^^^^^^^
+14 | from django.contrib.auth import get_user_model
+   |
+help: Remove unused import: `django.urls.reverse`
+
+F401 [*] `django.db.models.Sum` imported but unused
+ --> app\adminux\views.py:6:37
+  |
+4 | from django.shortcuts import render, redirect, get_object_or_404
+5 | from django.contrib import messages
+6 | from django.db.models import Count, Sum, Q
+  |                                     ^^^
+7 | from django.utils import timezone
+8 | from django.urls import reverse, NoReverseMatch
+  |
+help: Remove unused import: `django.db.models.Sum`
+
+F401 [*] `datetime.date` imported but unused
+  --> app\adminux\views.py:11:22
+   |
+ 9 | from django.apps import apps
+10 | from django.views.decorators.csrf import csrf_protect
+11 | from datetime import date
+   |                      ^^^^
+12 | import json
+   |
+help: Remove unused import: `datetime.date`
+
+F401 [*] `app.caja.models.JornadaLaboral` imported but unused
+  --> app\adminux\views.py:20:29
+   |
+18 | from app.pedidos.models import Pedido
+19 | from app.reservas.models import Reserva
+20 | from app.caja.models import JornadaLaboral, Transaccion
+   |                             ^^^^^^^^^^^^^^
+21 | from .forms import UsuarioForm, ProductoForm, CategoriaForm, MesaForm, ReservaForm
+   |
+help: Remove unused import
+
+F401 [*] `app.caja.models.Transaccion` imported but unused
+  --> app\adminux\views.py:20:45
+   |
+18 | from app.pedidos.models import Pedido
+19 | from app.reservas.models import Reserva
+20 | from app.caja.models import JornadaLaboral, Transaccion
+   |                                             ^^^^^^^^^^^
+21 | from .forms import UsuarioForm, ProductoForm, CategoriaForm, MesaForm, ReservaForm
+   |
+help: Remove unused import
+
+F401 [*] `.forms.ProductoForm` imported but unused
+  --> app\adminux\views.py:21:33
+   |
+19 | from app.reservas.models import Reserva
+20 | from app.caja.models import JornadaLaboral, Transaccion
+21 | from .forms import UsuarioForm, ProductoForm, CategoriaForm, MesaForm, ReservaForm
+   |                                 ^^^^^^^^^^^^
+22 |
+23 | logger = logging.getLogger("app.adminux")
+   |
+help: Remove unused import
+
+F401 [*] `.forms.CategoriaForm` imported but unused
+  --> app\adminux\views.py:21:47
+   |
+19 | from app.reservas.models import Reserva
+20 | from app.caja.models import JornadaLaboral, Transaccion
+21 | from .forms import UsuarioForm, ProductoForm, CategoriaForm, MesaForm, ReservaForm
+   |                                               ^^^^^^^^^^^^^
+22 |
+23 | logger = logging.getLogger("a

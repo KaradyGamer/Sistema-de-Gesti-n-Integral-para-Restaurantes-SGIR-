@@ -38,7 +38,7 @@ def rol_requerido(*roles_permitidos):
 
             # Verificar que el rol esté permitido
             if user_rol not in roles_permitidos:
-                messages.error(request, f'No tienes permisos para acceder a esta página.')
+                messages.error(request, 'No tienes permisos para acceder a esta página.')
                 return redirect('/login/')
 
             # Si todo está bien, ejecutar la vista

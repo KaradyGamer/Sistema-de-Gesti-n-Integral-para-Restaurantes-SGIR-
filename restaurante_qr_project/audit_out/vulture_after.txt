@@ -1,0 +1,2 @@
+app\usuarios\permisos.py:7: unused variable 'view' (100% confidence, 1 line)
+app\usuarios\views.py:379: unreachable code after 'if' (100% confidence, 1 line)

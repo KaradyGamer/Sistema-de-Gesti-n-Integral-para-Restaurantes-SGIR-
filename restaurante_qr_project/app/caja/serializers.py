@@ -1,7 +1,5 @@
 from rest_framework import serializers
 from .models import Transaccion, DetallePago, CierreCaja, HistorialModificacion, AlertaStock
-from app.pedidos.models import Pedido
-from app.productos.models import Producto
 
 
 class TransaccionSerializer(serializers.ModelSerializer):

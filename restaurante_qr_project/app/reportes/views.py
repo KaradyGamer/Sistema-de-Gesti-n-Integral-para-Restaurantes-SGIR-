@@ -2,18 +2,14 @@ from django.shortcuts import render
 from django.http import HttpResponse, JsonResponse
 from django.contrib.admin.views.decorators import staff_member_required
 from django.utils import timezone
-from django.db.models import Sum, Count, Avg
-from datetime import datetime, timedelta
-import json
-import csv
-from io import StringIO
+from django.db.models import Sum
+from datetime import timedelta
 import logging
 
 logger = logging.getLogger('app.reportes')
 
 from .models import ReporteVentas
 from app.pedidos.models import Pedido, DetallePedido
-from app.productos.models import Producto
 
 @staff_member_required
 def dashboard_reportes(request):
@@ -32,7 +28,7 @@ def datos_ventas_semanales(request):
         fin_semana = inicio_semana + timedelta(days=6)
         
         # ✅ SOLUCIONADO: Debug para verificar fechas
-        logger.info(f"📊 DASHBOARD DEBUG:")
+        logger.info("📊 DASHBOARD DEBUG:")
         logger.info(f"📊 Hoy: {hoy}")
         logger.info(f"📊 Inicio semana: {inicio_semana}")
         logger.info(f"📊 Fin semana: {fin_semana}")
@@ -80,7 +76,7 @@ def datos_ventas_semanales(request):
         total_semana = sum(dia['ventas'] for dia in ventas_por_dia)
         total_pedidos_semana = sum(dia['pedidos'] for dia in ventas_por_dia)
         
-        logger.info(f"📊 RESULTADO FINAL:")
+        logger.info("📊 RESULTADO FINAL:")
         logger.info(f"📊 Total ventas semana: Bs/ {total_semana}")
         logger.info(f"📊 Total pedidos semana: {total_pedidos_semana}")
         

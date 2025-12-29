@@ -136,14 +136,14 @@ def session_login(request):
             })
 
         else:
-            logger.warning(f"LOGIN: Credenciales inválidas")
+            logger.warning("LOGIN: Credenciales inválidas")
             return JsonResponse({
                 'success': False,
                 'error': 'Usuario o contraseña incorrectos'
             }, status=401)
 
     except Exception as e:
-        logger.exception(f"LOGIN: Error en session_login")
+        logger.exception("LOGIN: Error en session_login")
         return JsonResponse({
             'success': False,
             'error': 'Error interno del servidor'
@@ -281,15 +281,15 @@ def login_admin(request):
             if user.is_superuser:
                 # Superusuario → Admin nativo de Django
                 redirect_url = '/admin/'
-                logger.info(f"LOGIN-ADMIN: Superuser redirigido a /admin/")
+                logger.info("LOGIN-ADMIN: Superuser redirigido a /admin/")
             elif user.is_staff:
                 # Staff → AdminUX (panel moderno)
                 redirect_url = '/adminux/'
-                logger.info(f"LOGIN-ADMIN: Staff redirigido a /adminux/")
+                logger.info("LOGIN-ADMIN: Staff redirigido a /adminux/")
             else:
                 # Usuario normal → Menú cliente
                 redirect_url = '/menu/'
-                logger.info(f"LOGIN-ADMIN: Usuario normal redirigido a /menu/")
+                logger.info("LOGIN-ADMIN: Usuario normal redirigido a /menu/")
 
             return JsonResponse({
                 'success': True,
@@ -324,11 +324,9 @@ def auth_qr(request, token):
     """
     try:
         from .models import Usuario
-        from app.caja.models import CierreCaja
-        from datetime import date
 
         logger.debug("="*80)
-        logger.info(f"AUTH-QR: INICIO - Intento de autenticacion por QR")
+        logger.info("AUTH-QR: INICIO - Intento de autenticacion por QR")
         logger.info(f"AUTH-QR: Token recibido: {token}")
         logger.info(f"AUTH-QR: Tipo: {type(token)}")
         logger.info(f"AUTH-QR: Usuario actual: {request.user}")
@@ -342,7 +340,7 @@ def auth_qr(request, token):
             logger.info(f"AUTH-QR: ✓ Usuario is_active: {usuario.is_active}")
         except Usuario.DoesNotExist:
             logger.info(f"AUTH-QR: ✗ ERROR: Token QR no encontrado en BD: {token}")
-            logger.info(f"AUTH-QR: ✗ Redirigiendo a login...")
+            logger.info("AUTH-QR: ✗ Redirigiendo a login...")
             messages.error(request, 'Codigo QR invalido o expirado')
             return redirect('/login/')
 
@@ -369,13 +367,13 @@ def auth_qr(request, token):
 
         # Redirigir segn el rol
         if usuario.rol == 'mesero' or usuario.rol == 'cocinero':
-            logger.info(f"AUTH-QR: → Redirigiendo a /empleado/")
+            logger.info("AUTH-QR: → Redirigiendo a /empleado/")
             return redirect('/empleado/')  # Panel unificado
         elif usuario.rol == 'cajero':
-            logger.info(f"AUTH-QR: → Redirigiendo a /caja/")
+            logger.info("AUTH-QR: → Redirigiendo a /caja/")
             return redirect('/caja/')
         else:
-            logger.info(f"AUTH-QR: → Redirigiendo a /")
+            logger.info("AUTH-QR: → Redirigiendo a /")
             return redirect('/')
 
         logger.debug("="*80)
@@ -525,7 +523,6 @@ def qr_login(request, token):
     ✅ ACTUALIZADO: Login por QR con logging, rate limiting y validación de expiración
     """
     try:
-        from django.utils import timezone
 
         logger.info("QR-LOGIN: Intento de login con token")
 

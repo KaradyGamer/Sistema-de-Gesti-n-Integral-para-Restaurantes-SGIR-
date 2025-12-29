@@ -3,12 +3,11 @@ from django.contrib.auth import authenticate, login
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
-from django.db.models import Count, Sum, Q
+from django.db.models import Count, Q
 from django.utils import timezone
 from django.urls import reverse, NoReverseMatch
 from django.apps import apps
 from django.views.decorators.csrf import csrf_protect
-from datetime import date
 import json
 
 from app.usuarios.models import Usuario
@@ -17,8 +16,7 @@ from app.productos.models import Producto, Categoria
 from app.mesas.models import Mesa
 from app.pedidos.models import Pedido
 from app.reservas.models import Reserva
-from app.caja.models import JornadaLaboral, Transaccion
-from .forms import UsuarioForm, ProductoForm, CategoriaForm, MesaForm, ReservaForm
+from .forms import UsuarioForm
 
 logger = logging.getLogger("app.adminux")
 
@@ -279,7 +277,6 @@ def adminux_dashboard(request):
     if Producto:
         # Intentar obtener productos reales con conteo de pedidos
         try:
-            from app.pedidos.models import DetallePedido
             top_productos_demo = Producto.objects.filter(
                 activo=True
             ).annotate(

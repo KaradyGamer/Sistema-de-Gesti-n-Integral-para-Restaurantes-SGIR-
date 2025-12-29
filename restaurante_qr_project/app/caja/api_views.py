@@ -5,11 +5,10 @@ from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from django.db import transaction
-from django.db.models import Sum, Q
+from django.db.models import Sum
 from django.core.cache import cache
 from decimal import Decimal
 from datetime import date, datetime
-import json
 import logging
 
 logger = logging.getLogger('app.caja')

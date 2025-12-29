@@ -4,7 +4,7 @@ from django.contrib.auth.decorators import login_required
 from django.db.models import Q
 from app.usuarios.decorators import admin_requerido
 from .models import CategoriaInsumo, Insumo, MovimientoInsumo
-from .forms import CategoriaInsumoForm, InsumoForm, MovimientoInsumoForm, AjusteStockForm
+from .forms import CategoriaInsumoForm, InsumoForm, AjusteStockForm
 import logging
 
 logger = logging.getLogger(__name__)
