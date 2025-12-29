@@ -44,7 +44,7 @@ def crear_usuarios():
     if created:
         admin.set_password('admin123')
         admin.save()
-        print(f"✅ Admin creado: username='admin', password='admin123'")
+        print("✅ Admin creado: username='admin', password='admin123'")
     else:
         # Actualizar permisos si ya existe
         admin.is_staff = True
@@ -52,7 +52,7 @@ def crear_usuarios():
         admin.activo = True
         admin.areas_permitidas = ['mesero', 'cocina', 'caja', 'reportes']
         admin.save()
-        print(f"✅ Admin actualizado: username='admin' (permisos de superusuario)")
+        print("✅ Admin actualizado: username='admin' (permisos de superusuario)")
 
     # Cajero 1
     cajero1, created = Usuario.objects.get_or_create(
@@ -70,9 +70,9 @@ def crear_usuarios():
     if created:
         cajero1.set_password('cajero123')
         cajero1.save()
-        print(f"✅ Cajero1 creado: username='cajero1', PIN='1000'")
+        print("✅ Cajero1 creado: username='cajero1', PIN='1000'")
     else:
-        print(f"ℹ️  Cajero1 ya existe: username='cajero1'")
+        print("ℹ️  Cajero1 ya existe: username='cajero1'")
 
     # Cajero 2
     cajero2, created = Usuario.objects.get_or_create(
@@ -90,9 +90,9 @@ def crear_usuarios():
     if created:
         cajero2.set_password('cajero123')
         cajero2.save()
-        print(f"✅ Cajero2 creado: username='cajero2', PIN='1001'")
+        print("✅ Cajero2 creado: username='cajero2', PIN='1001'")
     else:
-        print(f"ℹ️  Cajero2 ya existe: username='cajero2'")
+        print("ℹ️  Cajero2 ya existe: username='cajero2'")
 
     # Mesero 1
     mesero1, created = Usuario.objects.get_or_create(
@@ -109,9 +109,9 @@ def crear_usuarios():
     if created:
         mesero1.set_password('mesero123')
         mesero1.save()
-        print(f"✅ Mesero1 creado: username='mesero1' (acceso por QR)")
+        print("✅ Mesero1 creado: username='mesero1' (acceso por QR)")
     else:
-        print(f"ℹ️  Mesero1 ya existe: username='mesero1'")
+        print("ℹ️  Mesero1 ya existe: username='mesero1'")
 
     # Cocinero 1
     cocinero1, created = Usuario.objects.get_or_create(
@@ -128,9 +128,9 @@ def crear_usuarios():
     if created:
         cocinero1.set_password('cocinero123')
         cocinero1.save()
-        print(f"✅ Cocinero1 creado: username='cocinero1' (acceso por QR)")
+        print("✅ Cocinero1 creado: username='cocinero1' (acceso por QR)")
     else:
-        print(f"ℹ️  Cocinero1 ya existe: username='cocinero1'")
+        print("ℹ️  Cocinero1 ya existe: username='cocinero1'")
 
 def crear_categorias_productos():
     print("\n" + "="*50)
@@ -143,7 +143,7 @@ def crear_categorias_productos():
     cat_bebidas, _ = Categoria.objects.get_or_create(nombre='Bebidas')
     cat_postres, _ = Categoria.objects.get_or_create(nombre='Postres')
 
-    print(f"✅ Categorías creadas")
+    print("✅ Categorías creadas")
 
     # Productos - Entradas
     productos_entradas = [

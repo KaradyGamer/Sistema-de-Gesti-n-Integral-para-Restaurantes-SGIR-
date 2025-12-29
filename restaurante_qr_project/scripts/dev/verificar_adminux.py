@@ -49,11 +49,11 @@ try:
     campos_categoria = [f.name for f in Categoria._meta.get_fields()]
 
     if 'activo' in campos_categoria:
-        print(f"   [OK] Categoria.activo existe")
+        print("   [OK] Categoria.activo existe")
     elif 'activa' in campos_categoria:
-        print(f"   [WARN] Categoria usa 'activa' (femenino)")
+        print("   [WARN] Categoria usa 'activa' (femenino)")
     else:
-        print(f"   [ERROR] Categoria no tiene campo activo/activa")
+        print("   [ERROR] Categoria no tiene campo activo/activa")
 
     print(f"   [INFO] Campos: {', '.join(campos_categoria[:10])}")
 except Exception as e:
@@ -64,12 +64,12 @@ try:
     campos_producto = [f.name for f in Producto._meta.get_fields()]
 
     if 'stock_actual' in campos_producto:
-        print(f"   [OK] Producto.stock_actual existe")
+        print("   [OK] Producto.stock_actual existe")
     else:
-        print(f"   [WARN] Producto no tiene campo stock_actual")
+        print("   [WARN] Producto no tiene campo stock_actual")
 
     if 'activo' in campos_producto:
-        print(f"   [OK] Producto.activo existe")
+        print("   [OK] Producto.activo existe")
 except Exception as e:
     print(f"   [ERROR] Al verificar Producto: {e}")
 
@@ -118,17 +118,17 @@ dashboard_path = os.path.join(
 )
 
 if os.path.exists(dashboard_path):
-    print(f"   [OK] Template dashboard.html existe")
+    print("   [OK] Template dashboard.html existe")
     size = os.path.getsize(dashboard_path)
     print(f"      Tamano: {size / 1024:.1f} KB")
 else:
-    print(f"   [ERROR] Template dashboard.html no encontrado")
+    print("   [ERROR] Template dashboard.html no encontrado")
 
 base_path = os.path.join(settings.BASE_DIR, 'templates', 'base.html')
 if os.path.exists(base_path):
-    print(f"   [OK] Template base.html existe")
+    print("   [OK] Template base.html existe")
 else:
-    print(f"   [ERROR] Template base.html no encontrado")
+    print("   [ERROR] Template base.html no encontrado")
 
 # 6. Verificar Tailwind CSS
 print("\n[6] Verificando Tailwind CSS...")

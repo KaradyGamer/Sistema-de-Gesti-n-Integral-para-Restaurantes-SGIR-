@@ -42,3 +42,6 @@ openpyxl==3.1.5
 # Testing y calidad
 pytest==8.3.4
 pytest-django==4.9.0
+
+# Django extensions (management commands)
+django-extensions==3.2.3

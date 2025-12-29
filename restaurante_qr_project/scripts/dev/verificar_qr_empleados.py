@@ -23,7 +23,7 @@ if len(sys.argv) > 1:
 else:
     ip_servidor = "localhost:8000"
     print(f"Usando IP por defecto: {ip_servidor}")
-    print(f"Para especificar otra: python scripts/verificar_qr_empleados.py <IP:PUERTO>")
+    print("Para especificar otra: python scripts/verificar_qr_empleados.py <IP:PUERTO>")
 
 print("=" * 60)
 print("VERIFICACION DE TOKENS QR - EMPLEADOS")

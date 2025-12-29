@@ -1,0 +1,23 @@
+# Ruff configuration for SGIR project
+# https://docs.astral.sh/ruff/
+
+line-length = 100
+target-version = "py312"
+
+[lint]
+# Select only essential error checks (E) and fatal errors (F)
+select = ["E", "F"]
+
+# Ignore specific rules that are common in Django projects
+ignore = [
+  "E402",  # Module level import not at top of file (common with django.setup() in scripts)
+]
+
+[lint.per-file-ignores]
+# Scripts often need django.setup() before imports
+"scripts/*.py" = ["E402", "F401"]
+"scripts/dev/*.py" = ["E402", "F401"]
+
+# Test files may have intentionally unused variables
+"**/tests/*.py" = ["F841"]
+"**/test_*.py" = ["F841"]
