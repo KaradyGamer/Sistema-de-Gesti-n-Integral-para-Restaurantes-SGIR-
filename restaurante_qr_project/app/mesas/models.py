@@ -1,8 +1,11 @@
 import qrcode
+import logging
 from io import BytesIO
 from django.core.files import File
 from django.db import models
 from django.conf import settings
+
+logger = logging.getLogger(__name__)
 
 class Mesa(models.Model):
     numero = models.PositiveIntegerField(unique=True)
@@ -73,7 +76,8 @@ class Mesa(models.Model):
         try:
             domain = Site.objects.get_current().domain
             protocol = 'https' if settings.DEBUG is False else 'http'
-        except:
+        except Exception as e:
+            logger.warning(f"Error al obtener dominio actual: {e}")
             domain = '127.0.0.1:8000'
             protocol = 'http'
 

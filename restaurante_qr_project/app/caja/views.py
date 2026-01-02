@@ -282,7 +282,7 @@ def abrir_caja(request):
                 return redirect('/caja/abrir/')
 
             # Crear apertura de caja
-            cierre = CierreCaja.objects.create(
+            CierreCaja.objects.create(
                 cajero=request.user,
                 fecha=date.today(),
                 turno=turno,

@@ -284,8 +284,9 @@ def adminux_dashboard(request):
             ).filter(
                 total_vendido__gt=0
             ).order_by('-total_vendido')[:5]
-        except:
+        except Exception as e:
             # Fallback: productos sin contar ventas
+            logger.warning(f"Error al obtener top productos: {e}")
             productos = list(Producto.objects.filter(activo=True)[:5])
             for idx, p in enumerate(productos):
                 p.total_vendido = [120, 98, 76, 65, 43][idx] if idx < 5 else 10
@@ -316,7 +317,8 @@ def adminux_dashboard(request):
         from app.inventario.models import Insumo, CategoriaInsumo
         todos_insumos = Insumo.objects.select_related('categoria').order_by('nombre')
         categorias_insumos = CategoriaInsumo.objects.all().order_by('nombre')
-    except:
+    except Exception as e:
+        logger.warning(f"Error al cargar inventario: {e}")
         todos_insumos = []
         categorias_insumos = []
 
@@ -324,7 +326,8 @@ def adminux_dashboard(request):
     try:
         from app.configuracion.models import ConfiguracionSistema
         configuracion = ConfiguracionSistema.get_configuracion()
-    except:
+    except Exception as e:
+        logger.warning(f"Error al cargar configuración: {e}")
         configuracion = None
 
     ctx = {

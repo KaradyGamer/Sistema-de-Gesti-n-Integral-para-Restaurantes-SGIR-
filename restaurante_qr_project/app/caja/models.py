@@ -171,7 +171,6 @@ class CierreCaja(models.Model):
 
         # Cerrar todas las sesiones activas de empleados (excepto admins y cajeros)
         from app.usuarios.models import Usuario
-        empleados = Usuario.objects.filter(rol__in=['mesero', 'cocinero'])
 
         # Obtener todas las sesiones activas
         sesiones_activas = Session.objects.filter(expire_date__gte=tz.now())

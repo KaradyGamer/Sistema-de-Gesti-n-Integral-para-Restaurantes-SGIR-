@@ -84,7 +84,7 @@ class ReporteVentasAdmin(admin.ModelAdmin):
                 'text-decoration: none; border-radius: 3px;" target="_blank">📄 Reporte</a>',
                 dashboard_url, csv_url, pdf_url
             )
-        except Exception as e:
+        except Exception:
             return format_html(
                 '<a href="/reportes/dashboard/" style="background: #007bff; color: white; padding: 5px 10px; '
                 'text-decoration: none; border-radius: 3px;" target="_blank">📊 Dashboard</a>'

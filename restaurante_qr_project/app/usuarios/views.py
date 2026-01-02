@@ -142,7 +142,7 @@ def session_login(request):
                 'error': 'Usuario o contraseña incorrectos'
             }, status=401)
 
-    except Exception as e:
+    except Exception:
         logger.exception("LOGIN: Error en session_login")
         return JsonResponse({
             'success': False,
@@ -220,7 +220,7 @@ def login_pin(request):
             'rol': usuario.rol
         })
 
-    except Exception as e:
+    except Exception:
         logger.exception("LOGIN-PIN: Error en login_pin")
         return JsonResponse({
             'success': False,
@@ -305,7 +305,7 @@ def login_admin(request):
                 'error': 'Usuario o contraseña incorrectos'
             }, status=401)
 
-    except Exception as e:
+    except Exception:
         logger.exception("LOGIN-ADMIN: Error en login_admin")
         import traceback
         traceback.print_exc()
@@ -398,7 +398,8 @@ def ver_todos_qr(request):
         hostname = socket.gethostname()
         ip_servidor = socket.gethostbyname(hostname)
         ip_servidor = f"{ip_servidor}:8000"
-    except:
+    except Exception as e:
+        logger.debug(f"Error al obtener IP del servidor: {e}")
         ip_servidor = "localhost:8000"
 
     # Obtener todas las mesas activas
@@ -425,7 +426,8 @@ def ver_qr_simple(request):
         hostname = socket.gethostname()
         ip_servidor = socket.gethostbyname(hostname)
         ip_servidor = f"{ip_servidor}:8000"
-    except:
+    except Exception as e:
+        logger.debug(f"Error al obtener IP del servidor: {e}")
         ip_servidor = "localhost:8000"
 
     context = {
@@ -485,7 +487,8 @@ def generar_qr_empleado(request):
         try:
             hostname = socket.gethostname()
             ip_actual = socket.gethostbyname(hostname)
-        except:
+        except Exception as e:
+            logger.debug(f"Error al obtener IP del servidor: {e}")
             ip_actual = '127.0.0.1'
 
         # Generar nuevo token (invalida anteriores automáticamente)
@@ -562,7 +565,8 @@ def qr_login(request, token):
         try:
             hostname = socket.gethostname()
             ip_actual = socket.gethostbyname(hostname)
-        except:
+        except Exception as e:
+            logger.debug(f"Error al obtener IP del servidor: {e}")
             ip_actual = '127.0.0.1'
 
         nuevo_token = QRToken.generar_token(empleado, ip_actual, duracion_horas=24)
@@ -583,7 +587,7 @@ def qr_login(request, token):
         logger.info(f"QR-LOGIN: Redirigiendo a: {panel_url}")
         return redirect(panel_url)
 
-    except Exception as e:
+    except Exception:
         logger.exception("QR-LOGIN: Error al procesar código QR")
         messages.error(request, 'Error al procesar el código QR')
         return redirect('/login/')

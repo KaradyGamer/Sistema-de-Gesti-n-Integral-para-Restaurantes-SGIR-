@@ -213,7 +213,7 @@ def crear_pedido_cliente(request):
                 total_calculado += subtotal
 
                 #  NUEVO: Crear detalle del pedido con precio_unitario explcito
-                detalle = DetallePedido.objects.create(
+                DetallePedido.objects.create(
                     pedido=pedido,
                     producto=producto,
                     cantidad=cantidad,
@@ -385,7 +385,8 @@ def api_pedidos_mesero(request):
             try:
                 #  SOLUCIONADO: Usar 'detalles' en lugar de 'detallepedido_set'
                 productos = [detalle.producto.nombre for detalle in pedido.detalles.all()]
-            except:
+            except Exception as e:
+                logger.warning(f"Error al obtener productos del pedido {pedido.id}: {e}")
                 productos = [f'Pedido Mesa {pedido.mesa.numero if pedido.mesa else "N/A"}']
                 
             pedidos_listos_data.append({
@@ -404,7 +405,8 @@ def api_pedidos_mesero(request):
             try:
                 #  SOLUCIONADO: Usar 'detalles' en lugar de 'detallepedido_set'
                 productos = [detalle.producto.nombre for detalle in pedido.detalles.all()]
-            except:
+            except Exception as e:
+                logger.warning(f"Error al obtener productos del pedido {pedido.id}: {e}")
                 productos = [f'Pedido Mesa {pedido.mesa.numero if pedido.mesa else "N/A"}']
                 
             pedidos_entregados_data.append({

@@ -3,6 +3,9 @@ from django.db.models import F
 from django.core.validators import MinValueValidator
 from django.core.exceptions import ValidationError
 from decimal import Decimal
+import logging
+
+logger = logging.getLogger(__name__)
 
 class Categoria(models.Model):
     nombre = models.CharField(max_length=50)
@@ -96,8 +99,8 @@ class Producto(models.Model):
         try:
             from app.caja.models import AlertaStock
             AlertaStock.objects.get_or_create(producto=self, tipo="stock_bajo" if self.stock_actual > 0 else "agotado", estado="activa", defaults={"stock_actual": self.stock_actual, "mensaje": f"{self.nombre} - Stock: {self.stock_actual}"})
-        except:
-            pass
+        except Exception as e:
+            logger.warning(f"Error al crear alerta de stock para {self.nombre}: {e}")
 
     def eliminar_suave(self, usuario=None):
         from django.utils import timezone

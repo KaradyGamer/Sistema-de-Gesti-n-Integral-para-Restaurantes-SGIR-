@@ -88,7 +88,7 @@ def consultar_reserva(request):
                 
                 if not reservas.exists():
                     messages.error(request, 'No se encontraron reservas activas pendientes con ese número de carnet.')
-            except Exception as e:
+            except Exception:
                 messages.error(request, 'Error al buscar las reservas. Inténtalo de nuevo.')
         else:
             messages.error(request, 'Por favor, ingresa tu número de carnet.')
@@ -217,7 +217,7 @@ def cancelar_reserva(request, reserva_id):
             'success': False,
             'error': 'Reserva no encontrada.'
         }, status=404)
-    except Exception as e:
+    except Exception:
         return Response({
             'success': False,
             'error': 'Error interno del servidor.'

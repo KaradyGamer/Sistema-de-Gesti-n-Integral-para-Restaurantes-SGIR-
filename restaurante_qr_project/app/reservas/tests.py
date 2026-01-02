@@ -276,7 +276,7 @@ class ReservaIntegracionTestCase(TestCase):
         """Test: Múltiples reservas para el mismo día"""
         fecha_reserva = date.today() + timedelta(days=1)
 
-        reserva_1 = Reserva.objects.create(
+        Reserva.objects.create(
             numero_carnet='11111111',
             nombre_completo='Reserva 1',
             telefono='70111111',
@@ -285,7 +285,7 @@ class ReservaIntegracionTestCase(TestCase):
             numero_personas=2
         )
 
-        reserva_2 = Reserva.objects.create(
+        Reserva.objects.create(
             numero_carnet='22222222',
             nombre_completo='Reserva 2',
             telefono='70222222',
@@ -294,7 +294,7 @@ class ReservaIntegracionTestCase(TestCase):
             numero_personas=4
         )
 
-        reserva_3 = Reserva.objects.create(
+        Reserva.objects.create(
             numero_carnet='33333333',
             nombre_completo='Reserva 3',
             telefono='70333333',

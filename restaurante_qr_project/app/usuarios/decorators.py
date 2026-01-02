@@ -225,8 +225,8 @@ def rate_limit_login(max_attempts=5, lockout_duration=300, login_type='general')
                     import json
                     content = json.loads(response.content.decode('utf-8'))
                     login_failed = not content.get('success', True)
-                except:
-                    pass
+                except Exception as e:
+                    logger.debug(f"Error al parsear respuesta JSON: {e}")
             elif hasattr(response, 'status_code') and response.status_code == 302:
                 # Para redirects, verificar si va a /login/ (indica fallo)
                 login_failed = '/login/' in response.url
