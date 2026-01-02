@@ -1,0 +1,272 @@
+# ============================================
+# Docker Compose - PRODUCCIÓN
+# SGIR - Sistema de Gestión Integral para Restaurantes
+# ============================================
+# IMPORTANTE:
+# 1. Este archivo es SOLO para producción
+# 2. Requiere variables de entorno configuradas en .env
+# 3. NUNCA usar valores por defecto en producción
+# 4. Asegurar que DEBUG=False en .env
+# ============================================
+
+version: '3.8'
+
+services:
+  # ===== POSTGRESQL (Base de Datos) =====
+  db:
+    image: postgres:16-alpine
+    container_name: sgir_db_prod
+
+    # Variables de entorno SIN valores por defecto
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      # Configuración adicional de PostgreSQL
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --lc-collate=es_ES.UTF-8 --lc-ctype=es_ES.UTF-8"
+      PGDATA: /var/lib/postgresql/data/pgdata
+
+    # Volumen externo y persistente (NO en el repo)
+    volumes:
+      - postgres_data_prod:/var/lib/postgresql/data
+      - ./backups:/backups:ro  # Solo lectura para seguridad
+
+    # NO exponer puerto en producción (solo red interna)
+    # Si necesitas acceso externo, usar túnel SSH
+    expose:
+      - "5432"
+
+    # Política de reinicio
+    restart: always
+
+    # Red aislada
+    networks:
+      - sgir_network_prod
+
+    # Healthcheck robusto
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 40s
+
+    # Recursos limitados (ajustar según servidor)
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2G
+        reservations:
+          cpus: '1.0'
+          memory: 1G
+
+    # Logs limitados
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ===== DJANGO + GUNICORN (Backend) =====
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        - PYTHON_VERSION=3.12
+
+    container_name: sgir_web_prod
+
+    # Variables de entorno desde .env
+    env_file:
+      - .env
+
+    # Variables adicionales de producción
+    environment:
+      # Forzar producción
+      DJANGO_SETTINGS_MODULE: backend.settings
+      PYTHONUNBUFFERED: "1"
+      PYTHONDONTWRITEBYTECODE: "1"
+
+      # Gunicorn
+      GUNICORN_WORKERS: ${GUNICORN_WORKERS:-4}
+      GUNICORN_TIMEOUT: ${GUNICORN_TIMEOUT:-120}
+      GUNICORN_MAX_REQUESTS: ${GUNICORN_MAX_REQUESTS:-1000}
+      GUNICORN_MAX_REQUESTS_JITTER: ${GUNICORN_MAX_REQUESTS_JITTER:-50}
+
+    # Puerto interno (usar Nginx/Traefik como proxy reverso)
+    expose:
+      - "8000"
+
+    # Dependencia con healthcheck
+    depends_on:
+      db:
+        condition: service_healthy
+
+    # Volúmenes externos (NO en el repo)
+    volumes:
+      # Media (uploads de usuarios) - persistente
+      - media_data_prod:/app/media
+
+      # Logs - persistente
+      - logs_data_prod:/app/logs
+
+      # Static files - recolectados en build
+      - static_data_prod:/app/staticfiles
+
+    # Comando de producción con Gunicorn
+    command: >
+      sh -c "
+        echo '=== SGIR Backend - Producción ===' &&
+        echo 'Aplicando migraciones...' &&
+        python manage.py migrate --noinput &&
+        echo 'Recolectando archivos estáticos...' &&
+        python manage.py collectstatic --noinput --clear &&
+        echo 'Iniciando Gunicorn...' &&
+        gunicorn backend.wsgi:application \
+          --bind 0.0.0.0:8000 \
+          --workers ${GUNICORN_WORKERS:-4} \
+          --worker-class sync \
+          --worker-tmp-dir /dev/shm \
+          --timeout ${GUNICORN_TIMEOUT:-120} \
+          --max-requests ${GUNICORN_MAX_REQUESTS:-1000} \
+          --max-requests-jitter ${GUNICORN_MAX_REQUESTS_JITTER:-50} \
+          --access-logfile /app/logs/gunicorn_access.log \
+          --error-logfile /app/logs/gunicorn_error.log \
+          --log-level info \
+          --capture-output \
+          --enable-stdio-inheritance
+      "
+
+    # Reinicio automático
+    restart: always
+
+    # Red aislada
+    networks:
+      - sgir_network_prod
+
+    # Healthcheck del backend
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8000/health/ || exit 1"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+    # Recursos limitados (ajustar según servidor)
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+
+    # Logs limitados
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+  # ===== NGINX (Reverse Proxy) - OPCIONAL =====
+  # Descomentar si quieres Nginx en el mismo stack
+  # nginx:
+  #   image: nginx:alpine
+  #   container_name: sgir_nginx_prod
+  #
+  #   ports:
+  #     - "80:80"
+  #     - "443:443"
+  #
+  #   volumes:
+  #     - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+  #     - ./nginx/conf.d:/etc/nginx/conf.d:ro
+  #     - static_data_prod:/var/www/static:ro
+  #     - media_data_prod:/var/www/media:ro
+  #     - ./nginx/ssl:/etc/nginx/ssl:ro
+  #
+  #   depends_on:
+  #     - web
+  #
+  #   restart: always
+  #
+  #   networks:
+  #     - sgir_network_prod
+  #
+  #   logging:
+  #     driver: "json-file"
+  #     options:
+  #       max-size: "10m"
+  #       max-file: "3"
+
+# ===== VOLÚMENES PERSISTENTES =====
+volumes:
+  # PostgreSQL data (CRÍTICO - hacer backup)
+  postgres_data_prod:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${POSTGRES_DATA_PATH:-./data/postgres}
+
+  # Media files (uploads de usuarios)
+  media_data_prod:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${MEDIA_DATA_PATH:-./data/media}
+
+  # Static files (CSS, JS, imágenes estáticas)
+  static_data_prod:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${STATIC_DATA_PATH:-./data/static}
+
+  # Logs de aplicación
+  logs_data_prod:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${LOGS_DATA_PATH:-./data/logs}
+
+# ===== RED AISLADA =====
+networks:
+  sgir_network_prod:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.25.0.0/16
+    driver_opts:
+      com.docker.network.bridge.name: sgir_prod_bridge
+
+# ============================================
+# NOTAS DE USO:
+# ============================================
+#
+# 1. LEVANTAR SERVICIOS:
+#    docker compose -f docker-compose.prod.yml up -d
+#
+# 2. VER LOGS:
+#    docker compose -f docker-compose.prod.yml logs -f web
+#
+# 3. EJECUTAR COMANDO:
+#    docker compose -f docker-compose.prod.yml exec web python manage.py <comando>
+#
+# 4. BACKUP DE BD:
+#    docker compose -f docker-compose.prod.yml exec db \
+#      pg_dump -U $POSTGRES_USER $POSTGRES_DB > backup_$(date +%Y%m%d).sql
+#
+# 5. DETENER SERVICIOS:
+#    docker compose -f docker-compose.prod.yml down
+#
+# 6. RECREAR CONTENEDORES:
+#    docker compose -f docker-compose.prod.yml up -d --build --force-recreate
+#
+# ============================================

@@ -1,75 +1,73 @@
-﻿# Python
-__pycache__/
-*.py[cod]
-*$py.class
-*.so
-.Python
+# ============================================
+# .gitignore - restaurante_qr_project
+# Reglas específicas del subproyecto Django
+# (El .gitignore raíz ya cubre las reglas generales)
+# ============================================
 
-# Virtual Environment
-env/
-venv/
-env.bak/
-venv.bak/
-# Django
-*.log
-logs/
-local_settings.py
-db.sqlite3
-db.sqlite3-journal
-# Media files (user-uploaded content)
-media/
-!media/.gitkeep
-# Static files (collected by collectstatic)
-staticfiles/
-!staticfiles/.gitkeep
-static_collected/
-# Environment variables
+# ===== ARCHIVOS SENSIBLES (ESPECÍFICOS) =====
+# Variables de entorno locales
 .env
 .env.local
-# IDE
+.env.production
+.env.development
+
+# Configuración local de Django
+local_settings.py
+
+# ===== MEDIA Y UPLOADS =====
+# Uploads de usuarios (QR codes, imágenes de productos, etc.)
+media/uploads/
+media/qrcodes/
+!media/.gitkeep
+
+# ===== STATIC FILES =====
+# Archivos estáticos recolectados por collectstatic
+staticfiles/
+static_collected/
+!staticfiles/.gitkeep
+
+# ===== LOGS Y AUDITORÍAS =====
+# Logs de la aplicación
+logs/
+*.log
+
+# Auditorías y reportes temporales
+audit_out/
+ruff.txt
+vulture.txt
+urls.txt
+
+# ===== BASES DE DATOS LOCALES =====
+# SQLite local (desarrollo)
+db.sqlite3
+db.sqlite3-journal
+*.sqlite3
+*.db
+
+# Dumps y backups de BD
+*.sql
+*.dump
+*.backup
+
+# ===== CACHE Y TEMPORALES =====
+# Django cache
+.django_cache/
+
+# Pytest cache
+.pytest_cache/
+
+# Ruff cache
+.ruff_cache/
+
+# MyPy cache
+.mypy_cache/
+
+# ===== ENTORNOS VIRTUALES =====
+env/
+venv/
+.venv/
+
+# ===== IDE Y EDITORES =====
 .vscode/
 .idea/
-*.swp
-*.swo
-*~
 .claude/
-# OS
-.DS_Store
-Thumbs.db
-# Backup files
-*.backup
-*.bak
-*.old
-# Coverage reports
-htmlcov/
-.tox/
-.coverage
-.coverage.*
-.cache
-nosetests.xml
-coverage.xml
-*.cover
-# Translations
-*.mo
-*.pot
-# Sphinx documentation
-docs/_build/
-# PyBuilder
-target/
-# Jupyter Notebook
-.ipynb_checkpoints
-# pyenv
-.python-version
-# Celery
-celerybeat-schedule
-celerybeat.pid
-# SageMath parsed files
-*.sage.py
-# Environments
-.venv
-# mypy
-.mypy_cache/
-.dmypy.json
-dmypy.json
-# env files
-.env.*
