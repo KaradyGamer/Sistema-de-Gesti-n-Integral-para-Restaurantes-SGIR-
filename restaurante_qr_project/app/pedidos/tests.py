@@ -123,14 +123,14 @@ class PedidoModelTestCase(TestCase):
         self.assertEqual(pedido.estado, Pedido.ESTADO_EN_PREPARACION)
 
         # Cambiar a listo
-        pedido.estado = 'listo'
+        pedido.estado = Pedido.ESTADO_LISTO
         pedido.save()
-        self.assertEqual(pedido.estado, 'listo')
+        self.assertEqual(pedido.estado, Pedido.ESTADO_LISTO)
 
         # Cambiar a entregado
-        pedido.estado = 'entregado'
+        pedido.estado = Pedido.ESTADO_ENTREGADO
         pedido.save()
-        self.assertEqual(pedido.estado, 'entregado')
+        self.assertEqual(pedido.estado, Pedido.ESTADO_ENTREGADO)
 
 
 class PedidoAPITestCase(TestCase):
@@ -310,14 +310,14 @@ class PedidoIntegracionTestCase(TestCase):
         self.assertEqual(pedido.estado, Pedido.ESTADO_EN_PREPARACION)
 
         # 4. Cambiar a listo
-        pedido.estado = 'listo'
+        pedido.estado = Pedido.ESTADO_LISTO
         pedido.save()
-        self.assertEqual(pedido.estado, 'listo')
+        self.assertEqual(pedido.estado, Pedido.ESTADO_LISTO)
 
         # 5. Entregar
-        pedido.estado = 'entregado'
+        pedido.estado = Pedido.ESTADO_ENTREGADO
         pedido.save()
-        self.assertEqual(pedido.estado, 'entregado')
+        self.assertEqual(pedido.estado, Pedido.ESTADO_ENTREGADO)
 
         # Verificar que el pedido tiene todos los datos correctos
         self.assertEqual(pedido.detalles.count(), 1)

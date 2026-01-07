@@ -138,16 +138,16 @@ class PedidoEstadosTestCase(TestCase):
         )
 
         # Cambiar a en_preparacion
-        pedido.estado = 'en_preparacion'
+        pedido.estado = Pedido.ESTADO_EN_PREPARACION
         pedido.save()
-        self.assertEqual(pedido.estado, 'en_preparacion')
+        self.assertEqual(pedido.estado, Pedido.ESTADO_EN_PREPARACION)
 
         # Cambiar a listo
-        pedido.estado = 'listo'
+        pedido.estado = Pedido.ESTADO_LISTO
         pedido.save()
-        self.assertEqual(pedido.estado, 'listo')
+        self.assertEqual(pedido.estado, Pedido.ESTADO_LISTO)
 
         # Cambiar a entregado
-        pedido.estado = 'entregado'
+        pedido.estado = Pedido.ESTADO_ENTREGADO
         pedido.save()
-        self.assertEqual(pedido.estado, 'entregado')
+        self.assertEqual(pedido.estado, Pedido.ESTADO_ENTREGADO)

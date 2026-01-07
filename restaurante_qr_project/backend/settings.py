@@ -214,7 +214,7 @@ SESSION_SAVE_EVERY_REQUEST = False
 SESSION_EXPIRE_AT_BROWSER_CLOSE = False
 
 # 🔒 CONFIGURACIÓN DE SEGURIDAD CONSOLIDADA
-# ✅ PATCH-001: Eliminada duplicación - UN SOLO bloque de seguridad
+# ✅ HOTFIX-1: Cookies simplificadas basadas en DEBUG
 
 if not DEBUG:
     # HTTPS/SSL
@@ -231,15 +231,9 @@ if not DEBUG:
     # Proxy
     SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
-    # Cookies (producción)
-    SESSION_COOKIE_SECURE = config('SESSION_COOKIE_SECURE', default=True, cast=bool)
-    CSRF_COOKIE_SECURE = config('CSRF_COOKIE_SECURE', default=True, cast=bool)
-else:
-    # Cookies (desarrollo)
-    SESSION_COOKIE_SECURE = config('SESSION_COOKIE_SECURE', default=False, cast=bool)
-    CSRF_COOKIE_SECURE = config('CSRF_COOKIE_SECURE', default=False, cast=bool)
-
-# Cookies (aplicable en dev y prod)
+# Cookies (única definición, basada en DEBUG)
+SESSION_COOKIE_SECURE = not DEBUG
+CSRF_COOKIE_SECURE = not DEBUG
 SESSION_COOKIE_HTTPONLY = config('SESSION_COOKIE_HTTPONLY', default=True, cast=bool)
 CSRF_COOKIE_HTTPONLY = config('CSRF_COOKIE_HTTPONLY', default=True, cast=bool)
 SESSION_COOKIE_SAMESITE = config('SESSION_COOKIE_SAMESITE', default='Lax')
