@@ -328,14 +328,18 @@ def api_procesar_pago_simple(request):
             pedido.cajero_responsable = request.user
             pedido.forma_pago = metodo_pago
 
-            # ✅ RONDA 3B: Cerrar pedido al completar pago
+            # ✅ PATCH-002: Cerrar pedido al completar pago - BLOQUEAR si falla
             from app.pedidos.utils import validar_transicion_estado
+            from app.pedidos.models import Pedido
             try:
-                validar_transicion_estado(pedido.estado, 'cerrado')
-                pedido.estado = 'cerrado'
+                validar_transicion_estado(pedido.estado, Pedido.ESTADO_CERRADO)
+                pedido.estado = Pedido.ESTADO_CERRADO
                 logger.info(f"Pedido #{pedido.id} cerrado automáticamente al completar pago")
             except ValueError as e:
-                logger.warning(f"No se pudo cerrar pedido #{pedido.id}: {e}")
+                logger.error(f"No se pudo cerrar pedido #{pedido.id}: {e}")
+                return Response({
+                    'error': f'No se puede completar el pago: {str(e)}'
+                }, status=status.HTTP_400_BAD_REQUEST)
 
             # Descontar stock solo cuando se paga completo
             descontar_stock_pedido(pedido)
@@ -466,14 +470,18 @@ def api_procesar_pago_mixto(request):
         # ✅ RONDA 3C: Actualizar total_pagado para reembolsos
         pedido.total_pagado = (pedido.total_pagado or Decimal("0.00")) + total_final
 
-        # ✅ RONDA 3B: Cerrar pedido al completar pago mixto
+        # ✅ PATCH-002: Cerrar pedido al completar pago mixto - BLOQUEAR si falla
         from app.pedidos.utils import validar_transicion_estado
+        from app.pedidos.models import Pedido
         try:
-            validar_transicion_estado(pedido.estado, 'cerrado')
-            pedido.estado = 'cerrado'
+            validar_transicion_estado(pedido.estado, Pedido.ESTADO_CERRADO)
+            pedido.estado = Pedido.ESTADO_CERRADO
             logger.info(f"Pedido #{pedido.id} cerrado automáticamente al completar pago mixto")
         except ValueError as e:
-            logger.warning(f"No se pudo cerrar pedido #{pedido.id}: {e}")
+            logger.error(f"No se pudo cerrar pedido #{pedido.id}: {e}")
+            return Response({
+                'error': f'No se puede completar el pago mixto: {str(e)}'
+            }, status=status.HTTP_400_BAD_REQUEST)
 
         pedido.save()
 

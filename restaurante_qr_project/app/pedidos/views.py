@@ -624,16 +624,16 @@ def api_entregar_pedido(request, pedido_id):
 
         pedido = Pedido.objects.get(id=pedido_id)
 
-        # ✅ RONDA 2: Validar transición de estado
+        # ✅ PATCH-002: Validar transición ANTES de asignar, usar constante
         try:
-            validar_transicion_estado(pedido.estado, 'entregado')
+            validar_transicion_estado(pedido.estado, Pedido.ESTADO_ENTREGADO)
         except ValueError as e:
             return JsonResponse({
                 'success': False,
                 'error': str(e)
             }, status=400)
 
-        pedido.estado = 'entregado'
+        pedido.estado = Pedido.ESTADO_ENTREGADO
         pedido.save()
 
         logger.info(f" Pedido #{pedido_id} marcado como entregado por {request.user}")
@@ -1244,11 +1244,18 @@ def cancelar_pedido(request, pedido_id):
 
         estado_anterior = pedido.estado
 
+        # ✅ PATCH-002: Validar transición ANTES de cambiar estado
+        from app.pedidos.utils import validar_transicion_estado
+        try:
+            validar_transicion_estado(pedido.estado, Pedido.ESTADO_CANCELADO)
+        except ValueError as e:
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
         # ✅ DEVOLVER STOCK
         productos_restaurados = devolver_stock_pedido(pedido)
 
         # Cambiar estado
-        pedido.estado = 'cancelado'
+        pedido.estado = Pedido.ESTADO_CANCELADO
         pedido.motivo_cancelacion = motivo
         pedido.save()
 
