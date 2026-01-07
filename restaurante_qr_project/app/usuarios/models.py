@@ -22,13 +22,26 @@ AREAS_SISTEMA = [
 ]
 
 class Usuario(AbstractUser):
+    """
+    Modelo extendido de Usuario para el sistema de restaurante.
+
+    Hereda de AbstractUser de Django y agrega campos específicos para:
+    - Gestión de roles (cliente, mesero, cocinero, cajero, gerente, admin)
+    - Autenticación mediante PIN (para cajeros)
+    - Autenticación mediante QR (para meseros y cocineros)
+    - Control de acceso multi-área
+    - Eliminación suave (soft delete) para mantener integridad referencial
+    """
+    # Campo principal: Rol del usuario en el sistema
     rol = models.CharField(
         max_length=20,
         choices=ROLES,
-        default='cliente'
+        default='cliente',
+        help_text='Rol que determina los permisos del usuario'
     )
 
     # PIN para acceso rápido (SOLO para cajeros)
+    # Permite login rápido mediante código numérico de 4-6 dígitos
     pin = models.CharField(
         max_length=6,
         blank=True,
@@ -86,18 +99,37 @@ class Usuario(AbstractUser):
     )
 
     def __str__(self):
+        """Representación en texto del usuario mostrando nombre completo y rol"""
         return f"{self.get_full_name() or self.username} ({self.get_rol_display()})"
 
     def puede_usar_pin(self):
-        """Verifica si el usuario puede usar PIN para login - SOLO CAJEROS"""
+        """
+        Verifica si el usuario puede usar PIN para login.
+
+        Returns:
+            bool: True si es cajero y tiene PIN configurado
+        """
         return self.rol == 'cajero' and self.pin
 
     def puede_generar_qr(self):
-        """Verifica si se puede generar QR para este usuario"""
+        """
+        Verifica si se puede generar código QR para este usuario.
+
+        Returns:
+            bool: True si es mesero o cocinero y está activo
+        """
         return self.rol in ['mesero', 'cocinero'] and self.activo
 
     def tiene_acceso_area(self, area):
-        """Verifica si el usuario tiene acceso a un área específica"""
+        """
+        Verifica si el usuario tiene acceso a un área específica del sistema.
+
+        Args:
+            area: Nombre del área a verificar (mesero, cocina, caja, reportes)
+
+        Returns:
+            bool: True si el usuario tiene acceso al área especificada
+        """
         if not self.areas_permitidas:
             # Si no tiene áreas configuradas, usar área por defecto según rol
             areas_default = {
@@ -111,7 +143,12 @@ class Usuario(AbstractUser):
         return area in self.areas_permitidas
 
     def get_areas_activas(self):
-        """Retorna lista de áreas a las que tiene acceso"""
+        """
+        Retorna lista de áreas a las que el usuario tiene acceso.
+
+        Returns:
+            list: Lista de nombres de áreas según el rol o configuración personalizada
+        """
         if not self.areas_permitidas:
             areas_default = {
                 'mesero': ['mesero'],
@@ -124,7 +161,12 @@ class Usuario(AbstractUser):
         return self.areas_permitidas
 
     def generar_qr_token(self):
-        """Genera un nuevo token QR para el usuario"""
+        """
+        Genera un nuevo token UUID para autenticación QR.
+
+        Returns:
+            UUID: Token único generado para el usuario
+        """
         from django.utils import timezone
         self.qr_token = uuid.uuid4()
         self.fecha_ultimo_qr = timezone.now()
@@ -132,7 +174,12 @@ class Usuario(AbstractUser):
         return self.qr_token
 
     def get_qr_token(self):
-        """Retorna el token QR, generándolo si no existe"""
+        """
+        Retorna el token QR del usuario, generándolo si no existe.
+
+        Returns:
+            UUID: Token QR del usuario
+        """
         if not self.qr_token:
             return self.generar_qr_token()
         return self.qr_token
@@ -153,7 +200,11 @@ class Usuario(AbstractUser):
         self.save()
 
     def restaurar(self):
-        """Restaura un usuario desactivado"""
+        """
+        Restaura un usuario previamente desactivado.
+
+        Reactiva el usuario y limpia los campos de eliminación.
+        """
         self.activo = True
         self.is_active = True  # Reactivar login de Django
         self.fecha_eliminacion = None
@@ -168,8 +219,11 @@ class Usuario(AbstractUser):
 
 class QRToken(models.Model):
     """
-    Modelo para tokens QR regenerables
-    Permite invalidar tokens anteriores al generar nuevos
+    Modelo para tokens QR regenerables.
+
+    Gestiona tokens únicos para autenticación mediante código QR.
+    Permite invalidar tokens anteriores al generar nuevos, brindando
+    mayor seguridad. Los tokens tienen fecha de expiración (24h por defecto).
     """
     usuario = models.ForeignKey(
         Usuario,
@@ -235,25 +289,40 @@ class QRToken(models.Model):
         ]
 
     def __str__(self):
+        """Representación en texto del token QR con su estado"""
         estado = 'Activo' if self.activo else 'Inactivo'
         return f"QR Token - {self.usuario.username} ({estado})"
 
     def esta_expirado(self):
-        """✅ NUEVO: Verifica si el token está expirado"""
+        """
+        Verifica si el token ha excedido su fecha de expiración.
+
+        Returns:
+            bool: True si el token está expirado
+        """
         from django.utils import timezone
         if not self.fecha_expiracion:
             return False  # Tokens antiguos sin expiración
         return timezone.now() > self.fecha_expiracion
 
     def invalidar(self):
-        """Invalida este token"""
+        """
+        Marca el token como inactivo.
+
+        Usado cuando se genera un nuevo token o por seguridad.
+        """
         from django.utils import timezone
         self.activo = False
         self.fecha_invalidacion = timezone.now()
         self.save()
 
     def marcar_usado(self):
-        """✅ ACTUALIZADO: Marca el token como usado e inactivo"""
+        """
+        Marca el token como usado y lo desactiva.
+
+        Se ejecuta cuando el usuario inicia sesión con el QR.
+        Desactiva automáticamente el token para evitar reutilización.
+        """
         from django.utils import timezone
         self.usado = True
         self.activo = False  # ✅ Desactivar al usar

@@ -1,3 +1,15 @@
+"""
+Vistas del módulo de usuarios.
+
+Este módulo gestiona:
+- Registro de usuarios (API REST)
+- Autenticación con JWT y sesiones Django
+- Login con usuario/contraseña y PIN
+- Autenticación por código QR
+- Generación y gestión de tokens QR
+- Rate limiting para prevenir ataques de fuerza bruta
+"""
+
 from rest_framework import generics, status
 from rest_framework.response import Response
 from rest_framework_simplejwt.views import TokenObtainPairView
@@ -18,13 +30,35 @@ from .decorators import rate_limit_login
 
 logger = logging.getLogger('app.usuarios')
 
+# ══════════════════════════════════════════════════════════════════════
+# REGISTRO DE USUARIOS (API REST)
+# ══════════════════════════════════════════════════════════════════════
+
 class RegistroUsuarioView(generics.CreateAPIView):
     """
-    Vista para registrar nuevos usuarios.
+    Vista API para registrar nuevos usuarios en el sistema.
+
+    Permisos: Público (sin autenticación requerida)
+    Método: POST
+    Serializer: RegistroUsuarioSerializer
+
+    Validaciones:
+    - Username único
+    - Email válido y único
+    - Contraseña con requisitos mínimos
+    - Campos obligatorios según modelo Usuario
     """
     serializer_class = RegistroUsuarioSerializer
 
     def create(self, request, *args, **kwargs):
+        """
+        Crea un nuevo usuario y devuelve mensaje de confirmación.
+
+        El serializer se encarga de:
+        - Validar datos de entrada
+        - Hash de contraseña
+        - Crear instancia de Usuario
+        """
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         self.perform_create(serializer)
@@ -34,7 +68,20 @@ class RegistroUsuarioView(generics.CreateAPIView):
         )
 
 class CustomTokenObtainPairView(TokenObtainPairView):
+    """
+    Vista personalizada para obtener tokens JWT (access y refresh).
+
+    Extiende la vista estándar de SimpleJWT para incluir información
+    adicional del usuario en la respuesta (rol, nombre, permisos).
+
+    Método: POST
+    Body: {"username": "...", "password": "..."}
+    """
     serializer_class = CustomTokenObtainPairSerializer
+
+# ══════════════════════════════════════════════════════════════════════
+# LOGIN CON SESIÓN DJANGO
+# ══════════════════════════════════════════════════════════════════════
 
 #  NUEVA VISTA: Login con Django Session
 @csrf_protect

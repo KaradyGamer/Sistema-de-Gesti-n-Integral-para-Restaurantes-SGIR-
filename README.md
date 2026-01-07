@@ -1,352 +1,417 @@
 # 🍽️ SGIR - Sistema de Gestión Integral para Restaurantes
 
-Sistema profesional de gestión para restaurantes con autenticación multi-modal, gestión de pedidos, control de caja, inventario en tiempo real, módulo de producción y panel AdminUX unificado.
-
-[![Django](https://img.shields.io/badge/Django-5.1.4-green.svg)](https://www.djangoproject.com/)
-[![Python](https://img.shields.io/badge/Python-3.12-blue.svg)](https://www.python.org/)
-[![DRF](https://img.shields.io/badge/DRF-3.16-orange.svg)](https://www.django-rest-framework.org/)
-[![Version](https://img.shields.io/badge/Version-40.3-blue.svg)](#)
-[![Status](https://img.shields.io/badge/Status-Production%20Ready-success.svg)](#)
-[![Docker](https://img.shields.io/badge/Docker-Ready-2496ED.svg)](https://www.docker.com/)
+**Versión:** 2.3.0
+**Framework:** Django 5.1.4
+**Python:** 3.12
+**Base de Datos:** PostgreSQL (Producción) / SQLite (Desarrollo)
 
 ---
 
-## 🚀 Inicio Rápido
+## 📋 Descripción del Sistema
 
-### Opción 1: Desarrollo (SQLite)
+**SGIR** es un sistema completo de gestión para restaurantes medianos y grandes, diseñado con arquitectura desacoplada que permite flexibilidad total en el frontend mientras mantiene un backend robusto y estable.
+
+### ¿Qué Problemas Resuelve?
+
+- ✅ Gestión completa del flujo de pedidos (desde QR hasta pago)
+- ✅ Control de caja con cierres de turno y jornada laboral
+- ✅ Sistema de reservas con validación de disponibilidad
+- ✅ Inventario con alertas de stock bajo
+- ✅ Reportes de ventas (PDF y Excel)
+- ✅ Autenticación múltiple (password, PIN, QR)
+- ✅ Auditoría completa de todas las operaciones
+- ✅ Multi-dispositivo (tablets, móviles, desktop)
+
+### Arquitectura General
+
+```
+┌─────────────────────────────────────────────────────┐
+│                   FRONTEND (A DEFINIR)               │
+│   Web / SPA / App Móvil / Tablets / 3D / Kiosko    │
+└──────────────────┬──────────────────────────────────┘
+                   │
+                   │ REST API (JWT + Session)
+                   │
+┌──────────────────▼──────────────────────────────────┐
+│              BACKEND DJANGO (FROZEN)                 │
+│  ✓ API REST completa con DRF                        │
+│  ✓ Máquina de estados estricta                      │
+│  ✓ Validaciones de negocio                          │
+│  ✓ Autenticación multi-método                       │
+│  ✓ Auditoría y logging                              │
+│  ✓ Soft delete                                      │
+└──────────────────┬──────────────────────────────────┘
+                   │
+┌──────────────────▼──────────────────────────────────┐
+│            PostgreSQL 16 / SQLite                    │
+└─────────────────────────────────────────────────────┘
+```
+
+---
+
+## 🎯 Funcionalidades Actuales
+
+### 1. Gestión de Pedidos (Máquina de Estados)
+
+**Flujo completo del pedido:**
+
+```
+creado → confirmado → en_preparación → listo → entregado → cerrado
+```
+
+- Control estricto de transiciones de estado
+- Validación de stock en tiempo real
+- Sistema de modificación con auditoría
+- Cancelación con devolución de stock
+- Pagos parciales y totales
+- Reembolsos con autorización
+
+### 2. Sistema de Caja
+
+- Procesamiento de pagos múltiples: efectivo, tarjeta, QR, móvil, mixto
+- Cierres de turno: mañana, tarde, noche, completo
+- Control de diferencias: efectivo esperado vs real
+- Validación: no permite cerrar con pedidos pendientes
+- Jornada laboral única activa
+- Historial completo de transacciones
+
+### 3. Reservas
+
+- Validación de disponibilidad automática
+- Detección de solapamiento de horarios
+- Sistema de No-Show (liberación automática tras 15 min)
+- Estados: pendiente, confirmada, en_uso, completada, cancelada, no_show
+- Notificaciones y recordatorios
+- Política de cancelación (2 horas de anticipación)
+
+### 4. Reportes y Estadísticas
+
+- Generación de reportes en **PDF** y **XLSX**
+- Tipos: diario, semanal, mensual, personalizado
+- Análisis por producto
+- Métricas: ventas totales, promedio por pedido, productos más vendidos
+- Dashboard con estadísticas en tiempo real
+- Gráficos de tendencias
+
+### 5. Usuarios y Roles
+
+**Roles disponibles:**
+- `admin` - Acceso total
+- `gerente` - Gestión y reportes
+- `cajero` - Caja y transacciones (login con PIN)
+- `mesero` - Gestión de mesas y pedidos (login con QR)
+- `cocinero` - Panel de cocina (login con QR)
+- `cliente` - Vista del menú QR
+
+**Características de seguridad:**
+- Rate limiting (5 intentos, bloqueo 5 min)
+- Tokens QR expirables (24 horas)
+- Soft delete (no eliminación física)
+- Auditoría de cambios
+- Permisos multi-área
+
+### 6. Sistema QR
+
+**Mesas:**
+- QR único por mesa
+- Redirección automática al menú
+- Estado de mesa en tiempo real
+
+**Empleados:**
+- QR de autenticación one-time use
+- Tokens renovables
+- Expiración automática
+
+### 7. Inventario
+
+- Control de insumos y materias primas
+- Alertas automáticas de stock bajo/agotado
+- Movimientos: entrada, salida, ajuste
+- Historial completo con auditoría
+- Múltiples unidades de medida
+
+---
+
+## 📊 Estado Actual del Proyecto
+
+### ✅ Backend: CERRADO / FROZEN
+
+El backend está **completamente terminado, auditado y congelado**:
+
+- ✓ 10 apps Django bien estructuradas
+- ✓ ~161 archivos Python
+- ✓ API REST completa con Django REST Framework
+- ✓ Autenticación JWT + Session + QR + PIN
+- ✓ Validaciones de negocio estrictas
+- ✓ Tests de seguridad implementados
+- ✓ Logging y auditoría completos
+- ✓ Docker listo para producción
+- ✓ Migraciones aplicadas
+- ✓ Sin deuda técnica crítica
+
+⚠️ **IMPORTANTE:** El backend **NO debe modificarse**. Toda la lógica de negocio está validada y lista para producción.
+
+### 🚧 Frontend: ELIMINADO / A RECONSTRUIR
+
+El frontend anterior ha sido **completamente eliminado** para permitir:
+
+- 🎨 Diseño UI/UX desde cero
+- 🚀 Libertad total de tecnología (React, Vue, Angular, etc.)
+- 📱 Diseño responsive moderno
+- 🎯 Enfoque en experiencia de usuario
+- 🌐 PWA, SPA o arquitectura tradicional
+
+**Posibilidades de frontend:**
+1. **Web tradicional** - Server-side rendering con Django templates
+2. **SPA (React/Vue/Angular)** - Consumo de API REST
+3. **App móvil nativa** - React Native, Flutter
+4. **Tablets para meseros** - Interfaz optimizada
+5. **Menú 3D interactivo** - Three.js, WebGL
+6. **Pantallas de cocina** - Display en tiempo real
+7. **Dashboard de caja** - Métricas y gráficos
+8. **Kiosko de autoservicio** - Pedidos directos
+
+### 💾 Base de Datos: Lista para Producción
+
+- Schema completamente definido
+- Migraciones aplicadas y validadas
+- Índices optimizados
+- Relaciones intactas
+- Datos de prueba disponibles
+
+### 🐳 Docker: Listo
+
+- `Dockerfile` optimizado
+- `docker-compose.yml` para desarrollo
+- `docker-compose.prod.yml` para producción
+- Health checks configurados
+- Volúmenes persistentes
+
+---
+
+## 🚀 Cómo Levantar el Proyecto (DEV)
+
+### 1. Clonar el Repositorio
 
 ```bash
-# 1. Clonar repositorio
-git clone https://github.com/KaradyGamer/Sistema-de-Gesti-n-Integral-para-Restaurantes-SGIR-.git
-cd ProyectoR/restaurante_qr_project
-
-# 2. Crear entorno virtual e instalar dependencias
-python -m venv env
-env\Scripts\activate  # Windows | source env/bin/activate (Linux/Mac)
-pip install -r requirements.txt
-
-# 3. Configurar variables de entorno
-copy .env.example .env  # Windows | cp .env.example .env (Linux/Mac)
-# Editar .env: DB_ENGINE=sqlite, SECRET_KEY segura
-
-# 4. Inicializar base de datos
-python manage.py migrate
-python manage.py createsuperuser
-
-# 5. Iniciar servidor
-python manage.py runserver
+git clone <repo-url>
+cd restaurante_qr_project
 ```
 
-**Acceder a**: http://127.0.0.1:8000/
+### 2. Configurar Variables de Entorno
 
-### Opción 2: Producción (Docker + PostgreSQL)
+Copiar `.env.example` a `.env` y configurar:
 
-```bash
-# 1. Configurar variables de entorno
-cp .env.example .env
-# Editar .env: DB_ENGINE=postgres, credenciales PostgreSQL
-
-# 2. Construir e iniciar contenedores
-docker-compose up -d
-
-# 3. Aplicar migraciones
-docker-compose exec web python manage.py migrate
-
-# 4. Crear superusuario
-docker-compose exec web python manage.py createsuperuser
-```
-
-**Acceder a**: http://localhost:8000/
-
----
-
-## ✨ Características Principales
-
-### 🔐 Autenticación Multi-Modal
-- **Password**: Administradores con autenticación Django estándar
-- **PIN (4-6 dígitos)**: Cajeros con campo dedicado y validación
-- **PIN Secundario**: Operaciones sensibles (eliminar pagos, anular pedidos)
-- **QR (24h tokens)**: Meseros y cocineros con generación bajo demanda
-- **Rate limiting**: Protección contra fuerza bruta (5 intentos, 5 min bloqueo)
-
-### 📦 Módulo de Inventario (v40.0)
-- **Insumos**: Gestión completa con categorías, unidades de medida y stock
-- **DecimalField**: Soporte para cantidades fraccionarias (2.5 kg)
-- **Movimientos auditados**: 6 tipos (entrada, salida, producción, ajuste, pérdida, limpieza)
-- **Snapshots**: Registro de stock antes/después de cada movimiento
-- **Alertas automáticas**: Stock bajo y agotado
-- **Inmutabilidad**: Movimientos aplicados no se pueden modificar
-
-### 🏭 Módulo de Producción (v40.0)
-- **Recetas**: Productos fabricables con rendimiento y detalles de insumos
-- **Estados de producción**: CREADO → CONFIRMADO → PREPARANDO → LISTO → ENTREGADO → APLICADO
-- **Control de stock**: Insumos se descuentan SOLO al APLICAR producción
-- **Trazabilidad completa**: ProduccionDetalle inmutable con snapshots
-- **Tipos de producto**: Simple, Fabricable, Vendible
-- **Cancelación/Anulación**: Con restauración de stock y auditoría
-
-### 🍽️ Módulo de Pedidos (v40.2)
-- **10 estados**: Creado, Confirmado, Preparando, Listo, Entregado, Solicitando Cuenta, Pagado, Cerrado, Cancelado, Anulado
-- **Stock controlado**: Descuento al CONFIRMAR (no al crear)
-- **Pagos parciales**: Múltiples pagos por pedido
-- **Edición controlada**: Con validación de stock según estado
-- **Cancelación/Anulación**: Con restauración de stock y motivo obligatorio
-- **Auditoría completa**: Timestamps de todas las transiciones
-
-### 💰 Módulo de Caja (v40.3)
-- **Control de efectivo en tiempo real**: efectivo_actual actualizado automáticamente
-- **Pagos parciales y mixtos**: Soporte completo con validación
-- **MovimientoCaja**: 6 tipos auditados (venta, cambio, retiro, ingreso, gasto, ajuste)
-- **Eliminación de pagos**: Con PIN secundario y reversión neta correcta
-- **Cierre de caja (Arqueo)**: Cálculo de diferencia, validación de umbral
-- **Auditoría completa**: Sin guardar PIN (solo validación booleana)
-
-### 💼 AdminUX - Panel Unificado
-- **Dashboard**: KPIs en tiempo real, gráficas de pedidos y ventas
-- **Gestión completa**: Mesas, Productos, Pedidos, Reservas, Usuarios
-- **Inventario**: Categorías, Insumos, Movimientos, Alertas
-- **Producción**: Recetas, Órdenes de producción, Control de rendimiento
-- **Caja**: Apertura/Cierre, Pagos, Movimientos, Arqueos
-- **Reportes**: Análisis de ventas, productos más vendidos, inventario
-- **Configuración**: Parámetros del sistema (negocio, financiero, horarios, tickets)
-
-### 🎨 UI/UX Moderna
-- **Dark Theme**: Interface oscura profesional con variables CSS
-- **Sidebar vertical**: Navegación lateral con iconos Boxicons
-- **Topbar responsive**: Breadcrumbs y dropdown de usuario
-- **Loader animado**: Transiciones suaves entre páginas
-- **Templates base**: Estructura consistente para listados y formularios
-- **Charts.js**: Gráficas interactivas en dashboard
-
----
-
-## 📚 Arquitectura del Sistema
-
-### Estructura de Modelos Principales
-
-```
-USUARIOS
-├─ Usuario (AbstractUser)
-├─ PIN Caja (4-6 dígitos)
-└─ PIN Secundario (operaciones sensibles)
-
-INVENTARIO
-├─ CategoriaInsumo
-├─ Insumo (stock_actual: Decimal)
-└─ MovimientoInsumo (6 tipos, inmutable)
-
-PRODUCCIÓN
-├─ Receta (producto + rendimiento)
-├─ RecetaDetalle (insumo + cantidad)
-├─ Produccion (estados + control stock)
-└─ ProduccionDetalle (inmutable, snapshots)
-
-PRODUCTOS
-├─ Categoria
-├─ Producto (tipo: simple/fabricable/vendible)
-└─ Stock controlado por Producción
-
-PEDIDOS
-├─ Pedido (10 estados, stock_descontado flag)
-├─ DetallePedido (stock_descontado flag)
-└─ Control de stock al CONFIRMAR
-
-CAJA
-├─ Caja (efectivo_actual en tiempo real)
-├─ MovimientoCaja (6 tipos, snapshots)
-├─ Pago (parcial/completo, estados)
-├─ DetallePago (métodos mixtos)
-└─ CierreCaja (arqueo con diferencia)
-
-MESAS Y RESERVAS
-├─ Mesa (estados, capacidad, zonas)
-└─ Reserva (calendario, confirmación)
-```
-
-### Flujos Principales
-
-#### Flujo de Producción
-```
-1. CREAR Producción (estado='creado', stock NO descontado)
-2. CONFIRMAR Producción (validar stock, crear ProduccionDetalle)
-3. APLICAR Producción (descontar insumos, agregar producto fabricado)
-   └─ MovimientoInsumo tipo='produccion' por cada insumo
-```
-
-#### Flujo de Pedido
-```
-1. CREAR Pedido (estado='creado', stock NO descontado)
-2. CONFIRMAR Pedido (descontar stock de productos)
-3. PREPARAR → LISTO → ENTREGAR
-4. SOLICITAR CUENTA → PAGAR (parcial/completo)
-5. CERRAR Pedido (liberar mesa)
-```
-
-#### Flujo de Caja
-```
-1. ABRIR Caja (efectivo_inicial, PIN normal)
-2. REGISTRAR Pagos (simples/mixtos/parciales)
-   └─ MovimientoCaja automático si hay efectivo
-3. ELIMINAR Pago (PIN secundario, reversión neta)
-4. CERRAR Caja (arqueo, validar diferencia)
-```
-
----
-
-## 🛠️ Stack Tecnológico
-
-| Categoría | Tecnología | Versión |
-|-----------|-----------|---------|
-| **Backend** | Django | 5.1.4 |
-| **REST API** | Django REST Framework | 3.16+ |
-| **Base de Datos (Dev)** | SQLite | 3.x |
-| **Base de Datos (Prod)** | PostgreSQL | 16 |
-| **Python** | CPython | 3.12 |
-| **Containerización** | Docker + Docker Compose | Latest |
-| **Servidor WSGI** | Gunicorn | 21.2+ |
-| **Proxy/Load Balancer** | Nginx | 1.25+ |
-| **Frontend** | HTML5 + CSS3 + Vanilla JS | - |
-| **UI Framework** | Custom CSS Variables | - |
-| **Iconos** | Boxicons | 2.1.4 |
-| **Gráficos** | Chart.js | 4.x |
-| **Seguridad** | Django Security + JWT | - |
-| **Logging** | Python logging module | - |
-| **Tests** | Django TestCase + Coverage | - |
-
----
-
-## 📁 Estructura del Proyecto
-
-```
-ProyectoR/
-│
-├── restaurante_qr_project/           ← Proyecto Django principal
-│   ├── app/                          ← Apps Django
-│   │   ├── adminux/                  ← Panel administrativo unificado
-│   │   ├── caja/                     ← Módulo de caja (v40.3)
-│   │   │   ├── models.py             ← Caja, MovimientoCaja, Pago, DetallePago, CierreCaja
-│   │   │   ├── services.py           ← CajaService, PagoService
-│   │   │   └── utils.py              ← Utilidades de caja
-│   │   ├── cliente/                  ← Módulo de clientes (menú QR)
-│   │   ├── cocinero/                 ← Panel de cocina
-│   │   ├── configuracion/            ← Configuración del sistema
-│   │   ├── inventario/               ← Gestión de insumos (v40.1)
-│   │   │   ├── models.py             ← Insumo, MovimientoInsumo
-│   │   │   └── services.py           ← MovimientoInsumoService
-│   │   ├── mesero/                   ← Panel de meseros
-│   │   ├── mesas/                    ← Gestión de mesas y zonas
-│   │   ├── pedidos/                  ← Gestión de pedidos (v40.2)
-│   │   │   ├── models.py             ← Pedido, DetallePedido
-│   │   │   ├── services.py           ← PedidoService
-│   │   │   └── utils.py              ← Utilidades de pedidos
-│   │   ├── produccion/               ← Módulo de producción (v40.0)
-│   │   │   ├── models.py             ← Receta, Produccion, ProduccionDetalle
-│   │   │   └── services.py           ← ProduccionService
-│   │   ├── productos/                ← Catálogo de productos
-│   │   │   └── models.py             ← Producto (tipo_producto)
-│   │   ├── reservas/                 ← Sistema de reservas
-│   │   └── usuarios/                 ← Autenticación y usuarios
-│   │       └── models.py             ← Usuario (pin_caja, pin_secundario)
-│   │
-│   ├── backend/                      ← Configuración Django
-│   │   ├── settings.py               ← Configuración dual DB (SQLite/PostgreSQL)
-│   │   ├── urls.py                   ← URLs principales
-│   │   └── healthcheck.py            ← Endpoint de salud
-│   │
-│   ├── templates/                    ← HTML/JS/CSS
-│   │   ├── css/adminux/              ← Estilos AdminUX
-│   │   ├── html/adminux/             ← Templates AdminUX
-│   │   │   ├── base_adminux.html     ← Layout base
-│   │   │   ├── base_list.html        ← Base para listados
-│   │   │   ├── base_form.html        ← Base para formularios
-│   │   │   └── components/           ← Componentes reutilizables
-│   │   └── js/adminux/               ← JavaScript AdminUX
-│   │
-│   ├── static/                       ← Archivos estáticos
-│   ├── media/                        ← Archivos subidos por usuarios
-│   ├── logs/                         ← Logs de aplicación
-│   │
-│   ├── scripts/                      ← Scripts de utilidad
-│   │   └── backup.sh                 ← Script de backup
-│   │
-│   ├── .env.example                  ← Template de variables de entorno
-│   ├── .dockerignore                 ← Archivos ignorados por Docker
-│   ├── Dockerfile                    ← Imagen Docker de la aplicación
-│   ├── docker-compose.yml            ← Orquestación Docker
-│   ├── requirements.txt              ← Dependencias Python
-│   └── manage.py                     ← CLI de Django
-│
-├── .gitignore                        ← Archivos ignorados por Git
-└── README.md                         ← Este archivo
-```
-
----
-
-## 🔒 Seguridad
-
-### Características de Seguridad Implementadas
-
-- ✅ **Rate Limiting**: 5 intentos de login, 5 min bloqueo
-- ✅ **CSRF Protection**: HttpOnly cookies, tokens CSRF
-- ✅ **JWT Tokens**: Para autenticación QR con expiración 24h
-- ✅ **Validación dual**: Usuario activo + permisos
-- ✅ **PIN Dual**: Normal (operaciones) + Secundario (sensibles)
-- ✅ **Logging seguro**: Sin PINs/passwords en logs
-- ✅ **SECRET_KEY**: Desde variables de entorno
-- ✅ **SQL Injection**: Protección con Django ORM
-- ✅ **XSS Protection**: Escaping automático de templates
-- ✅ **HTTPS Ready**: Configuración para producción
-- ✅ **Auditoría completa**: Todos los cambios registrados
-
-### Variables de Entorno Requeridas
-
-```bash
+```env
 # Django
-SECRET_KEY=tu-clave-super-secreta-cambiar-en-produccion
-DEBUG=False
-ALLOWED_HOSTS=tu-dominio.com,www.tu-dominio.com
+SECRET_KEY=tu-secret-key-super-secreta
+DEBUG=True
+ALLOWED_HOSTS=localhost,127.0.0.1
 
 # Base de Datos
-DB_ENGINE=postgres  # o 'sqlite' para desarrollo
+DB_ENGINE=sqlite  # o 'postgres' para producción
 POSTGRES_DB=sgir_db
 POSTGRES_USER=sgir_user
-POSTGRES_PASSWORD=tu-password-seguro
+POSTGRES_PASSWORD=password_seguro
 POSTGRES_HOST=db
 POSTGRES_PORT=5432
 
-# Seguridad
-SECURE_SSL_REDIRECT=True
-SESSION_COOKIE_SECURE=True
-CSRF_COOKIE_SECURE=True
+# Configuración adicional
+LANGUAGE_CODE=es-bo
+TIME_ZONE=America/La_Paz
+```
+
+### 3. Levantar con Docker (Recomendado)
+
+```bash
+# Desarrollo
+docker-compose up -d
+
+# Producción
+docker-compose -f docker-compose.prod.yml up -d
+```
+
+### 4. O Levantar Manual (Sin Docker)
+
+```bash
+# Crear entorno virtual
+python -m venv venv
+source venv/bin/activate  # Linux/Mac
+# o
+venv\Scripts\activate  # Windows
+
+# Instalar dependencias
+pip install -r requirements.txt
+
+# Aplicar migraciones
+python manage.py migrate
+
+# Crear superusuario
+python manage.py createsuperuser
+
+# Cargar datos de prueba (opcional)
+python scripts/crear_datos_iniciales.py
+
+# Levantar servidor
+python manage.py runserver
+```
+
+### 5. Acceder al Sistema
+
+- **Django Admin:** http://localhost:8000/admin/
+- **API REST:** http://localhost:8000/api/
+- **Health Check:** http://localhost:8000/health/
+
+---
+
+## 📚 Comandos Principales
+
+```bash
+# Migraciones
+python manage.py makemigrations
+python manage.py migrate
+
+# Crear datos iniciales
+python scripts/crear_datos_iniciales.py
+
+# Regenerar QR de mesas
+python scripts/regenerar_qr.py
+
+# Regenerar QR de empleados
+python scripts/regenerar_qr_empleados.py
+
+# Tests
+pytest
+python manage.py test
+
+# Linting
+ruff check .
+
+# Colectar estáticos
+python manage.py collectstatic --noinput
+
+# Backup de SQLite
+python scripts/backup_sqlite.py
 ```
 
 ---
 
-## 📈 Reglas de Negocio Clave
+## 📂 Estructura del Proyecto
 
-### Inventario (52 Reglas)
-- Insumos NO se descuentan en pedidos (solo en producción aplicada)
-- Movimientos son inmutables después de aplicarse
-- Cada movimiento registra snapshots (stock_antes, stock_despues)
-- Motivo obligatorio excepto para entradas
+```
+restaurante_qr_project/
+├── backend/                    # Configuración Django
+│   ├── settings.py            # Configuración principal
+│   ├── urls.py                # Rutas principales
+│   └── healthcheck.py         # Endpoint de monitoreo
+│
+├── app/                        # Apps Django (módulos)
+│   ├── adminux/               # Panel de administración moderno
+│   ├── caja/                  # Caja y transacciones
+│   ├── configuracion/         # Configuración del sistema
+│   ├── inventario/            # Gestión de insumos
+│   ├── mesas/                 # Gestión de mesas y QR
+│   ├── pedidos/               # Comandas y pedidos
+│   ├── productos/             # Productos y categorías
+│   ├── reportes/              # Reportes y estadísticas
+│   ├── reservas/              # Sistema de reservas
+│   └── usuarios/              # Autenticación y usuarios
+│
+├── scripts/                    # Scripts de utilidad
+│   ├── crear_datos_iniciales.py
+│   ├── regenerar_qr.py
+│   ├── regenerar_qr_empleados.py
+│   ├── actualizar_mesas.py
+│   └── backup_sqlite.py
+│
+├── media/                      # Archivos subidos (QR, imágenes)
+├── logs/                       # Logs del sistema
+├── requirements.txt            # Dependencias Python
+├── Dockerfile                  # Imagen Docker
+├── docker-compose.yml          # Orquestación
+├── .env.example               # Ejemplo de variables
+├── ruff.toml                  # Configuración linter
+└── VERSION                    # Versión del sistema
+```
 
-### Producción (42 Reglas)
-- Stock se descuenta SOLO al APLICAR producción (no al confirmar)
-- ProduccionDetalle es inmutable (auditoría completa)
-- Estados APLICADA y CANCELADA son irreversibles
-- Receta pertenece a UN producto fabricable con rendimiento
+---
 
-### Pedidos (57 Reglas)
-- Stock de productos se descuenta al CONFIRMAR (no al crear)
-- Campo stock_descontado previene doble descuento
-- Productos agotados NO se pueden agregar a pedidos
-- Cancelación restaura stock, anulación requiere Admin
+## 🔌 API REST
 
-### Caja (29 Reglas)
-- Solo UNA caja abierta por cajero a la vez
-- efectivo_actual se actualiza automáticamente con MovimientoCaja
-- Pagos eliminados requieren PIN secundario (NO se borran de BD)
-- Diferencia en cierre requiere observaciones si > umbral
+### Endpoints Principales
+
+**Autenticación:**
+- `POST /api/token/` - Obtener JWT token
+- `POST /api/token/refresh/` - Refresh token
+- `POST /usuarios/session-login/` - Login con sesión
+- `POST /usuarios/login-pin/` - Login con PIN (cajeros)
+- `GET /qr-login/<uuid>/` - Login con QR (meseros/cocineros)
+
+**Productos:**
+- `GET /api/productos/` - Listar productos
+- `GET /api/productos/categorias/` - Listar categorías
+- `POST /api/productos/` - Crear producto
+- `PUT /api/productos/{id}/` - Actualizar producto
+- `DELETE /api/productos/{id}/` - Eliminar producto (soft delete)
+
+**Mesas:**
+- `GET /api/mesas/` - Listar mesas
+- `POST /api/mesas/` - Crear mesa
+- `PATCH /api/mesas/{id}/` - Actualizar estado
+
+**Pedidos:**
+- `GET /api/pedidos/` - Listar pedidos
+- `GET /api/pedidos/cocina/` - Pedidos en cocina
+- `GET /api/pedidos/mesero/` - Pedidos por mesa
+- `POST /api/pedidos/{id}/actualizar/` - Actualizar estado
+- `POST /api/pedidos/{id}/entregar/` - Marcar entregado
+- `POST /api/pedidos/{id}/cancelar/` - Cancelar pedido
+
+**Caja:**
+- `GET /api/caja/transacciones/` - Listar transacciones
+- `POST /api/caja/procesar-pago/` - Procesar pago
+- `GET /api/caja/cierres/` - Cierres de caja
+- `POST /api/caja/cierre/` - Crear cierre
+
+**Reservas:**
+- `GET /api/reservas/` - Listar reservas
+- `POST /api/reservas/` - Crear reserva
+- `PATCH /api/reservas/{id}/` - Actualizar reserva
+- `DELETE /api/reservas/{id}/` - Cancelar reserva
+
+**Reportes:**
+- `GET /api/reportes/` - Listar reportes
+- `POST /api/reportes/generar/` - Generar reporte
+- `GET /api/reportes/{id}/excel/` - Descargar Excel
+- `GET /api/reportes/{id}/pdf/` - Descargar PDF
+
+Toda la API está documentada y requiere autenticación JWT o Session.
+
+---
+
+## 🔐 Seguridad
+
+### Implementaciones de Seguridad
+
+- ✅ **CSRF Protection** - Tokens CSRF en todos los formularios
+- ✅ **Rate Limiting** - 5 intentos de login, bloqueo de 5 minutos
+- ✅ **JWT Tokens** - Access (1h) + Refresh (14 días) con rotación
+- ✅ **Cookies Seguras** - HttpOnly, Secure (HTTPS), SameSite=Lax
+- ✅ **CORS Configurado** - Orígenes permitidos controlados
+- ✅ **Soft Delete** - No eliminación física de registros críticos
+- ✅ **Auditoría** - HistorialModificación en todas las operaciones
+- ✅ **Validaciones Estrictas** - Máquina de estados con constantes
+- ✅ **Logging Completo** - Rotación diaria, logs de errores separados
+- ✅ **HTTPS Enforced** - Redirección SSL en producción
+- ✅ **HSTS** - Strict-Transport-Security configurado
+
+### Variables de Entorno Críticas
+
+```env
+SECRET_KEY=<CAMBIAR-EN-PRODUCCION>
+DEBUG=False  # En producción
+ALLOWED_HOSTS=tudominio.com,www.tudominio.com
+```
 
 ---
 
@@ -354,127 +419,154 @@ CSRF_COOKIE_SECURE=True
 
 ```bash
 # Ejecutar todos los tests
-python manage.py test
+pytest
 
-# Tests específicos por módulo
-python manage.py test app.usuarios.tests
-python manage.py test app.inventario.tests
-python manage.py test app.produccion.tests
-python manage.py test app.pedidos.tests
-python manage.py test app.caja.tests
+# Tests con coverage
+pytest --cov=app --cov-report=html
 
-# Con cobertura
-coverage run --source='.' manage.py test
-coverage report
-coverage html  # Genera reporte HTML en htmlcov/
+# Tests específicos
+pytest app/pedidos/tests/
+pytest app/caja/tests/
+
+# Tests de seguridad
+pytest app/pedidos/tests/test_seguridad_ronda1.py
+```
+
+**Cobertura actual:**
+- Tests de flujo de pedidos
+- Tests de seguridad (Rondas 1-3)
+- Tests de jornada laboral
+- Tests de autenticación
+- Tests de reservas
+
+---
+
+## 📦 Dependencias Principales
+
+```
+Django==5.1.4                      # Framework principal
+djangorestframework==3.15.2        # API REST
+djangorestframework-simplejwt==5.3.1  # Autenticación JWT
+django-cors-headers==4.6.0         # CORS
+whitenoise==6.8.2                  # Archivos estáticos
+gunicorn==23.0.0                   # Servidor WSGI
+python-decouple==3.8               # Variables de entorno
+psycopg2-binary==2.9.10           # PostgreSQL
+qrcode==8.0                        # Códigos QR
+Pillow==11.0.0                     # Procesamiento de imágenes
+openpyxl==3.1.5                    # Generación de Excel
+reportlab==4.2.5                   # Generación de PDF
+pytest==8.3.4                      # Testing
 ```
 
 ---
 
-## 🐳 Docker
+## 🌍 Localización
 
-### Desarrollo
-
-```bash
-# Iniciar servicios
-docker-compose up -d
-
-# Ver logs
-docker-compose logs -f web
-
-# Ejecutar comandos
-docker-compose exec web python manage.py migrate
-docker-compose exec web python manage.py createsuperuser
-
-# Detener servicios
-docker-compose down
-```
-
-### Producción
-
-```bash
-# Build con tag de versión
-docker build -t sgir:40.3 .
-
-# Deploy con variables de entorno
-docker-compose -f docker-compose.prod.yml up -d
-
-# Backup de base de datos
-docker-compose exec db pg_dump -U sgir_user sgir_db > backup_$(date +%Y%m%d).sql
-```
+**Configurado para Bolivia:**
+- Idioma: Español (es-bo)
+- Zona horaria: America/La_Paz
+- Moneda: Bs/ (Boliviano)
+- Formato numérico: separador de miles (.), decimal (,)
 
 ---
 
-## 📊 Changelog v40.3
+## 📈 Roadmap de Frontend
 
-### ✨ Módulo de Caja Completo
-- **Caja**: Control de efectivo en tiempo real
-- **MovimientoCaja**: 6 tipos con snapshots (venta, cambio, retiro, ingreso, gasto, ajuste)
-- **Pago**: Soporte para parciales, mixtos, eliminación auditada
-- **DetallePago**: Desglose de métodos para pagos mixtos
-- **CierreCaja**: Arqueo con validación de diferencia
+### Fase 1: Definición
+- [ ] Diseño UI/UX completo
+- [ ] Selección de tecnología frontend
+- [ ] Arquitectura de componentes
+- [ ] Sistema de diseño (Design System)
 
-### 🔧 Correcciones Técnicas v40.3.1
-- **MovimientoCaja.save()**: Bloqueo basado en estado anterior en BD
-- **calcular_efectivo_esperado()**: Suma directa sin doble descuento
-- **Eliminación de pago**: Reversión neta correcta (incluye cambio)
-- **Auditoría de PIN**: pin_secundario_validado (booleano, no PIN real)
+### Fase 2: Core
+- [ ] Autenticación y login
+- [ ] Dashboard principal
+- [ ] Panel de empleados
 
-### 📦 v40.0 - v40.2
-- **Inventario**: Insumos con Decimal, 6 tipos de movimientos, inmutabilidad
-- **Producción**: Recetas, estados, ProduccionDetalle, trazabilidad completa
-- **Pedidos**: 10 estados, stock controlado, pagos parciales, cancelación/anulación
+### Fase 3: Operaciones
+- [ ] Panel de cocina (tiempo real)
+- [ ] Panel de mesero (mesas y pedidos)
+- [ ] Panel de caja (pagos y cierres)
 
-### 🎨 v39.5
-- **AdminUX**: Panel unificado con diseño dark theme
-- **Configuración**: Parámetros centralizados del sistema
-- **PIN para usuarios**: Campo dedicado para cajeros
-- **Generación de QR**: API bajo demanda para meseros/cocineros
+### Fase 4: Gestión
+- [ ] Panel AdminUX (CRUD completo)
+- [ ] Reportes visuales
+- [ ] Configuración del sistema
+
+### Fase 5: Extras
+- [ ] PWA (instalable)
+- [ ] Notificaciones push
+- [ ] Modo offline
+- [ ] Menú 3D interactivo
 
 ---
 
-## 🐛 Soporte y Contribución
+## ⚠️ Nota Importante
 
-### Reportar Problemas
-- [Issues en GitHub](https://github.com/KaradyGamer/Sistema-de-Gesti-n-Integral-para-Restaurantes-SGIR-/issues)
+> ### 🚨 EL FRONTEND SERÁ RECONSTRUIDO DESDE CERO
+>
+> El frontend anterior ha sido eliminado intencionalmente para permitir:
+> - Diseño moderno y centrado en el usuario
+> - Libertad total en la elección de tecnología
+> - Optimización para múltiples dispositivos
+> - Experiencia de usuario excepcional
+>
+> **NO USAR CÓDIGO FRONTEND PREVIO.**
+>
+> El backend está **FROZEN** y no debe modificarse. Toda la lógica de negocio
+> está completa, validada y lista para producción.
 
-### Documentación Adicional
-- **Guía de Desarrollo**: Ver `/docs/development.md`
-- **Guía de Deploy**: Ver `/docs/deployment.md`
-- **API Documentation**: Ver `/docs/api.md`
+---
+
+## 📞 Soporte y Contribución
+
+### Reportar Issues
+
+Si encuentras un bug o tienes una sugerencia:
+
+1. Verifica que sea un problema del **backend** (API/lógica)
+2. Revisa si ya existe un issue similar
+3. Crea un issue con descripción detallada
+4. Incluye logs si es posible
+
+### Reglas de Contribución
+
+- ❌ **NO modificar lógica del backend** (está frozen)
+- ✅ Documentación adicional es bienvenida
+- ✅ Mejoras en comentarios del código
+- ✅ Sugerencias de optimización (sin implementar)
+- ✅ Reporte de bugs con reproducción
 
 ---
 
 ## 📄 Licencia
 
-Este proyecto es privado y confidencial. Todos los derechos reservados.
+Este proyecto es **propiedad privada**. Todos los derechos reservados.
+
+No se permite:
+- Uso comercial sin autorización
+- Redistribución del código
+- Modificación sin permiso explícito
 
 ---
 
-## 🏆 Estado del Proyecto
+## 🎓 Créditos
 
-| Aspecto | Estado |
-|---------|--------|
-| **Versión** | 40.3.1 |
-| **Última actualización** | 2025-01-22 |
-| **Estado** | ✅ Production Ready |
-| **Cobertura de Tests** | En desarrollo |
-| **Módulos Completados** | 7/7 (Usuarios, Inventario, Producción, Productos, Pedidos, Caja, AdminUX) |
-| **Documentación** | Completa |
-| **Docker** | ✅ Listo |
-| **PostgreSQL** | ✅ Soportado |
-
-### Próximas Fases
-- 🔄 Implementación de Services completos
-- 🧪 Aumento de cobertura de tests (objetivo: 80%+)
-- 📱 API REST completa con serializers
-- 🔐 Sistema de permisos granular por rol
-- 📊 Reportes avanzados y analytics
-- 🌐 Internacionalización (i18n)
+**SGIR v2.3.0**
+Sistema de Gestión Integral para Restaurantes
+Desarrollado con Django 5.1.4 y Python 3.12
 
 ---
 
-**Desarrollado con** ❤️ **usando Django + Python + Docker**
+## 📌 Links Útiles
 
-**Arquitectura diseñada para**: Escalabilidad, Auditoría Completa, Seguridad Enterprise
+- [Documentación de Django](https://docs.djangoproject.com/en/5.1/)
+- [Django REST Framework](https://www.django-rest-framework.org/)
+- [Docker Documentation](https://docs.docker.com/)
+- [PostgreSQL Docs](https://www.postgresql.org/docs/)
 
+---
+
+**Última actualización:** 2026-01-07
+**Versión del README:** 1.0.0

@@ -1,3 +1,17 @@
+"""
+Modelos del módulo de Caja.
+
+Este módulo gestiona todo el sistema de caja del restaurante:
+- Transacciones y pagos (efectivo, tarjeta, QR, móvil, mixto)
+- Cierres de caja por turno (mañana, tarde, noche, completo)
+- Jornada laboral (solo UNA activa a la vez)
+- Auditoría de modificaciones en pedidos
+- Alertas de stock bajo/agotado
+- Reembolsos con autorización
+
+CRÍTICO: Este módulo es el núcleo financiero del sistema.
+NO modificar sin validación exhaustiva de lógica de negocio.
+"""
 from django.db import models
 from django.utils import timezone
 from django.core.validators import MinValueValidator
@@ -8,6 +22,7 @@ logger = logging.getLogger('app.caja')
 
 
 # === SGIR v38.3: Constante Global de Métodos de Pago (unificada) ===
+# Estos métodos de pago se usan en múltiples modelos (Transaccion, DetallePago, Reembolso)
 METODO_PAGO_CHOICES = [
     ('efectivo', 'Efectivo'),
     ('tarjeta', 'Tarjeta'),
@@ -18,8 +33,26 @@ METODO_PAGO_CHOICES = [
 
 class Transaccion(models.Model):
     """
-    Modelo para registrar transacciones de pago
-    Cada pedido puede tener una o más transacciones (pagos mixtos)
+    Modelo de Transacción de Pago.
+
+    Registra cada pago realizado en el sistema. Un pedido puede tener múltiples
+    transacciones (por ejemplo, en pagos parciales o mixtos).
+
+    Características:
+    - Soporta múltiples métodos de pago
+    - Permite pagos mixtos mediante DetallePago
+    - Control de estados (pendiente, procesado, cancelado, reembolsado)
+    - Facturación con número único
+    - Comprobantes digitales (imagen/PDF)
+    - Auditoría completa con timestamps
+
+    Estados del ciclo de vida:
+    - pendiente: Pago iniciado pero no confirmado
+    - procesado: Pago exitoso y confirmado
+    - cancelado: Pago anulado
+    - reembolsado: Dinero devuelto al cliente
+
+    IMPORTANTE: Cada transacción debe tener un cajero responsable para auditoría.
     """
     ESTADO_CHOICES = [
         ('pendiente', 'Pendiente'),
@@ -79,8 +112,29 @@ class DetallePago(models.Model):
 
 class CierreCaja(models.Model):
     """
-    Modelo para registrar cierres de caja por turno
-    Permite cuadre y auditoría de ventas
+    Modelo de Cierre de Caja por Turno.
+
+    Gestiona el cierre y cuadre de caja al finalizar cada turno de trabajo.
+
+    Turnos soportados:
+    - Mañana: 06:00 - 14:00
+    - Tarde: 14:00 - 22:00
+    - Noche: 22:00 - 06:00
+    - Completo: Día completo (24h)
+
+    Funcionalidades:
+    - Cuadre de efectivo (inicial + ventas vs contado físico)
+    - Cálculo automático de diferencias
+    - Totales por método de pago
+    - Validación: NO permite cerrar con pedidos pendientes
+    - Al cerrar: cierra automáticamente sesiones de meseros y cocineros
+    - Control de descuentos y propinas
+    - Auditoría completa
+
+    Validación única: Un cajero solo puede tener UN cierre por turno por día.
+
+    CRÍTICO: El método cerrar_caja() valida que NO haya pedidos sin pagar
+    antes de permitir el cierre. Esta validación NO debe eliminarse.
     """
     TURNO_CHOICES = [
         ('manana', 'Mañana (06:00 - 14:00)'),
@@ -136,14 +190,37 @@ class CierreCaja(models.Model):
         return f"Cierre {self.fecha} - {self.get_turno_display()} - {self.cajero}"
 
     def calcular_diferencia(self):
-        """Calcula la diferencia entre efectivo esperado y real"""
+        """
+        Calcula la diferencia entre efectivo esperado y real.
+
+        Fórmula: diferencia = efectivo_real - efectivo_esperado
+
+        Returns:
+            Decimal: Diferencia (positivo = sobra, negativo = falta)
+        """
         self.diferencia = self.efectivo_real - self.efectivo_esperado
         return self.diferencia
 
     def cerrar_caja(self, efectivo_real, observaciones=None):
         """
-        Cierra el turno de caja y cierra todas las sesiones activas.
-        Valida que no haya pedidos pendientes antes de cerrar.
+        Cierra el turno de caja y finaliza sesiones activas de empleados.
+
+        Proceso:
+        1. Valida que NO haya pedidos pendientes de pago
+        2. Registra el efectivo contado físicamente
+        3. Calcula la diferencia
+        4. Marca el cierre como 'cerrado'
+        5. Cierra automáticamente sesiones de meseros y cocineros
+
+        Args:
+            efectivo_real (Decimal): Efectivo contado físicamente en caja
+            observaciones (str, optional): Notas adicionales del cierre
+
+        Raises:
+            ValidationError: Si hay pedidos pendientes de pago
+
+        CRÍTICO: Esta validación es OBLIGATORIA para evitar pérdidas.
+        NO eliminar la validación de pedidos pendientes.
         """
         from django.contrib.sessions.models import Session
         from django.utils import timezone as tz
@@ -197,8 +274,29 @@ class CierreCaja(models.Model):
 
 class HistorialModificacion(models.Model):
     """
-    Modelo para auditoría de modificaciones a pedidos
-    Registra quién, cuándo y qué cambió en un pedido
+    Modelo de Auditoría de Modificaciones.
+
+    Registra TODOS los cambios realizados a los pedidos para trazabilidad
+    y auditoría completa.
+
+    Tipos de cambios registrados:
+    - Agregar producto
+    - Eliminar producto
+    - Modificar cantidad
+    - Aplicar descuento
+    - Agregar propina
+    - Reasignar mesa
+    - Cancelar pedido
+    - Otros cambios
+
+    Información guardada:
+    - Quién hizo el cambio (usuario)
+    - Cuándo se hizo (fecha_hora automática)
+    - Qué cambió (detalle_anterior y detalle_nuevo en JSON)
+    - Por qué (motivo)
+
+    Este registro es INMUTABLE (no se puede editar ni eliminar).
+    Sirve para resolver disputas y auditorías internas.
     """
     TIPO_CAMBIO_CHOICES = [
         ('agregar_producto', 'Agregar Producto'),
@@ -235,7 +333,29 @@ class HistorialModificacion(models.Model):
 
 class AlertaStock(models.Model):
     """
-    Modelo para alertas de productos con stock bajo o agotados
+    Modelo de Alertas de Stock.
+
+    Sistema automático de alertas cuando productos tienen stock bajo o
+    están agotados.
+
+    Tipos de alerta:
+    - stock_bajo: Producto por debajo del stock mínimo
+    - agotado: Producto sin stock (cantidad = 0)
+    - reposicion: Necesita reposición urgente
+
+    Estados:
+    - activa: Alerta pendiente de atención
+    - resuelta: Stock repuesto
+    - ignorada: Alerta descartada
+
+    Funcionalidades:
+    - Generación automática cuando stock baja
+    - Guardado del nombre del producto (historial)
+    - Resolución con usuario y fecha
+    - Observaciones del encargado
+
+    IMPORTANTE: Estas alertas se generan automáticamente desde el
+    modelo de Producto e Insumo. NO crear manualmente.
     """
     TIPO_ALERTA_CHOICES = [
         ('stock_bajo', 'Stock Bajo'),
@@ -271,7 +391,16 @@ class AlertaStock(models.Model):
         return f"{nombre} - {self.get_tipo_alerta_display()} - {self.get_estado_display()}"
 
     def resolver(self, usuario, observaciones=None):
-        """Marca la alerta como resuelta"""
+        """
+        Marca la alerta como resuelta.
+
+        Args:
+            usuario (Usuario): Usuario que resuelve la alerta
+            observaciones (str, optional): Notas sobre la resolución
+
+        Se ejecuta cuando se repone el stock y se verifica que
+        el producto ya no está en estado crítico.
+        """
         self.estado = 'resuelta'
         self.fecha_resolucion = timezone.now()
         self.resuelto_por = usuario
@@ -282,8 +411,27 @@ class AlertaStock(models.Model):
 
 class JornadaLaboral(models.Model):
     """
-    Modelo para controlar la jornada laboral del restaurante
-    Solo puede haber UNA jornada activa a la vez
+    Modelo de Jornada Laboral del Restaurante.
+
+    Controla la apertura y cierre del restaurante. Solo puede existir
+    UNA jornada activa a la vez en todo el sistema.
+
+    Funcionalidades:
+    - Control de jornada única activa
+    - Validación: NO permite finalizar con pedidos sin pagar
+    - Auditoría de quién abre y cierra
+    - Observaciones de apertura y cierre
+    - Integración con middleware para bloquear acceso de empleados
+      cuando NO hay jornada activa
+
+    Flujo normal:
+    1. Cajero abre jornada (estado='activa')
+    2. Empleados pueden trabajar (middleware lo valida)
+    3. Cajero finaliza jornada (valida pedidos pendientes)
+    4. Sesiones de meseros/cocineros se cierran automáticamente
+
+    CRÍTICO: El middleware JornadaLaboralMiddleware depende de este modelo.
+    Meseros y cocineros NO pueden acceder sin jornada activa.
     """
     ESTADO_CHOICES = [
         ('activa', 'Activa'),
@@ -314,18 +462,47 @@ class JornadaLaboral(models.Model):
 
     @classmethod
     def jornada_activa(cls):
-        """Retorna la jornada activa o None"""
+        """
+        Obtiene la jornada activa actual.
+
+        Returns:
+            JornadaLaboral or None: La jornada activa o None si no hay ninguna
+
+        NOTA: Solo puede haber UNA jornada activa a la vez.
+        """
         return cls.objects.filter(estado='activa').first()
 
     @classmethod
     def hay_jornada_activa(cls):
-        """Verifica si hay una jornada activa"""
+        """
+        Verifica si existe una jornada activa.
+
+        Returns:
+            bool: True si hay una jornada activa
+
+        Usado por el middleware para validar acceso de empleados.
+        """
         return cls.objects.filter(estado='activa').exists()
 
     def finalizar(self, usuario, observaciones=None):
         """
-        Finaliza la jornada laboral.
-        Valida que no haya pedidos pendientes DE PAGO antes de finalizar.
+        Finaliza la jornada laboral del día.
+
+        Proceso:
+        1. Valida que NO haya pedidos pendientes de pago (estado_pago='pendiente')
+        2. Permite pedidos en preparación/listos (siempre que estén pagados)
+        3. Marca la jornada como 'finalizada'
+        4. Registra quién finalizó y cuándo
+
+        Args:
+            usuario (Usuario): Usuario que finaliza la jornada
+            observaciones (str, optional): Notas del cierre
+
+        Raises:
+            ValidationError: Si hay pedidos pendientes de pago
+
+        CRÍTICO: Esta validación previene que se cierre el restaurante
+        con deudas pendientes. NO eliminar la validación.
         """
         from app.pedidos.models import Pedido
         from django.core.exceptions import ValidationError
@@ -360,8 +537,27 @@ class JornadaLaboral(models.Model):
 
 class Reembolso(models.Model):
     """
-    Modelo para registrar reembolsos de pedidos.
-    Permite reembolsos parciales o totales con autorización.
+    Modelo de Reembolsos.
+
+    Gestiona la devolución de dinero a clientes por pedidos cancelados,
+    productos no entregados, o errores del restaurante.
+
+    Características:
+    - Reembolsos parciales o totales
+    - Requiere autorización de gerente o admin
+    - Código de autorización obligatorio (PIN, token, etc.)
+    - Motivo detallado del reembolso
+    - Método de devolución (mismo método de pago original)
+    - Auditoría completa (quién creó, quién autorizó, cuándo)
+
+    Flujo:
+    1. Cajero crea solicitud de reembolso con motivo
+    2. Gerente/Admin ingresa código de autorización
+    3. Se registra el reembolso
+    4. Se actualiza el pedido (total_reembolsado, reembolso_estado)
+
+    CRÍTICO: Los reembolsos son IRREVERSIBLES. Validar bien antes de crear.
+    Siempre requieren autorización de nivel gerente o superior.
     """
     METODO_CHOICES = [
         ('efectivo', 'Efectivo'),
