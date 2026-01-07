@@ -20,6 +20,9 @@ urlpatterns = [
     path('pago/simple/', api_views.api_procesar_pago_simple, name='procesar_pago_simple'),
     path('pago/mixto/', api_views.api_procesar_pago_mixto, name='procesar_pago_mixto'),
 
+    # ❌ RONDA 3C: REEMBOLSOS
+    path('reembolsar/<int:pedido_id>/', api_views.reembolsar_pedido, name='reembolsar_pedido'),
+
     # ═══════════════════════════════════════════
     # MODIFICACIÓN DE PEDIDOS
     # ═══════════════════════════════════════════

@@ -2,12 +2,24 @@ from django.db import models
 from django.utils import timezone
 
 class Pedido(models.Model):
+    # ✅ RONDA 2: Estados completos del ciclo de vida del pedido
+    # Estados constantes (para usar en código sin hardcoding)
+    ESTADO_CREADO = 'creado'
+    ESTADO_CONFIRMADO = 'confirmado'
+    ESTADO_EN_PREPARACION = 'en_preparacion'
+    ESTADO_LISTO = 'listo'
+    ESTADO_ENTREGADO = 'entregado'
+    ESTADO_CANCELADO = 'cancelado'
+    ESTADO_CERRADO = 'cerrado'
+
     ESTADO_CHOICES = [
-        ('pendiente', 'Pendiente'),
-        ('en preparacion', 'En Preparación'),
-        ('listo', 'Listo'),
-        ('entregado', 'Entregado'),
-        ('solicitando_cuenta', 'Cliente Solicitó Cuenta'),  # ✅ NUEVO: Cliente terminó de comer
+        (ESTADO_CREADO, 'Creado'),
+        (ESTADO_CONFIRMADO, 'Confirmado'),
+        (ESTADO_EN_PREPARACION, 'En Preparación'),
+        (ESTADO_LISTO, 'Listo'),
+        (ESTADO_ENTREGADO, 'Entregado'),
+        (ESTADO_CANCELADO, 'Cancelado'),
+        (ESTADO_CERRADO, 'Cerrado'),
     ]
 
     FORMA_PAGO_CHOICES = [
@@ -27,7 +39,7 @@ class Pedido(models.Model):
 
     # Campos existentes
     mesa = models.ForeignKey('mesas.Mesa', on_delete=models.PROTECT, related_name='pedidos')
-    estado = models.CharField(max_length=20, choices=ESTADO_CHOICES, default='pendiente')
+    estado = models.CharField(max_length=20, choices=ESTADO_CHOICES, default=ESTADO_CREADO)
     total = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     fecha = models.DateTimeField(default=timezone.now)
     forma_pago = models.CharField(max_length=20, choices=FORMA_PAGO_CHOICES, default='efectivo', null=True, blank=True)
@@ -53,6 +65,34 @@ class Pedido(models.Model):
     # Campos de auditoría
     modificado = models.BooleanField(default=False, help_text='Indica si el pedido fue modificado por caja')
     reasignado = models.BooleanField(default=False, help_text='Indica si fue reasignado a otra mesa')
+
+    # ✅ RONDA 3A: Campos de cancelación
+    motivo_cancelacion = models.TextField(blank=True, null=True, help_text='Motivo de cancelación del pedido')
+    descuento_stock = models.BooleanField(default=False, help_text='Indica si ya se descontó stock para este pedido')
+
+    # ✅ RONDA 3C: Campos de reembolso
+    total_pagado = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=0,
+        help_text='Total pagado acumulado (todas las transacciones)'
+    )
+    total_reembolsado = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=0,
+        help_text='Total reembolsado acumulado'
+    )
+    reembolso_estado = models.CharField(
+        max_length=10,
+        default='none',
+        choices=[
+            ('none', 'Sin reembolso'),
+            ('parcial', 'Reembolso parcial'),
+            ('total', 'Reembolso total'),
+        ],
+        help_text='Estado del reembolso'
+    )
     
     class Meta:
         ordering = ['-fecha']

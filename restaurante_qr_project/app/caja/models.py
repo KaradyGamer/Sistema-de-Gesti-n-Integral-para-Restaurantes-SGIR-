@@ -351,3 +351,60 @@ class JornadaLaboral(models.Model):
         if observaciones:
             self.observaciones_cierre = observaciones
         self.save()
+
+class Reembolso(models.Model):
+    """
+    Modelo para registrar reembolsos de pedidos.
+    Permite reembolsos parciales o totales con autorización.
+    """
+    METODO_CHOICES = [
+        ('efectivo', 'Efectivo'),
+        ('qr', 'Código QR'),
+        ('tarjeta', 'Tarjeta'),
+        ('movil', 'Pago Móvil'),
+    ]
+
+    # Relaciones
+    pedido = models.ForeignKey(
+        'pedidos.Pedido',
+        on_delete=models.CASCADE,
+        related_name='reembolsos'
+    )
+    creado_por = models.ForeignKey(
+        'usuarios.Usuario',
+        on_delete=models.PROTECT,
+        related_name='reembolsos_creados'
+    )
+    autorizado_por = models.ForeignKey(
+        'usuarios.Usuario',
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name='reembolsos_autorizados'
+    )
+
+    # Datos del reembolso
+    monto = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        validators=[MinValueValidator(Decimal('0.01'))]
+    )
+    metodo = models.CharField(max_length=20, choices=METODO_CHOICES)
+    motivo = models.TextField(help_text='Razón del reembolso')
+    codigo_autorizacion = models.CharField(
+        max_length=64,
+        null=True,
+        blank=True,
+        help_text='Código PIN o token de autorización'
+    )
+
+    # Timestamps
+    creado_en = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'Reembolso'
+        verbose_name_plural = 'Reembolsos'
+        ordering = ['-creado_en']
+
+    def __str__(self):
+        return f"Reembolso #{self.id} - Pedido #{self.pedido.id} - Bs/ {self.monto}"

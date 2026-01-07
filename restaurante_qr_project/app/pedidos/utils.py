@@ -9,6 +9,41 @@ import logging
 logger = logging.getLogger('app.pedidos')
 
 
+# ✅ RONDA 2: MÁQUINA DE ESTADOS - Transiciones válidas
+TRANSICIONES_VALIDAS = {
+    'creado': ['confirmado', 'cancelado'],
+    'confirmado': ['en_preparacion'],
+    'en_preparacion': ['listo'],
+    'listo': ['entregado'],
+    'entregado': ['cerrado'],
+    'cancelado': [],
+    'cerrado': [],
+}
+
+
+def validar_transicion_estado(estado_actual, nuevo_estado):
+    """
+    Valida que una transición de estado sea permitida.
+
+    Args:
+        estado_actual: Estado actual del pedido
+        nuevo_estado: Estado al que se quiere transicionar
+
+    Raises:
+        ValueError: Si la transición no es válida
+    """
+    if estado_actual not in TRANSICIONES_VALIDAS:
+        raise ValueError(f"Estado actual '{estado_actual}' no es válido")
+
+    estados_permitidos = TRANSICIONES_VALIDAS[estado_actual]
+
+    if nuevo_estado not in estados_permitidos:
+        raise ValueError(
+            f"No se puede cambiar de '{estado_actual}' a '{nuevo_estado}'. "
+            f"Estados permitidos desde '{estado_actual}': {', '.join(estados_permitidos) if estados_permitidos else 'NINGUNO (estado final)'}"
+        )
+
+
 @transaction.atomic
 def modificar_pedido_con_stock(pedido_id, productos_nuevos, usuario=None):
     """
@@ -45,8 +80,13 @@ def modificar_pedido_con_stock(pedido_id, productos_nuevos, usuario=None):
         }
 
         # 2. Validar que el pedido se pueda modificar
-        if pedido.estado in ['pagado', 'cancelado']:
-            raise ValueError(f"No se puede modificar un pedido en estado '{pedido.get_estado_display()}'")
+        # ✅ RONDA 2: Validar contra estados finales
+        # Estados NO modificables: 'entregado', 'cancelado', 'cerrado'
+        if pedido.estado in ['entregado', 'cancelado', 'cerrado']:
+            raise ValueError(
+                f"No se puede modificar un pedido en estado '{pedido.get_estado_display()}'. "
+                f"El pedido ya fue {pedido.get_estado_display().lower()}."
+            )
 
         # 3. Obtener detalles actuales
         detalles_actuales = {
@@ -182,6 +222,19 @@ def modificar_pedido_con_stock(pedido_id, productos_nuevos, usuario=None):
 
         logger.info(f"[OK] Pedido #{pedido_id} modificado exitosamente. Nuevo total: Bs/ {pedido.total}")
 
+        # ✅ LOGGING DE AUDITORÍA
+        from django.utils import timezone
+        logger.info(
+            f"AUDIT pedido_modificado "
+            f"pedido_id={pedido.id} "
+            f"user={getattr(usuario, 'username', 'sistema') if usuario else 'sistema'} "
+            f"user_id={getattr(usuario, 'id', None) if usuario else None} "
+            f"total_anterior={detalle_anterior['total']} "
+            f"total_nuevo={pedido.total} "
+            f"productos_modificados={len(productos_nuevos)} "
+            f"ts={timezone.now().isoformat()}"
+        )
+
         return {
             'success': True,
             'mensaje': f'Pedido #{pedido_id} modificado exitosamente',
@@ -307,10 +360,56 @@ def obtener_resumen_modificacion(pedido_id):
             'mesa': pedido.mesa.numero if pedido.mesa else None,
             'estado': pedido.estado,
             'total': float(pedido.total),
-            'puede_modificar': pedido.estado not in ['pagado', 'cancelado'],
+            # ✅ RONDA 2: Validar contra estados finales
+            'puede_modificar': pedido.estado not in ['entregado', 'cancelado', 'cerrado'],
             'productos': productos,
             'productos_pendientes': pedido.productos_pendientes_pago()
         }
 
     except Pedido.DoesNotExist:
         raise ValueError(f"Pedido #{pedido_id} no encontrado")
+
+
+# ✅ RONDA 3A: DEVOLUCIÓN DE STOCK AL CANCELAR
+def devolver_stock_pedido(pedido):
+    """
+    Devuelve stock de productos asociados a un pedido cancelado.
+    SOLO se ejecuta si el pedido ya había descontado stock.
+
+    Args:
+        pedido: Instancia del pedido a cancelar
+
+    Returns:
+        int: Cantidad de productos a los que se devolvió stock
+    """
+    from django.utils import timezone
+
+    if not pedido.descuento_stock:
+        logger.info(
+            f"AUDIT stock_skip pedido_id={pedido.id} "
+            f"razon=no_se_descuento_stock"
+        )
+        return 0
+
+    productos_restaurados = 0
+
+    for detalle in pedido.detalles.all():
+        producto = detalle.producto
+
+        # Solo devolver stock si el producto requiere control de inventario
+        if not producto.requiere_inventario:
+            continue
+
+        # Devolver stock
+        producto.agregar_stock(detalle.cantidad)
+        productos_restaurados += 1
+
+        logger.info(
+            f"AUDIT stock_devuelto pedido_id={pedido.id} "
+            f"producto={producto.nombre} "
+            f"cantidad={detalle.cantidad} "
+            f"stock_nuevo={producto.stock_actual} "
+            f"ts={timezone.now().isoformat()}"
+        )
+
+    return productos_restaurados

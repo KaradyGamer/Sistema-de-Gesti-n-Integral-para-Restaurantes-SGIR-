@@ -22,7 +22,34 @@ from django.views.decorators.csrf import ensure_csrf_cookie
 #  Configurar logger
 logger = logging.getLogger('app.pedidos')
 
-# 
+# ============================================
+# ENDPOINT DESHABILITADO: Creación pública
+# ============================================
+@api_view(['POST', 'GET'])
+@authentication_classes([])
+@permission_classes([AllowAny])
+def crear_pedido_deshabilitado(request):
+    """
+    ❌ ENDPOINT DESHABILITADO
+
+    El cliente QR ahora es SOLO LECTURA (menú digital).
+    Los pedidos se crean ÚNICAMENTE por staff autenticado (meseros).
+
+    Razón: Seguridad - Prevenir spam/DoS + Control total por staff
+    Fecha: 2026-01-04
+    """
+    logger.warning(
+        f"AUDIT_DENY endpoint=pedidos.cliente.crear "
+        f"ip={request.META.get('REMOTE_ADDR', 'unknown')} "
+        f"user_agent={request.META.get('HTTP_USER_AGENT', 'unknown')[:100]} "
+        f"ts={timezone.now().isoformat()}"
+    )
+
+    return Response({
+        'detail': 'Not found.'
+    }, status=status.HTTP_404_NOT_FOUND)
+
+#
 #  Cliente  Plantillas pblicas
 # 
 
@@ -49,12 +76,21 @@ def confirmacion_pedido(request):
     }
     return render(request, 'cliente/confirmacion.html', context)
 
-#  FUNCIN CORREGIDA PARA CREAR PEDIDOS DEL CLIENTE
-@api_view(['POST'])
-@authentication_classes([])  #  Sin autenticacin = sin CSRF
-@permission_classes([AllowAny])
-@transaction.atomic  #  Garantiza atomicidad de la transaccin
-def crear_pedido_cliente(request):
+# ============================================
+# ❌ FUNCIÓN DESHABILITADA - NO USAR
+# ============================================
+# Esta función está DESHABILITADA desde 2026-01-04
+# Razón: Cliente QR ahora es SOLO LECTURA
+# Reemplazo: Pedidos se crean por staff autenticado (meseros)
+# Preservada para referencia histórica
+# ============================================
+
+# FUNCIN CORREGIDA PARA CREAR PEDIDOS DEL CLIENTE (DESHABILITADA)
+# @api_view(['POST'])
+# @authentication_classes([])  # ❌ PELIGROSO: Sin autenticación
+# @permission_classes([AllowAny])  # ❌ PELIGROSO: Acceso público
+# @transaction.atomic
+def crear_pedido_cliente_DESHABILITADO(request):
     """
     Crear pedido desde el cliente - VERSIN CORREGIDA PARA COMPATIBILIDAD
     """
@@ -574,19 +610,34 @@ def api_entregar_pedido(request, pedido_id):
         return JsonResponse({'success': False, 'error': 'Mtodo no permitido'}, status=405)
         
     try:
+        from app.pedidos.utils import validar_transicion_estado
+
         pedido = Pedido.objects.get(id=pedido_id)
-        
-        if pedido.estado != 'listo':
+
+        # ✅ RONDA 2: Validar transición de estado
+        try:
+            validar_transicion_estado(pedido.estado, 'entregado')
+        except ValueError as e:
             return JsonResponse({
                 'success': False,
-                'error': 'Solo se pueden entregar pedidos que estn listos'
+                'error': str(e)
             }, status=400)
-        
+
         pedido.estado = 'entregado'
         pedido.save()
-        
+
         logger.info(f" Pedido #{pedido_id} marcado como entregado por {request.user}")
-        
+
+        # ✅ LOGGING DE AUDITORÍA
+        logger.info(
+            f"AUDIT pedido_entregado "
+            f"pedido_id={pedido.id} "
+            f"user={getattr(request.user, 'username', 'anon')} "
+            f"user_id={getattr(request.user, 'id', None)} "
+            f"mesa={pedido.mesa.numero if pedido.mesa else 'N/A'} "
+            f"ts={timezone.now().isoformat()}"
+        )
+
         return JsonResponse({
             'success': True,
             'message': f'Pedido #{pedido_id} marcado como entregado',
@@ -856,30 +907,51 @@ def actualizar_estado_pedido(request, pedido_id):
         pedido = Pedido.objects.get(id=pedido_id)
         logger.info(f" Pedido encontrado: {pedido}")
         
+        from app.pedidos.utils import validar_transicion_estado
+
         # Obtener el nuevo estado del request
         nuevo_estado = data.get('estado')
         logger.info(f" Nuevo estado solicitado: {nuevo_estado}")
-        
+
         # Validar que se envi un estado
         if not nuevo_estado:
             return JsonResponse({
                 'error': 'El campo "estado" es requerido'
             }, status=400)
-        
-        # Validar que el estado es vlido
-        estados_validos = ['pendiente', 'en preparacion', 'listo', 'entregado']
-        if nuevo_estado not in estados_validos:
+
+        # ✅ RONDA 2 + 3B: Bloquear cierre manual (solo desde caja)
+        if nuevo_estado == 'cerrado':
             return JsonResponse({
-                'error': f'Estado invlido. Estados vlidos: {", ".join(estados_validos)}'
-            }, status=400)
-        
-        # Actualizar el estado
+                'error': 'El cierre de pedidos solo se realiza desde el módulo de Caja'
+            }, status=403)
+
+        # ✅ RONDA 2: Validar transición de estado
         estado_anterior = pedido.estado
+        try:
+            validar_transicion_estado(estado_anterior, nuevo_estado)
+        except ValueError as e:
+            return JsonResponse({
+                'error': str(e)
+            }, status=400)
+
+        # Actualizar el estado
         pedido.estado = nuevo_estado
         pedido.save()
-        
+
         logger.info(f" Pedido {pedido_id} actualizado de '{estado_anterior}' a '{nuevo_estado}'")
-        
+
+        # ✅ LOGGING DE AUDITORÍA
+        logger.info(
+            f"AUDIT pedido_estado "
+            f"pedido_id={pedido.id} "
+            f"user={getattr(request.user, 'username', 'anon')} "
+            f"user_id={getattr(request.user, 'id', None)} "
+            f"estado_anterior={estado_anterior} "
+            f"estado_nuevo={nuevo_estado} "
+            f"mesa={pedido.mesa.numero if pedido.mesa else 'N/A'} "
+            f"ts={timezone.now().isoformat()}"
+        )
+
         return JsonResponse({
             'mensaje': f'Pedido #{pedido_id} actualizado correctamente',
             'pedido_id': pedido.id,
@@ -1101,3 +1173,88 @@ def resumen_modificacion_pedido_api(request, pedido_id):
         return Response({
             'error': f'Error interno del servidor: {str(e)}'
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+# ============================================
+# RONDA 3A: CANCELACIÓN DE PEDIDO
+# ============================================
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def cancelar_pedido(request, pedido_id):
+    """
+    Cancela un pedido y devuelve el stock si ya fue descontado.
+
+    Reglas:
+    - Solo pedidos en estado: creado, confirmado, en_preparacion, listo
+    - NO se pueden cancelar pedidos: entregado, cerrado
+    - Si el pedido está en preparación/listo, requiere autorización superior
+    - Motivo de cancelación obligatorio
+    """
+    from app.pedidos.utils import devolver_stock_pedido, validar_transicion_estado
+    from django.utils import timezone
+
+    try:
+        motivo = request.data.get('motivo')
+
+        if not motivo:
+            return Response(
+                {'error': 'Motivo de cancelación obligatorio'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        pedido = Pedido.objects.get(id=pedido_id)
+
+        # ✅ RONDA 2: Validar transición de estado
+        try:
+            validar_transicion_estado(pedido.estado, 'cancelado')
+        except ValueError as e:
+            return Response(
+                {'error': str(e)},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # 🔐 Si ya pasó por cocina, requiere autorización superior
+        if pedido.estado in ['en_preparacion', 'listo']:
+            if not request.user.is_superuser:
+                return Response(
+                    {'error': 'Se requiere autorización de administrador para cancelar pedidos en preparación o listos'},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+
+        estado_anterior = pedido.estado
+
+        # ✅ DEVOLVER STOCK
+        productos_restaurados = devolver_stock_pedido(pedido)
+
+        # Cambiar estado
+        pedido.estado = 'cancelado'
+        pedido.motivo_cancelacion = motivo
+        pedido.save()
+
+        logger.info(
+            f"AUDIT pedido_cancelado pedido_id={pedido.id} "
+            f"user={request.user.username} "
+            f"user_id={request.user.id} "
+            f"estado_anterior={estado_anterior} "
+            f"productos_restaurados={productos_restaurados} "
+            f"motivo='{motivo}' "
+            f"ts={timezone.now().isoformat()}"
+        )
+
+        return Response({
+            'success': True,
+            'mensaje': f'Pedido #{pedido_id} cancelado exitosamente',
+            'productos_restaurados': productos_restaurados
+        })
+
+    except Pedido.DoesNotExist:
+        return Response(
+            {'error': f'Pedido #{pedido_id} no encontrado'},
+            status=status.HTTP_404_NOT_FOUND
+        )
+
+    except Exception as e:
+        logger.exception(f"Error cancelando pedido #{pedido_id}: {str(e)}")
+        return Response(
+            {'error': f'Error interno del servidor: {str(e)}'},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )

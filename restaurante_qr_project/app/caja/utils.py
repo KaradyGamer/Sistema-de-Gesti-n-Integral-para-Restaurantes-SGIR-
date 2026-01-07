@@ -291,3 +291,19 @@ def obtener_estadisticas_caja_dia(fecha=None):
         'total_propinas': float(total_propinas),
         'promedio_por_pedido': float(totales['total'] / total_pedidos) if total_pedidos > 0 else 0,
     }
+
+# ✅ RONDA 3C: Helper para calcular saldo reembolsable
+def saldo_reembolsable(pedido):
+    """
+    Calcula el saldo disponible para reembolso.
+
+    Args:
+        pedido: Instancia del pedido
+
+    Returns:
+        Decimal: Saldo reembolsable (total_pagado - total_reembolsado)
+    """
+    from decimal import Decimal
+    total_pagado = pedido.total_pagado or Decimal("0.00")
+    total_reembolsado = pedido.total_reembolsado or Decimal("0.00")
+    return total_pagado - total_reembolsado

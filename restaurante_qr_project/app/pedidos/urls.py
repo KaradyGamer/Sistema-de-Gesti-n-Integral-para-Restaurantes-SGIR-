@@ -29,11 +29,18 @@ urlpatterns = [
     # 🗺️ NUEVO: Mapa de mesas para mesero
     path('mesero/mapa-mesas/', views.mapa_mesas_mesero, name='mapa_mesas_mesero'),
 
-    # 🛒 API Cliente
-    path('cliente/crear/', views.crear_pedido_cliente, name='crear_pedido_cliente'),
+    # ❌ DESHABILITADO: Cliente QR es SOLO LECTURA (no crea pedidos)
+    # Fecha: 2026-01-04 | Razón: Prevenir spam/DoS + Control total por staff
+    # path('cliente/crear/', views.crear_pedido_cliente, name='crear_pedido_cliente'),
+
+    # Stub para capturar intentos (devuelve 404)
+    path('cliente/crear/', views.crear_pedido_deshabilitado, name='crear_pedido_deshabilitado'),
 
     # 📝 APIs para Modificación de Pedidos con Stock
     path('<int:pedido_id>/modificar/', views.modificar_pedido_api, name='modificar_pedido'),
     path('<int:pedido_id>/eliminar-producto/<int:producto_id>/', views.eliminar_producto_pedido_api, name='eliminar_producto_pedido'),
     path('<int:pedido_id>/resumen-modificacion/', views.resumen_modificacion_pedido_api, name='resumen_modificacion_pedido'),
+
+    # ❌ RONDA 3A: Cancelación de Pedido
+    path('<int:pedido_id>/cancelar/', views.cancelar_pedido, name='cancelar_pedido'),
 ]

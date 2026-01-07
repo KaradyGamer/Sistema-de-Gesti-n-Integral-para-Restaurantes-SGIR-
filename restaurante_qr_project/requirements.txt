@@ -36,8 +36,9 @@ django-filter==24.3
 django-admin-interface==0.28.9
 django-colorfield==0.11.0
 
-# Reportes Excel
+# Reportes Excel y PDF
 openpyxl==3.1.5
+reportlab==4.2.5
 
 # Testing y calidad
 pytest==8.3.4

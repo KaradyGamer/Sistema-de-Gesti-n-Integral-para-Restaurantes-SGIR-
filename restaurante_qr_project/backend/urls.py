@@ -15,7 +15,7 @@ from app.pedidos.views import (
     pedidos_en_cocina_api,
     actualizar_estado_pedido,
     marcar_entregado,
-    crear_pedido_cliente,
+    # crear_pedido_cliente, # ❌ RONDA 1: Deshabilitado (endpoint público eliminado)
 )
 from rest_framework_simplejwt.views import TokenRefreshView
 from app.usuarios.views_empleado import panel_empleado
@@ -62,7 +62,7 @@ urlpatterns = [
     path('api/pedidos/mesero/', pedidos_por_mesa, name='pedidos_mesero'),
     path('api/pedidos/<int:pedido_id>/actualizar/', actualizar_estado_pedido, name='actualizar_estado'),
     path('api/pedidos/<int:pedido_id>/entregar/', marcar_entregado, name='marcar_entregado'),
-    path('api/pedidos/cliente/crear/', crear_pedido_cliente, name='crear_pedido_cliente'),
+    # path('api/pedidos/cliente/crear/', crear_pedido_cliente, name='crear_pedido_cliente'), # ❌ RONDA 1: Deshabilitado
     
     # ✅ INCLUDES DE APPS
     path('usuarios/', include('app.usuarios.urls')),  # ✅ Para /usuarios/session-login/

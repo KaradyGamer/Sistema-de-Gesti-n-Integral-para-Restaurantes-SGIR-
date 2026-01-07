@@ -315,6 +315,9 @@ def api_procesar_pago_simple(request):
         nuevo_monto_pagado = monto_pagado_anterior + monto_esta_transaccion
         pedido.monto_pagado = nuevo_monto_pagado
 
+        # ✅ RONDA 3C: Actualizar total_pagado para reembolsos
+        pedido.total_pagado = (pedido.total_pagado or Decimal("0.00")) + monto_esta_transaccion
+
         # ✅ NUEVO: Determinar si el pedido está completamente pagado
         pago_completo = nuevo_monto_pagado >= total_final_pedido
 
@@ -324,6 +327,15 @@ def api_procesar_pago_simple(request):
             pedido.fecha_pago = timezone.now()
             pedido.cajero_responsable = request.user
             pedido.forma_pago = metodo_pago
+
+            # ✅ RONDA 3B: Cerrar pedido al completar pago
+            from app.pedidos.utils import validar_transicion_estado
+            try:
+                validar_transicion_estado(pedido.estado, 'cerrado')
+                pedido.estado = 'cerrado'
+                logger.info(f"Pedido #{pedido.id} cerrado automáticamente al completar pago")
+            except ValueError as e:
+                logger.warning(f"No se pudo cerrar pedido #{pedido.id}: {e}")
 
             # Descontar stock solo cuando se paga completo
             descontar_stock_pedido(pedido)
@@ -450,6 +462,19 @@ def api_procesar_pago_mixto(request):
         pedido.cajero_responsable = request.user
         pedido.monto_pagado = total_final
         pedido.forma_pago = 'mixto'
+
+        # ✅ RONDA 3C: Actualizar total_pagado para reembolsos
+        pedido.total_pagado = (pedido.total_pagado or Decimal("0.00")) + total_final
+
+        # ✅ RONDA 3B: Cerrar pedido al completar pago mixto
+        from app.pedidos.utils import validar_transicion_estado
+        try:
+            validar_transicion_estado(pedido.estado, 'cerrado')
+            pedido.estado = 'cerrado'
+            logger.info(f"Pedido #{pedido.id} cerrado automáticamente al completar pago mixto")
+        except ValueError as e:
+            logger.warning(f"No se pudo cerrar pedido #{pedido.id}: {e}")
+
         pedido.save()
 
         # Descontar stock
@@ -1708,3 +1733,152 @@ def api_jornada_finalizar(request):
             'success': False,
             'error': str(e)
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+# ============================================
+# RONDA 3C: REEMBOLSOS
+# ============================================
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def reembolsar_pedido(request, pedido_id):
+    """
+    Procesa un reembolso parcial o total de un pedido.
+
+    Reglas:
+    - Solo pedidos en estado 'cerrado' o 'cancelado'
+    - Requiere autorización de administrador
+    - Motivo obligatorio
+    - Monto no puede exceder saldo reembolsable
+    """
+    from app.pedidos.models import Pedido
+    from app.caja.models import Reembolso
+    from app.caja.utils import saldo_reembolsable
+    from decimal import Decimal
+    from django.utils import timezone
+
+    try:
+        pedido = Pedido.objects.get(id=pedido_id)
+
+        # ✅ Validar estado del pedido
+        if pedido.estado not in ['cerrado', 'cancelado']:
+            return Response(
+                {'error': f'Reembolso no permitido en estado {pedido.estado}'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # ✅ Validar motivo
+        motivo = request.data.get('motivo')
+        if not motivo:
+            return Response(
+                {'error': 'Motivo obligatorio'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # ✅ Validar método
+        metodo = request.data.get('metodo')
+        if metodo not in ['efectivo', 'qr', 'tarjeta', 'movil']:
+            return Response(
+                {'error': 'Método inválido. Opciones: efectivo, qr, tarjeta, movil'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # ✅ Validar monto
+        try:
+            monto = Decimal(str(request.data.get('monto')))
+        except Exception:
+            return Response(
+                {'error': 'Monto inválido'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        if monto <= 0:
+            return Response(
+                {'error': 'Monto debe ser mayor a 0'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # 🔐 AUTORIZACIÓN: Requiere administrador
+        if not request.user.is_superuser:
+            return Response(
+                {'error': 'Requiere autorización de administrador'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        # ✅ Validar saldo disponible
+        saldo = saldo_reembolsable(pedido)
+        if monto > saldo:
+            return Response(
+                {
+                    'error': f'Monto excede saldo reembolsable',
+                    'saldo_disponible': str(saldo),
+                    'monto_solicitado': str(monto)
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # ✅ Crear reembolso
+        reembolso = Reembolso.objects.create(
+            pedido=pedido,
+            monto=monto,
+            metodo=metodo,
+            motivo=motivo,
+            creado_por=request.user,
+            autorizado_por=request.user,
+            codigo_autorizacion=request.data.get('codigo_autorizacion')
+        )
+
+        # ✅ Actualizar acumulados del pedido
+        anterior_reembolsado = pedido.total_reembolsado or Decimal("0.00")
+        pedido.total_reembolsado = anterior_reembolsado + monto
+
+        # ✅ Actualizar estado de reembolso
+        nuevo_saldo = saldo_reembolsable(pedido)
+        if pedido.total_reembolsado == 0:
+            pedido.reembolso_estado = 'none'
+        elif nuevo_saldo == 0:
+            pedido.reembolso_estado = 'total'
+        else:
+            pedido.reembolso_estado = 'parcial'
+
+        pedido.save()
+
+        # ✅ LOGGING DE AUDITORÍA
+        logger.info(
+            f"AUDIT reembolso_creado "
+            f"pedido_id={pedido.id} "
+            f"reembolso_id={reembolso.id} "
+            f"user={request.user.username} "
+            f"user_id={request.user.id} "
+            f"monto={monto} "
+            f"metodo={metodo} "
+            f"reembolsado_antes={anterior_reembolsado} "
+            f"reembolsado_despues={pedido.total_reembolsado} "
+            f"saldo_restante={nuevo_saldo} "
+            f"estado_fin={pedido.reembolso_estado} "
+            f"ts={timezone.now().isoformat()}"
+        )
+
+        return Response({
+            'success': True,
+            'mensaje': f'Reembolso procesado exitosamente',
+            'reembolso_id': reembolso.id,
+            'pedido_id': pedido.id,
+            'monto_reembolsado': str(monto),
+            'total_pagado': str(pedido.total_pagado or Decimal("0.00")),
+            'total_reembolsado': str(pedido.total_reembolsado),
+            'saldo_reembolsable': str(nuevo_saldo),
+            'reembolso_estado': pedido.reembolso_estado,
+        })
+
+    except Pedido.DoesNotExist:
+        return Response(
+            {'error': f'Pedido #{pedido_id} no encontrado'},
+            status=status.HTTP_404_NOT_FOUND
+        )
+
+    except Exception as e:
+        logger.exception(f"Error procesando reembolso para pedido #{pedido_id}: {str(e)}")
+        return Response(
+            {'error': f'Error interno del servidor: {str(e)}'},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
