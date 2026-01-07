@@ -49,11 +49,11 @@ class PedidoModelTestCase(TestCase):
             mesa=self.mesa,
             fecha=timezone.now(),
             forma_pago='efectivo',
-            estado='pendiente',
+            estado=Pedido.ESTADO_CREADO,
             total=Decimal('30.00')
         )
         self.assertEqual(pedido.mesa.numero, 1)
-        self.assertEqual(pedido.estado, 'pendiente')
+        self.assertEqual(pedido.estado, Pedido.ESTADO_CREADO)
         self.assertEqual(pedido.total, Decimal('30.00'))
 
     def test_crear_detalle_pedido(self):
@@ -62,7 +62,7 @@ class PedidoModelTestCase(TestCase):
             mesa=self.mesa,
             fecha=timezone.now(),
             forma_pago='efectivo',
-            estado='pendiente',
+            estado=Pedido.ESTADO_CREADO,
             total=Decimal('30.00')
         )
 
@@ -83,7 +83,7 @@ class PedidoModelTestCase(TestCase):
             mesa=self.mesa,
             fecha=timezone.now(),
             forma_pago='efectivo',
-            estado='pendiente'
+            estado=Pedido.ESTADO_CREADO
         )
 
         # Agregar detalles
@@ -113,14 +113,14 @@ class PedidoModelTestCase(TestCase):
             mesa=self.mesa,
             fecha=timezone.now(),
             forma_pago='efectivo',
-            estado='pendiente',
+            estado=Pedido.ESTADO_CREADO,
             total=Decimal('30.00')
         )
 
         # Cambiar a en preparación
-        pedido.estado = 'en preparacion'
+        pedido.estado = Pedido.ESTADO_EN_PREPARACION
         pedido.save()
-        self.assertEqual(pedido.estado, 'en preparacion')
+        self.assertEqual(pedido.estado, Pedido.ESTADO_EN_PREPARACION)
 
         # Cambiar a listo
         pedido.estado = 'listo'
@@ -203,7 +203,7 @@ class PedidoAPITestCase(TestCase):
             mesa=self.mesa,
             fecha=timezone.now(),
             forma_pago='efectivo',
-            estado='pendiente',
+            estado=Pedido.ESTADO_CREADO,
             total=Decimal('40.00')
         )
 
@@ -211,7 +211,7 @@ class PedidoAPITestCase(TestCase):
         url = reverse('actualizar_estado_pedido', args=[pedido.id])
         response = self.client.patch(
             url,
-            data={'estado': 'en preparacion'},
+            data={'estado': Pedido.ESTADO_EN_PREPARACION},
             content_type='application/json'
         )
 
@@ -240,7 +240,7 @@ class PedidoValidacionTestCase(TestCase):
                 mesa=None,  # Sin mesa
                 fecha=timezone.now(),
                 forma_pago='efectivo',
-                estado='pendiente'
+                estado=Pedido.ESTADO_CREADO
             )
 
     def test_detalle_sin_cantidad_falla(self):
@@ -249,7 +249,7 @@ class PedidoValidacionTestCase(TestCase):
             mesa=self.mesa,
             fecha=timezone.now(),
             forma_pago='efectivo',
-            estado='pendiente',
+            estado=Pedido.ESTADO_CREADO,
             total=Decimal('0.00')
         )
 
@@ -289,9 +289,9 @@ class PedidoIntegracionTestCase(TestCase):
             mesa=self.mesa,
             fecha=timezone.now(),
             forma_pago='efectivo',
-            estado='pendiente'
+            estado=Pedido.ESTADO_CREADO
         )
-        self.assertEqual(pedido.estado, 'pendiente')
+        self.assertEqual(pedido.estado, Pedido.ESTADO_CREADO)
 
         # 2. Agregar productos
         DetallePedido.objects.create(
@@ -305,9 +305,9 @@ class PedidoIntegracionTestCase(TestCase):
         self.assertEqual(pedido.total, Decimal('70.00'))
 
         # 3. Cambiar a en preparación
-        pedido.estado = 'en preparacion'
+        pedido.estado = Pedido.ESTADO_EN_PREPARACION
         pedido.save()
-        self.assertEqual(pedido.estado, 'en preparacion')
+        self.assertEqual(pedido.estado, Pedido.ESTADO_EN_PREPARACION)
 
         # 4. Cambiar a listo
         pedido.estado = 'listo'

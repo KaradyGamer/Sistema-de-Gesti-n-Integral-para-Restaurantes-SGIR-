@@ -647,11 +647,12 @@ def estadisticas_dia_api(request):
         total=Sum('total')
     )['total'] or 0
 
-    # Pedidos por estado
-    pendientes = pedidos_hoy.filter(estado='pendiente').count()
-    en_preparacion = pedidos_hoy.filter(estado='en_preparacion').count()
-    listos = pedidos_hoy.filter(estado='listo').count()
-    entregados = pedidos_hoy.filter(estado='entregado').count()
+    # Pedidos por estado (usando constantes válidas)
+    from app.pedidos.models import Pedido
+    creados = pedidos_hoy.filter(estado=Pedido.ESTADO_CREADO).count()
+    en_preparacion = pedidos_hoy.filter(estado=Pedido.ESTADO_EN_PREPARACION).count()
+    listos = pedidos_hoy.filter(estado=Pedido.ESTADO_LISTO).count()
+    entregados = pedidos_hoy.filter(estado=Pedido.ESTADO_ENTREGADO).count()
 
     # Mesas ocupadas
     mesas_ocupadas = Mesa.objects.filter(estado='ocupada').count()
@@ -665,7 +666,7 @@ def estadisticas_dia_api(request):
             'pedidos_pendientes': pedidos_pendientes,
             'ingresos_totales': float(ingresos_totales),
             'pedidos_por_estado': {
-                'pendientes': pendientes,
+                'creados': creados,  # renombrado de 'pendientes'
                 'en_preparacion': en_preparacion,
                 'listos': listos,
                 'entregados': entregados,

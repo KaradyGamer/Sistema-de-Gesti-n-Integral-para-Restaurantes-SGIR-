@@ -165,7 +165,12 @@ def crear_pedido_cliente_DESHABILITADO(request):
         #  NUEVO: Verificar que no haya pedido activo en la mesa (#3)
         pedido_existente = Pedido.objects.filter(
             mesa=mesa,
-            estado__in=['pendiente', 'en preparacion', 'listo']
+            estado__in=[
+                Pedido.ESTADO_CREADO,
+                Pedido.ESTADO_CONFIRMADO,
+                Pedido.ESTADO_EN_PREPARACION,
+                Pedido.ESTADO_LISTO
+            ]
         ).exists()
 
         if pedido_existente:
@@ -189,12 +194,12 @@ def crear_pedido_cliente_DESHABILITADO(request):
             except Usuario.DoesNotExist:
                 logger.warning(f"Mesero ID {mesero_id} no encontrado")
 
-        #  Crear el pedido con mesero y nmero de personas
+        #  Crear el pedido con mesero y nmero de personas (usando estado válido)
         pedido = Pedido.objects.create(
             mesa=mesa,
             fecha=timezone.now(),
             forma_pago=forma_pago,
-            estado='pendiente',
+            estado=Pedido.ESTADO_CREADO,  # FIX: 'pendiente' → ESTADO_CREADO
             mesero_comanda=mesero,
             numero_personas=numero_personas
         )
@@ -363,7 +368,12 @@ def mapa_mesas_mesero(request):
         if mesa.estado in ['ocupada', 'pagando']:
             pedido = Pedido.objects.filter(
                 mesa=mesa,
-                estado__in=['pendiente', 'en preparacion', 'listo']
+                estado__in=[
+                    Pedido.ESTADO_CREADO,
+                    Pedido.ESTADO_CONFIRMADO,
+                    Pedido.ESTADO_EN_PREPARACION,
+                    Pedido.ESTADO_LISTO
+                ]
             ).first()
 
             if pedido:
@@ -818,7 +828,11 @@ def pedidos_en_cocina_api(request):
         #  CORREGIDO: Solo mostrar pedidos que el cocinero necesita trabajar
         # Excluir 'listo' y 'entregado' porque ya no son responsabilidad del cocinero
         pedidos = Pedido.objects.filter(
-            estado__in=['pendiente', 'en preparacion']  #  SOLO ESTOS ESTADOS
+            estado__in=[
+                Pedido.ESTADO_CREADO,
+                Pedido.ESTADO_CONFIRMADO,
+                Pedido.ESTADO_EN_PREPARACION
+            ]  #  SOLO ESTOS ESTADOS
         ).order_by('-fecha')
         
         logger.info(f" Pedidos encontrados para cocina: {pedidos.count()}")
@@ -1020,12 +1034,20 @@ def pedidos_por_mesa(request):
 @api_view(['PATCH'])
 @permission_classes([IsAuthenticated])  #  Temporalmente sin EsMesero
 def marcar_entregado(request, pedido_id):
-    """Marcar pedido como entregado"""
+    """Marcar pedido como entregado - LEGACY: usar api_entregar_pedido (L613) en su lugar"""
     try:
         logger.info(f" Marcando pedido {pedido_id} como entregado, usuario: {request.user}")
-        
+
         pedido = Pedido.objects.get(id=pedido_id)
-        pedido.estado = 'entregado'
+
+        # ✅ RONDA 2 HARDENING: Validar transición de estado
+        from app.pedidos.utils import validar_transicion_estado
+        try:
+            validar_transicion_estado(pedido.estado, Pedido.ESTADO_ENTREGADO)
+        except ValueError as e:
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+        pedido.estado = Pedido.ESTADO_ENTREGADO
         pedido.save()
         
         logger.info(f" Pedido {pedido_id} marcado como entregado")

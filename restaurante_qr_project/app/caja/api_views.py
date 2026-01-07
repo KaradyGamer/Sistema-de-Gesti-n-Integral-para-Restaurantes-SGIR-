@@ -1417,12 +1417,13 @@ def api_pedidos_kanban(request):
     Estados: pedido, preparando, listo, entregado
     """
     try:
-        # Mapeo de estados del modelo a estados del Kanban
+        # Mapeo de estados del modelo a estados del Kanban (usando constantes válidas)
         mapeo_estados = {
-            'pendiente': 'pedido',
-            'en preparacion': 'preparando',
-            'listo': 'listo',
-            'entregado': 'entregado'
+            Pedido.ESTADO_CREADO: 'pedido',
+            Pedido.ESTADO_CONFIRMADO: 'pedido',  # confirmado también va a columna "pedido"
+            Pedido.ESTADO_EN_PREPARACION: 'preparando',
+            Pedido.ESTADO_LISTO: 'listo',
+            Pedido.ESTADO_ENTREGADO: 'entregado'
         }
 
         # Inicializar respuesta

@@ -33,8 +33,16 @@ def datos_ventas_semanales(request):
         logger.info(f"📊 Inicio semana: {inicio_semana}")
         logger.info(f"📊 Fin semana: {fin_semana}")
         
-        # ✅ SOLUCIONADO: Incluir TODOS los pedidos (no solo entregados)
-        estados_ventas = ['pendiente', 'en preparacion', 'listo', 'entregado']
+        # ✅ SOLUCIONADO: Incluir TODOS los pedidos no-cancelados (usando constantes válidas)
+        from app.pedidos.models import Pedido as PedidoModel
+        estados_ventas = [
+            PedidoModel.ESTADO_CREADO,
+            PedidoModel.ESTADO_CONFIRMADO,
+            PedidoModel.ESTADO_EN_PREPARACION,
+            PedidoModel.ESTADO_LISTO,
+            PedidoModel.ESTADO_ENTREGADO,
+            PedidoModel.ESTADO_CERRADO  # cerrado también cuenta como venta
+        ]
         
         # Debug: Contar todos los pedidos
         total_pedidos_bd = Pedido.objects.all().count()
@@ -104,8 +112,16 @@ def datos_productos_top(request):
         
         logger.info(f"📊 PRODUCTOS TOP - Inicio semana: {inicio_semana}")
         
-        # ✅ SOLUCIONADO: Incluir todos los estados de ventas
-        estados_ventas = ['pendiente', 'en preparacion', 'listo', 'entregado']
+        # ✅ SOLUCIONADO: Incluir todos los estados de ventas (usando constantes válidas)
+        from app.pedidos.models import Pedido as PedidoModel
+        estados_ventas = [
+            PedidoModel.ESTADO_CREADO,
+            PedidoModel.ESTADO_CONFIRMADO,
+            PedidoModel.ESTADO_EN_PREPARACION,
+            PedidoModel.ESTADO_LISTO,
+            PedidoModel.ESTADO_ENTREGADO,
+            PedidoModel.ESTADO_CERRADO
+        ]
         
         productos_top = DetallePedido.objects.filter(
             pedido__fecha__date__gte=inicio_semana,
@@ -148,8 +164,16 @@ def generar_reporte_pdf(request):
         dias_desde_lunes = hoy.weekday()
         inicio_semana = hoy - timedelta(days=dias_desde_lunes)
 
-        # ✅ SOLUCIONADO: Incluir todos los estados de ventas
-        estados_ventas = ['pendiente', 'en preparacion', 'listo', 'entregado']
+        # ✅ SOLUCIONADO: Incluir todos los estados de ventas (usando constantes válidas)
+        from app.pedidos.models import Pedido as PedidoModel
+        estados_ventas = [
+            PedidoModel.ESTADO_CREADO,
+            PedidoModel.ESTADO_CONFIRMADO,
+            PedidoModel.ESTADO_EN_PREPARACION,
+            PedidoModel.ESTADO_LISTO,
+            PedidoModel.ESTADO_ENTREGADO,
+            PedidoModel.ESTADO_CERRADO
+        ]
         
         ventas = DetallePedido.objects.filter(
             pedido__fecha__date__gte=inicio_semana,

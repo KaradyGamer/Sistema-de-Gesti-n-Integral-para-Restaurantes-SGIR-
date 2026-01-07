@@ -37,7 +37,7 @@ class PedidoCreationTestCase(TestCase):
         # Crear pedido
         pedido = Pedido.objects.create(
             mesa=self.mesa,
-            estado='pendiente'
+            estado=Pedido.ESTADO_CREADO
         )
 
         # Agregar detalle
@@ -56,7 +56,7 @@ class PedidoCreationTestCase(TestCase):
         self.assertEqual(self.producto.stock_actual, 48)
 
         # Verificar pedido
-        self.assertEqual(pedido.estado, 'pendiente')
+        self.assertEqual(pedido.estado, Pedido.ESTADO_CREADO)
         self.assertEqual(pedido.detalles.count(), 1)
 
     def test_crear_pedido_stock_insuficiente(self):
@@ -83,7 +83,7 @@ class PedidoCreationTestCase(TestCase):
         )
 
         # Crear pedido
-        pedido = Pedido.objects.create(mesa=self.mesa, estado='pendiente')
+        pedido = Pedido.objects.create(mesa=self.mesa, estado=Pedido.ESTADO_CREADO)
         DetallePedido.objects.create(
             pedido=pedido,
             producto=producto_servicio,
@@ -108,7 +108,7 @@ class PedidoCreationTestCase(TestCase):
         with self.assertRaises(Exception):
             Pedido.objects.create(
                 mesa_id=9999,  # Mesa inexistente
-                estado='pendiente'
+                estado=Pedido.ESTADO_CREADO
             )
 
 
@@ -129,7 +129,7 @@ class PedidoEstadosTestCase(TestCase):
     def test_flujo_completo_pedido(self):
         """✅ Flujo: pendiente → en_preparacion → listo → entregado"""
         # Crear pedido
-        pedido = Pedido.objects.create(mesa=self.mesa, estado='pendiente')
+        pedido = Pedido.objects.create(mesa=self.mesa, estado=Pedido.ESTADO_CREADO)
         DetallePedido.objects.create(
             pedido=pedido,
             producto=self.producto,

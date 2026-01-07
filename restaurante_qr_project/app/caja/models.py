@@ -150,9 +150,15 @@ class CierreCaja(models.Model):
         from app.pedidos.models import Pedido
         from django.core.exceptions import ValidationError
 
-        # ✅ NUEVO: Validar que no haya pedidos pendientes
+        # ✅ NUEVO: Validar que no haya pedidos pendientes (usando constantes válidas)
         pedidos_pendientes = Pedido.objects.filter(
-            estado__in=['pendiente', 'en preparacion', 'listo', 'entregado', 'solicitando_cuenta']
+            estado__in=[
+                Pedido.ESTADO_CREADO,
+                Pedido.ESTADO_CONFIRMADO,
+                Pedido.ESTADO_EN_PREPARACION,
+                Pedido.ESTADO_LISTO,
+                Pedido.ESTADO_ENTREGADO
+            ]
         ).count()
 
         if pedidos_pendientes > 0:

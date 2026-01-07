@@ -183,9 +183,9 @@ def adminux_dashboard(request):
         },
         "pedidos": {
             "total": Pedido.objects.count() if Pedido else 0,
-            "pendientes": safe_count(Pedido.objects, estado="pendiente") if Pedido else 0,
-            "en_cocina": safe_count(Pedido.objects, estado__in=["en_preparacion", "en_cocina"]) if Pedido else 0,
-            "listos": safe_count(Pedido.objects, estado="listo") if Pedido else 0,
+            "pendientes": safe_count(Pedido.objects, estado=Pedido.ESTADO_CREADO) if Pedido else 0,
+            "en_cocina": safe_count(Pedido.objects, estado__in=[Pedido.ESTADO_EN_PREPARACION]) if Pedido else 0,
+            "listos": safe_count(Pedido.objects, estado=Pedido.ESTADO_LISTO) if Pedido else 0,
             "admin_list": admin_url_for(Pedido),
             "admin_add": admin_url_for(Pedido, "add"),
         },
