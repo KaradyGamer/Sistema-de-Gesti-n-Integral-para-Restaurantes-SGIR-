@@ -1517,19 +1517,22 @@ def api_pedidos_kanban(request):
 def api_cambiar_estado_pedido(request, pedido_id):
     """
     Cambia el estado de un pedido en el tablero Kanban
-    ✅ FLUJO UNIDIRECCIONAL: Solo permite avanzar, nunca retroceder
+    ✅ RONDA 2 HARDENING: Usa validación central de transiciones
     """
     try:
+        from app.pedidos.utils import validar_transicion_estado
+        from app.pedidos.models import Pedido
+
         pedido = get_object_or_404(Pedido, id=pedido_id)
 
         nuevo_estado_kanban = request.data.get('estado')
 
-        # Mapeo inverso: de estado Kanban a estado del modelo
+        # Mapeo inverso: de estado Kanban a estado del modelo (CORREGIDO)
         mapeo_kanban_a_modelo = {
-            'pedido': 'pendiente',
-            'preparando': 'en preparacion',
-            'listo': 'listo',
-            'entregado': 'entregado'
+            'pedido': Pedido.ESTADO_CREADO,              # FIX: antes 'pendiente'
+            'preparando': Pedido.ESTADO_EN_PREPARACION,  # FIX: antes 'en preparacion'
+            'listo': Pedido.ESTADO_LISTO,
+            'entregado': Pedido.ESTADO_ENTREGADO
         }
 
         nuevo_estado_modelo = mapeo_kanban_a_modelo.get(nuevo_estado_kanban)
@@ -1537,31 +1540,28 @@ def api_cambiar_estado_pedido(request, pedido_id):
         if not nuevo_estado_modelo:
             return Response({
                 'success': False,
-                'error': 'Estado inválido'
+                'error': 'Estado kanban inválido'
             }, status=status.HTTP_400_BAD_REQUEST)
 
-        # ✅ NUEVO: Validar flujo unidireccional (no permitir retroceso)
-        orden_estados = ['pendiente', 'en preparacion', 'listo', 'entregado']
-        estado_actual_index = orden_estados.index(pedido.estado) if pedido.estado in orden_estados else 0
-        nuevo_estado_index = orden_estados.index(nuevo_estado_modelo)
-
-        if nuevo_estado_index < estado_actual_index:
+        # ✅ RONDA 2: VALIDACIÓN CENTRAL (reemplaza validación custom)
+        estado_anterior = pedido.estado
+        try:
+            validar_transicion_estado(pedido.estado, nuevo_estado_modelo)
+        except ValueError as e:
             return Response({
                 'success': False,
-                'error': f'No se puede retroceder el estado. El pedido ya está en "{pedido.get_estado_display()}"'
+                'error': str(e)
             }, status=status.HTTP_400_BAD_REQUEST)
 
         # Actualizar estado
-        estado_anterior = pedido.estado
         pedido.estado = nuevo_estado_modelo
 
         # ✅ NUEVO: Si se marca como entregado, guardar timestamp para congelar el timer
-        if nuevo_estado_modelo == 'entregado':
-            # Guardar fecha_pago como timestamp de entrega (para congelar timer)
+        if nuevo_estado_modelo == Pedido.ESTADO_ENTREGADO:
             if not pedido.fecha_pago:
                 pedido.fecha_pago = timezone.now()
 
-        pedido.save()
+        pedido.save(update_fields=['estado', 'fecha_pago'])
 
         return Response({
             'success': True,

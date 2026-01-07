@@ -10,14 +10,15 @@ logger = logging.getLogger('app.pedidos')
 
 
 # ✅ RONDA 2: MÁQUINA DE ESTADOS - Transiciones válidas
+# ✅ RONDA 3A: Permite cancelación desde 'confirmado' (además de 'creado')
 TRANSICIONES_VALIDAS = {
     'creado': ['confirmado', 'cancelado'],
-    'confirmado': ['en_preparacion'],
+    'confirmado': ['en_preparacion', 'cancelado'],  # HARDENING: permite cancelar después de confirmar
     'en_preparacion': ['listo'],
     'listo': ['entregado'],
     'entregado': ['cerrado'],
-    'cancelado': [],
-    'cerrado': [],
+    'cancelado': [],  # Estado final
+    'cerrado': [],    # Estado final
 }
 
 
