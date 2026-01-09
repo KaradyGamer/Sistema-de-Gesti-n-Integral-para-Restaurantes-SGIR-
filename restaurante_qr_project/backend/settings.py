@@ -307,7 +307,7 @@ LOGGING = {
     },
     'handlers': {
         'console': {
-            'level': 'INFO',
+            'level': 'WARNING',  # ✅ Reducir ruido en logs (solo warnings/errores)
             'class': 'logging.StreamHandler',
             'formatter': 'simple',
         },
@@ -335,7 +335,7 @@ LOGGING = {
     'loggers': {
         'django': {
             'handlers': ['console', 'file'],
-            'level': 'INFO',
+            'level': 'WARNING',  # ✅ Reducir ruido en logs (solo warnings/errores)
             'propagate': False,
         },
         'django.request': {
