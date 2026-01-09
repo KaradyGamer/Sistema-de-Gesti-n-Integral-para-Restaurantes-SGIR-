@@ -1,3 +1,16 @@
+"""
+Modelos del módulo de Inventario.
+
+Gestiona el control de stock de insumos y recetas de productos:
+- Categorías de insumos (Carnes, Verduras, Lácteos, etc.)
+- Insumos con stock mín/máx y alertas automáticas
+- Movimientos de inventario (entradas/salidas) con auditoría
+- Recetas de productos (ingredientes + cantidades)
+- Integración con Pedidos para descuento automático de stock
+
+IMPORTANTE: Los movimientos de stock deben registrarse en transacciones atómicas
+para garantizar consistencia con los pedidos.
+"""
 from django.db import models
 from django.core.validators import MinValueValidator
 from django.conf import settings

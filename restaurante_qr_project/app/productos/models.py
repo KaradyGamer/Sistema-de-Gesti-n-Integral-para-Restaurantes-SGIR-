@@ -1,3 +1,16 @@
+"""
+Modelos del módulo de Productos.
+
+Gestiona el catálogo de productos del restaurante:
+- Categorías de productos (Bebidas, Comidas, Postres, etc.)
+- Productos con precios, imágenes y disponibilidad
+- Soft delete para mantener historial de productos descontinuados
+- Integración con Inventario mediante recetas
+- Control de disponibilidad en tiempo real
+
+IMPORTANTE: Los productos pueden tener recetas asociadas (Inventario)
+que se usan para descontar stock automáticamente al confirmar pedidos.
+"""
 from django.db import models
 from django.db.models import F
 from django.core.validators import MinValueValidator

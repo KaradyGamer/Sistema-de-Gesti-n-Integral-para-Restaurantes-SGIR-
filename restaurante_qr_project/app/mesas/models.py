@@ -1,3 +1,16 @@
+"""
+Modelos del módulo de Mesas.
+
+Gestiona las mesas del restaurante y su distribución:
+- Control de estado (disponible, ocupada, reservada, inactiva)
+- Capacidad y combinación de mesas
+- QR codes únicos para cada mesa (cliente escanea para ver menú)
+- Soft delete (activo/inactivo) para mantener historial
+- Posicionamiento en plano (x, y) para mapa visual
+
+IMPORTANTE: Cada mesa tiene un QR único que se genera automáticamente.
+Los clientes escanean el QR para acceder al menú digital.
+"""
 import qrcode
 import logging
 from io import BytesIO

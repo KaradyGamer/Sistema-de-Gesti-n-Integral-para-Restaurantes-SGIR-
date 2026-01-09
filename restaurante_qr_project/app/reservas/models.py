@@ -1,3 +1,16 @@
+"""
+Modelos del módulo de Reservas.
+
+Gestiona las reservas de mesas del restaurante:
+- Estados: pendiente, confirmada, en_progreso, completada, cancelada, no_presentado
+- Validaciones de disponibilidad (no solapar reservas)
+- Asignación automática de mesas según capacidad
+- Control de vigencia (no permitir reservas pasadas)
+- Integración con Mesas y Pedidos
+
+IMPORTANTE: Las reservas tienen ventana de tolerancia (15 min) y se marcan
+automáticamente como no_presentado si no se confirma a tiempo.
+"""
 from django.db import models
 from django.core.validators import MinValueValidator
 from app.mesas.models import Mesa

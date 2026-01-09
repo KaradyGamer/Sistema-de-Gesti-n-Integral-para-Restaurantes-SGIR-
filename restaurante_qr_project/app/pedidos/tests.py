@@ -164,8 +164,8 @@ class PedidoAPITestCase(TestCase):
         )
 
     def test_crear_pedido_cliente_api(self):
-        """Test: Crear pedido desde API del cliente"""
-        url = reverse('crear_pedido_cliente')  # Asegúrate de que esta URL exista
+        """Test: API de creación de pedidos cliente está DESHABILITADA por seguridad"""
+        url = reverse('crear_pedido_deshabilitado')  # API deshabilitada desde 2026-01-04
         data = {
             'mesa_id': self.mesa.numero,
             'productos': [
@@ -178,23 +178,19 @@ class PedidoAPITestCase(TestCase):
             'total': 80.00
         }
 
-        # Nota: Esta API permite acceso sin autenticación (AllowAny)
+        # Verificar que la API está deshabilitada (404 Not Found)
         response = self.client.post(
             url,
             data=data,
             content_type='application/json'
         )
 
-        # Verificar respuesta exitosa
-        self.assertEqual(response.status_code, 201)
-        response_data = response.json()
-        self.assertTrue(response_data.get('success'))
-        self.assertEqual(response_data.get('mesa'), self.mesa.numero)
+        # La API debe devolver 404 o 403 para prevenir spam/DoS
+        self.assertIn(response.status_code, [403, 404])
 
-        # Verificar que se creó el pedido
+        # Verificar que NO se creó ningún pedido
         pedido = Pedido.objects.filter(mesa=self.mesa).first()
-        self.assertIsNotNone(pedido)
-        self.assertEqual(pedido.total, Decimal('80.00'))
+        self.assertIsNone(pedido)
 
     def test_actualizar_estado_pedido_autenticado(self):
         """Test: Actualizar estado de pedido requiere autenticación"""
@@ -322,3 +318,62 @@ class PedidoIntegracionTestCase(TestCase):
         # Verificar que el pedido tiene todos los datos correctos
         self.assertEqual(pedido.detalles.count(), 1)
         self.assertEqual(pedido.mesa.numero, 5)
+
+
+class PedidoMaquinaEstadosTestCase(TestCase):
+    """Tests para máquina de estados estricta"""
+
+    def test_transiciones_validas_definidas(self):
+        """Verifica que TRANSICIONES_VALIDAS esté definido"""
+        self.assertIsNotNone(Pedido.TRANSICIONES_VALIDAS)
+        self.assertIn(Pedido.ESTADO_CREADO, Pedido.TRANSICIONES_VALIDAS)
+
+    def test_estados_terminales_sin_transiciones(self):
+        """Verifica que estados terminales no permitan transiciones"""
+        self.assertEqual(Pedido.TRANSICIONES_VALIDAS[Pedido.ESTADO_CANCELADO], [])
+        self.assertEqual(Pedido.TRANSICIONES_VALIDAS[Pedido.ESTADO_CERRADO], [])
+
+    def test_transicion_creado_a_confirmado_valida(self):
+        """Verifica que creado -> confirmado es válido"""
+        self.assertIn(Pedido.ESTADO_CONFIRMADO, Pedido.TRANSICIONES_VALIDAS[Pedido.ESTADO_CREADO])
+
+    def test_transicion_cerrado_a_cancelado_invalida(self):
+        """Verifica que NO se puede cancelar un pedido cerrado"""
+        self.assertNotIn(Pedido.ESTADO_CANCELADO, Pedido.TRANSICIONES_VALIDAS[Pedido.ESTADO_CERRADO])
+
+    def test_metodo_puede_cambiar_a_estado(self):
+        """Verifica que el método puede_cambiar_a_estado funciona"""
+        mesa = Mesa.objects.create(numero=1, capacidad=4)
+        pedido = Pedido.objects.create(
+            mesa=mesa,
+            fecha=timezone.now(),
+            estado=Pedido.ESTADO_CREADO
+        )
+
+        # Transición válida
+        self.assertTrue(pedido.puede_cambiar_a_estado(Pedido.ESTADO_CONFIRMADO))
+
+        # Transición inválida (no se puede ir directo a cerrado desde creado)
+        self.assertFalse(pedido.puede_cambiar_a_estado(Pedido.ESTADO_CERRADO))
+
+
+class PedidoTransaccionAtomicaTestCase(TestCase):
+    """Tests para verificar transacciones atómicas"""
+
+    def test_metodo_confirmar_tiene_transaction_atomic(self):
+        """Verifica que confirmar() tiene decorator @transaction.atomic"""
+        import inspect
+        confirmar_source = inspect.getsource(Pedido.confirmar)
+        self.assertIn('transaction.atomic', confirmar_source)
+
+    def test_metodo_registrar_pago_tiene_transaction_atomic(self):
+        """Verifica que registrar_pago() tiene decorator @transaction.atomic"""
+        import inspect
+        registrar_pago_source = inspect.getsource(Pedido.registrar_pago)
+        self.assertIn('transaction.atomic', registrar_pago_source)
+
+    def test_metodo_cerrar_pedido_tiene_transaction_atomic(self):
+        """Verifica que cerrar_pedido() tiene decorator @transaction.atomic"""
+        import inspect
+        cerrar_pedido_source = inspect.getsource(Pedido.cerrar_pedido)
+        self.assertIn('transaction.atomic', cerrar_pedido_source)

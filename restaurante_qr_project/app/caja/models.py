@@ -12,9 +12,10 @@ Este módulo gestiona todo el sistema de caja del restaurante:
 CRÍTICO: Este módulo es el núcleo financiero del sistema.
 NO modificar sin validación exhaustiva de lógica de negocio.
 """
-from django.db import models
+from django.db import models, transaction
 from django.utils import timezone
 from django.core.validators import MinValueValidator
+from django.core.exceptions import ValidationError
 from decimal import Decimal
 import logging
 
@@ -484,7 +485,7 @@ class JornadaLaboral(models.Model):
         """
         return cls.objects.filter(estado='activa').exists()
 
-    def finalizar(self, usuario, observaciones=None):
+    def finalizar(self, usuario, observaciones=None, forzar=False):
         """
         Finaliza la jornada laboral del día.
 
@@ -497,15 +498,15 @@ class JornadaLaboral(models.Model):
         Args:
             usuario (Usuario): Usuario que finaliza la jornada
             observaciones (str, optional): Notas del cierre
+            forzar (bool, optional): Si True, permite cerrar incluso con pedidos pendientes (SOLO EMERGENCIAS)
 
         Raises:
-            ValidationError: Si hay pedidos pendientes de pago
+            ValidationError: Si hay pedidos pendientes de pago y forzar=False
 
         CRÍTICO: Esta validación previene que se cierre el restaurante
         con deudas pendientes. NO eliminar la validación.
         """
         from app.pedidos.models import Pedido
-        from django.core.exceptions import ValidationError
 
         # ✅ CORREGIDO: Validar por estado_pago (no por estado de comanda)
         # Solo impide finalizar si hay pedidos sin pagar (pendiente o parcial)
@@ -515,7 +516,7 @@ class JornadaLaboral(models.Model):
             estado='cancelado'
         )
 
-        if pedidos_pendientes.exists():
+        if pedidos_pendientes.exists() and not forzar:
             # Generar lista detallada de pedidos pendientes
             lista_pedidos = ', '.join([
                 f"Pedido #{p.id} (Mesa {p.mesa.numero if p.mesa else 'N/A'}) - Bs/ {p.total_final or p.total}"
@@ -533,7 +534,47 @@ class JornadaLaboral(models.Model):
         self.finalizado_por = usuario
         if observaciones:
             self.observaciones_cierre = observaciones
+        if forzar and pedidos_pendientes.exists():
+            self.observaciones_cierre = f"{observaciones or ''}\n\n[CIERRE FORZADO] Con {pedidos_pendientes.count()} pedido(s) pendiente(s)"
         self.save()
+
+    @classmethod
+    @transaction.atomic
+    def recuperar_jornada_zombie(cls, usuario_autorizador):
+        """
+        Cierra forzadamente jornadas activas antiguas (modo recuperación).
+
+        Uso: Solo en emergencias cuando una jornada queda "zombie" y bloquea el sistema.
+
+        Args:
+            usuario_autorizador (Usuario): Usuario con permisos de gerente/admin
+
+        Returns:
+            int: Número de jornadas cerradas
+
+        Raises:
+            ValidationError: Si el usuario no tiene permisos
+        """
+        if not usuario_autorizador.is_staff and not hasattr(usuario_autorizador, 'rol'):
+            raise ValidationError("Solo gerentes o administradores pueden recuperar jornadas zombie")
+
+        # Buscar jornadas activas con más de 24 horas
+        hace_24h = timezone.now() - timezone.timedelta(hours=24)
+        jornadas_zombie = cls.objects.filter(
+            estado='activa',
+            hora_inicio__lt=hace_24h
+        )
+
+        count = jornadas_zombie.count()
+        for jornada in jornadas_zombie:
+            jornada.finalizar(
+                usuario=usuario_autorizador,
+                observaciones="[RECUPERACIÓN AUTOMÁTICA] Jornada zombie cerrada por sistema",
+                forzar=True
+            )
+
+        logger.warning(f"Recuperadas {count} jornada(s) zombie por {usuario_autorizador.username}")
+        return count
 
 class Reembolso(models.Model):
     """
@@ -559,6 +600,12 @@ class Reembolso(models.Model):
     CRÍTICO: Los reembolsos son IRREVERSIBLES. Validar bien antes de crear.
     Siempre requieren autorización de nivel gerente o superior.
     """
+    ESTADO_CHOICES = [
+        ('pendiente', 'Pendiente de Autorización'),
+        ('aprobado', 'Aprobado'),
+        ('rechazado', 'Rechazado'),
+    ]
+
     METODO_CHOICES = [
         ('efectivo', 'Efectivo'),
         ('qr', 'Código QR'),
@@ -586,6 +633,12 @@ class Reembolso(models.Model):
     )
 
     # Datos del reembolso
+    estado = models.CharField(
+        max_length=20,
+        choices=ESTADO_CHOICES,
+        default='pendiente',
+        help_text='Estado del reembolso'
+    )
     monto = models.DecimalField(
         max_digits=10,
         decimal_places=2,
@@ -602,6 +655,7 @@ class Reembolso(models.Model):
 
     # Timestamps
     creado_en = models.DateTimeField(auto_now_add=True)
+    autorizado_en = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         verbose_name = 'Reembolso'
@@ -609,4 +663,65 @@ class Reembolso(models.Model):
         ordering = ['-creado_en']
 
     def __str__(self):
-        return f"Reembolso #{self.id} - Pedido #{self.pedido.id} - Bs/ {self.monto}"
+        return f"Reembolso #{self.id} - Pedido #{self.pedido.id} - Bs/ {self.monto} - {self.get_estado_display()}"
+
+    @transaction.atomic
+    def aprobar(self, autorizador, codigo_autorizacion):
+        """
+        Aprueba el reembolso con autorización de gerente.
+
+        Args:
+            autorizador (Usuario): Usuario con permisos de gerente/admin
+            codigo_autorizacion (str): Código PIN o token de autorización
+
+        Raises:
+            ValidationError: Si el usuario no tiene permisos o el código es inválido
+        """
+        if self.estado != 'pendiente':
+            raise ValidationError(f"No se puede aprobar un reembolso en estado '{self.get_estado_display()}'")
+
+        # Validar permisos del autorizador
+        if not autorizador.is_staff and not autorizador.rol in ['gerente', 'admin']:
+            raise ValidationError("Solo gerentes o administradores pueden autorizar reembolsos")
+
+        if not codigo_autorizacion:
+            raise ValidationError("Se requiere código de autorización")
+
+        self.estado = 'aprobado'
+        self.autorizado_por = autorizador
+        self.codigo_autorizacion = codigo_autorizacion
+        self.autorizado_en = timezone.now()
+        self.save()
+
+        # Actualizar el pedido
+        self.pedido.total_reembolsado += self.monto
+        if self.pedido.total_reembolsado >= self.pedido.total_pagado:
+            self.pedido.reembolso_estado = 'total'
+        else:
+            self.pedido.reembolso_estado = 'parcial'
+        self.pedido.save()
+
+    @transaction.atomic
+    def rechazar(self, autorizador, motivo_rechazo):
+        """
+        Rechaza el reembolso.
+
+        Args:
+            autorizador (Usuario): Usuario con permisos de gerente/admin
+            motivo_rechazo (str): Motivo del rechazo
+
+        Raises:
+            ValidationError: Si el usuario no tiene permisos
+        """
+        if self.estado != 'pendiente':
+            raise ValidationError(f"No se puede rechazar un reembolso en estado '{self.get_estado_display()}'")
+
+        # Validar permisos del autorizador
+        if not autorizador.is_staff and not autorizador.rol in ['gerente', 'admin']:
+            raise ValidationError("Solo gerentes o administradores pueden rechazar reembolsos")
+
+        self.estado = 'rechazado'
+        self.autorizado_por = autorizador
+        self.motivo += f"\n\nMOTIVO DE RECHAZO: {motivo_rechazo}"
+        self.autorizado_en = timezone.now()
+        self.save()

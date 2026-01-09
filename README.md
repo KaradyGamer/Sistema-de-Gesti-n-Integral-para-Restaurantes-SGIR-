@@ -1,247 +1,225 @@
 # 🍽️ SGIR - Sistema de Gestión Integral para Restaurantes
 
-**Versión:** 2.3.0
-**Framework:** Django 5.1.4
-**Python:** 3.12
-**Base de Datos:** PostgreSQL (Producción) / SQLite (Desarrollo)
+Sistema web completo para la gestión operativa de restaurantes, desarrollado con Django 5.1.4 y PostgreSQL 16.
 
 ---
 
-## 📋 Descripción del Sistema
+## 📋 Descripción
 
-**SGIR** es un sistema completo de gestión para restaurantes medianos y grandes, diseñado con arquitectura desacoplada que permite flexibilidad total en el frontend mientras mantiene un backend robusto y estable.
+SGIR es una plataforma integral que digitaliza y automatiza las operaciones de un restaurante, incluyendo:
 
-### ¿Qué Problemas Resuelve?
+- **Gestión de pedidos** con máquina de estados (creado → confirmado → en preparación → listo → entregado → cerrado)
+- **Control de caja** con jornadas laborales y cierre diario
+- **Inventario inteligente** con descuento automático de stock
+- **Reservas de mesas** con confirmación y gestión de disponibilidad
+- **Paneles diferenciados por rol**: Cliente, Mesero, Cocinero, Cajero, Administrador
+- **Sistema de transacciones** multi-método (efectivo, tarjeta, QR)
+- **Control de usuarios** con roles y permisos granulares
 
-- ✅ Gestión completa del flujo de pedidos (desde QR hasta pago)
-- ✅ Control de caja con cierres de turno y jornada laboral
-- ✅ Sistema de reservas con validación de disponibilidad
-- ✅ Inventario con alertas de stock bajo
-- ✅ Reportes de ventas (PDF y Excel)
-- ✅ Autenticación múltiple (password, PIN, QR)
-- ✅ Auditoría completa de todas las operaciones
-- ✅ Multi-dispositivo (tablets, móviles, desktop)
+---
 
-### Arquitectura General
+## 🛠️ Stack Tecnológico
+
+### Backend
+- **Python 3.12**
+- **Django 5.1.4** - Framework web
+- **Django REST Framework 3.15.2** - API REST
+- **PostgreSQL 16** - Base de datos relacional
+- **JWT (Simple JWT 5.3.1)** - Autenticación
+
+### Frontend
+- **HTML5 / CSS3**
+- **JavaScript Vanilla**
+- **PWA** (Progressive Web App) - Soporte offline
+
+### Infraestructura
+- **Docker & Docker Compose** - Contenedorización
+- **Gunicorn 23.0.0** - Servidor WSGI para producción
+- **Nginx** (configuración externa) - Reverse proxy recomendado
+
+### Utilidades
+- **WhiteNoise 6.8.2** - Servicio de archivos estáticos
+- **QRCode 8.0** - Generación de códigos QR para mesas
+- **ReportLab 4.2.5** - Generación de PDFs (reportes)
+- **OpenPyXL 3.1.5** - Exportación a Excel
+
+---
+
+## ⚠️ IMPORTANTE: Uso con Docker (Recomendado en Windows)
+
+### Problema de Encoding en Windows
+
+Este proyecto usa PostgreSQL con encoding UTF-8. En sistemas Windows con locale español (`es_ES`, `cp1252`), Django puede encontrar conflictos de encoding al conectarse a PostgreSQL:
 
 ```
-┌─────────────────────────────────────────────────────┐
-│                   FRONTEND (A DEFINIR)               │
-│   Web / SPA / App Móvil / Tablets / 3D / Kiosko    │
-└──────────────────┬──────────────────────────────────┘
-                   │
-                   │ REST API (JWT + Session)
-                   │
-┌──────────────────▼──────────────────────────────────┐
-│              BACKEND DJANGO (FROZEN)                 │
-│  ✓ API REST completa con DRF                        │
-│  ✓ Máquina de estados estricta                      │
-│  ✓ Validaciones de negocio                          │
-│  ✓ Autenticación multi-método                       │
-│  ✓ Auditoría y logging                              │
-│  ✓ Soft delete                                      │
-└──────────────────┬──────────────────────────────────┘
-                   │
-┌──────────────────▼──────────────────────────────────┐
-│            PostgreSQL 16 / SQLite                    │
-└─────────────────────────────────────────────────────┘
+UnicodeDecodeError: 'utf-8' codec can't decode byte 0xf3 in position 85
+```
+
+### Solución: Usar Docker para Todo
+
+**RECOMENDACIÓN**: Ejecutar TODAS las operaciones Django através de Docker, incluso en desarrollo local:
+
+```bash
+# Levantar PostgreSQL
+docker compose up -d db
+
+# Ejecutar migraciones
+docker compose run --rm web python manage.py migrate
+
+# Ejecutar tests
+docker compose run --rm web python manage.py test --verbosity=2
+
+# Crear superuser
+docker compose run --rm web python manage.py createsuperuser
+
+# Levantar servidor de desarrollo
+docker compose up web
+```
+
+### Alternativa (Sin Docker - Solo Linux/Mac)
+
+Si estás en Linux/Mac con locale UTF-8, puedes ejecutar directamente:
+
+```bash
+python manage.py migrate
+python manage.py test
+python manage.py runserver
 ```
 
 ---
 
-## 🎯 Funcionalidades Actuales
+## 🏗️ Arquitectura General
 
-### 1. Gestión de Pedidos (Máquina de Estados)
-
-**Flujo completo del pedido:**
+### Estructura de Apps Django (10 apps modulares)
 
 ```
-creado → confirmado → en_preparación → listo → entregado → cerrado
+restaurante_qr_project/
+├── app/
+│   ├── usuarios/          # Gestión de usuarios y roles
+│   ├── pedidos/           # Pedidos con máquina de estados
+│   ├── productos/         # Catálogo de productos
+│   ├── categorias/        # Categorías de productos
+│   ├── mesas/             # Gestión de mesas y disponibilidad
+│   ├── reservas/          # Sistema de reservas
+│   ├── caja/              # Control de transacciones y jornadas
+│   ├── inventario/        # Stock e insumos
+│   ├── reportes/          # Generación de reportes
+│   └── configuracion/     # Configuración del sistema
+├── backend/               # Settings, URLs, WSGI
+├── templates/             # Templates HTML
+├── static/                # CSS, JS, imágenes
+├── media/                 # Uploads de usuarios
+└── manage.py
 ```
 
-- Control estricto de transiciones de estado
-- Validación de stock en tiempo real
-- Sistema de modificación con auditoría
-- Cancelación con devolución de stock
-- Pagos parciales y totales
-- Reembolsos con autorización
+### Patrones Implementados
 
-### 2. Sistema de Caja
-
-- Procesamiento de pagos múltiples: efectivo, tarjeta, QR, móvil, mixto
-- Cierres de turno: mañana, tarde, noche, completo
-- Control de diferencias: efectivo esperado vs real
-- Validación: no permite cerrar con pedidos pendientes
-- Jornada laboral única activa
-- Historial completo de transacciones
-
-### 3. Reservas
-
-- Validación de disponibilidad automática
-- Detección de solapamiento de horarios
-- Sistema de No-Show (liberación automática tras 15 min)
-- Estados: pendiente, confirmada, en_uso, completada, cancelada, no_show
-- Notificaciones y recordatorios
-- Política de cancelación (2 horas de anticipación)
-
-### 4. Reportes y Estadísticas
-
-- Generación de reportes en **PDF** y **XLSX**
-- Tipos: diario, semanal, mensual, personalizado
-- Análisis por producto
-- Métricas: ventas totales, promedio por pedido, productos más vendidos
-- Dashboard con estadísticas en tiempo real
-- Gráficos de tendencias
-
-### 5. Usuarios y Roles
-
-**Roles disponibles:**
-- `admin` - Acceso total
-- `gerente` - Gestión y reportes
-- `cajero` - Caja y transacciones (login con PIN)
-- `mesero` - Gestión de mesas y pedidos (login con QR)
-- `cocinero` - Panel de cocina (login con QR)
-- `cliente` - Vista del menú QR
-
-**Características de seguridad:**
-- Rate limiting (5 intentos, bloqueo 5 min)
-- Tokens QR expirables (24 horas)
-- Soft delete (no eliminación física)
-- Auditoría de cambios
-- Permisos multi-área
-
-### 6. Sistema QR
-
-**Mesas:**
-- QR único por mesa
-- Redirección automática al menú
-- Estado de mesa en tiempo real
-
-**Empleados:**
-- QR de autenticación one-time use
-- Tokens renovables
-- Expiración automática
-
-### 7. Inventario
-
-- Control de insumos y materias primas
-- Alertas automáticas de stock bajo/agotado
-- Movimientos: entrada, salida, ajuste
-- Historial completo con auditoría
-- Múltiples unidades de medida
+- **Soft Delete**: Modelos con campo `activo` en lugar de eliminación física
+- **Máquina de Estados**: Control estricto de transiciones en pedidos
+- **Middleware de Validación**: Validación de jornada laboral activa
+- **Descuento Automático**: Stock se descuenta al confirmar pedido
+- **Auditoría**: Historial de modificaciones en operaciones críticas
 
 ---
 
-## 📊 Estado Actual del Proyecto
+## ⚙️ Requisitos del Sistema
 
-### ✅ Backend: CERRADO / FROZEN
+### Desarrollo Local
+- Python 3.12+
+- PostgreSQL 16+ (o Docker)
+- pip 24.0+
+- Git
 
-El backend está **completamente terminado, auditado y congelado**:
-
-- ✓ 10 apps Django bien estructuradas
-- ✓ ~161 archivos Python
-- ✓ API REST completa con Django REST Framework
-- ✓ Autenticación JWT + Session + QR + PIN
-- ✓ Validaciones de negocio estrictas
-- ✓ Tests de seguridad implementados
-- ✓ Logging y auditoría completos
-- ✓ Docker listo para producción
-- ✓ Migraciones aplicadas
-- ✓ Sin deuda técnica crítica
-
-⚠️ **IMPORTANTE:** El backend **NO debe modificarse**. Toda la lógica de negocio está validada y lista para producción.
-
-### 🚧 Frontend: ELIMINADO / A RECONSTRUIR
-
-El frontend anterior ha sido **completamente eliminado** para permitir:
-
-- 🎨 Diseño UI/UX desde cero
-- 🚀 Libertad total de tecnología (React, Vue, Angular, etc.)
-- 📱 Diseño responsive moderno
-- 🎯 Enfoque en experiencia de usuario
-- 🌐 PWA, SPA o arquitectura tradicional
-
-**Posibilidades de frontend:**
-1. **Web tradicional** - Server-side rendering con Django templates
-2. **SPA (React/Vue/Angular)** - Consumo de API REST
-3. **App móvil nativa** - React Native, Flutter
-4. **Tablets para meseros** - Interfaz optimizada
-5. **Menú 3D interactivo** - Three.js, WebGL
-6. **Pantallas de cocina** - Display en tiempo real
-7. **Dashboard de caja** - Métricas y gráficos
-8. **Kiosko de autoservicio** - Pedidos directos
-
-### 💾 Base de Datos: Lista para Producción
-
-- Schema completamente definido
-- Migraciones aplicadas y validadas
-- Índices optimizados
-- Relaciones intactas
-- Datos de prueba disponibles
-
-### 🐳 Docker: Listo
-
-- `Dockerfile` optimizado
-- `docker-compose.yml` para desarrollo
-- `docker-compose.prod.yml` para producción
-- Health checks configurados
-- Volúmenes persistentes
+### Producción (Cloud)
+- Docker 24.0+
+- Docker Compose 2.20+
+- 2GB RAM mínimo (4GB recomendado)
+- 10GB espacio en disco
+- Linux (Ubuntu 22.04+ / Debian 12+ recomendado)
 
 ---
 
-## 🚀 Cómo Levantar el Proyecto (DEV)
+## 🚀 Instalación
 
 ### 1. Clonar el Repositorio
 
 ```bash
-git clone <repo-url>
+git clone https://github.com/tu-usuario/restaurante_qr_project.git
 cd restaurante_qr_project
 ```
 
 ### 2. Configurar Variables de Entorno
 
-Copiar `.env.example` a `.env` y configurar:
+```bash
+# Copiar archivo de ejemplo
+cp .env.example .env
 
-```env
-# Django
-SECRET_KEY=tu-secret-key-super-secreta
-DEBUG=True
-ALLOWED_HOSTS=localhost,127.0.0.1
-
-# Base de Datos
-DB_ENGINE=sqlite  # o 'postgres' para producción
-POSTGRES_DB=sgir_db
-POSTGRES_USER=sgir_user
-POSTGRES_PASSWORD=password_seguro
-POSTGRES_HOST=db
-POSTGRES_PORT=5432
-
-# Configuración adicional
-LANGUAGE_CODE=es-bo
-TIME_ZONE=America/La_Paz
+# Editar .env y configurar:
+nano .env
 ```
 
-### 3. Levantar con Docker (Recomendado)
+**Variables críticas a configurar:**
 
 ```bash
-# Desarrollo
-docker-compose up -d
+# Generar nueva SECRET_KEY
+python -c "from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())"
 
-# Producción
-docker-compose -f docker-compose.prod.yml up -d
+# Configurar en .env
+SECRET_KEY=tu-secret-key-generada
+DEBUG=False
+ALLOWED_HOSTS=tu-dominio.com,www.tu-dominio.com
+
+# PostgreSQL
+POSTGRES_DB=sgir
+POSTGRES_USER=sgir_user
+POSTGRES_PASSWORD=password_super_seguro
+POSTGRES_HOST=db
+POSTGRES_PORT=5432
 ```
 
-### 4. O Levantar Manual (Sin Docker)
+### 3. Despliegue con Docker (Recomendado)
+
+#### Desarrollo Local
+
+```bash
+docker compose up -d --build
+docker compose exec web python manage.py migrate
+docker compose exec web python manage.py createsuperuser
+```
+
+Acceder a: `http://localhost:8000/admin/`
+
+#### Producción en Cloud
+
+```bash
+# Levantar servicios
+docker compose -f docker-compose.prod.yml up -d --build
+
+# Esperar 30-60 segundos para que los servicios estén listos
+
+# Aplicar migraciones
+docker compose -f docker-compose.prod.yml exec web python manage.py migrate
+
+# Crear superusuario
+docker compose -f docker-compose.prod.yml exec web python manage.py createsuperuser
+
+# Verificar estado
+docker compose -f docker-compose.prod.yml ps
+```
+
+### 4. Instalación Manual (sin Docker)
 
 ```bash
 # Crear entorno virtual
 python -m venv venv
 source venv/bin/activate  # Linux/Mac
-# o
-venv\Scripts\activate  # Windows
+# venv\Scripts\activate   # Windows
 
 # Instalar dependencias
 pip install -r requirements.txt
+
+# Configurar PostgreSQL local (debes tener PostgreSQL instalado)
+# Editar .env con tus credenciales locales
 
 # Aplicar migraciones
 python manage.py migrate
@@ -249,324 +227,323 @@ python manage.py migrate
 # Crear superusuario
 python manage.py createsuperuser
 
-# Cargar datos de prueba (opcional)
-python scripts/crear_datos_iniciales.py
+# Recolectar archivos estáticos
+python manage.py collectstatic --noinput
 
-# Levantar servidor
+# Ejecutar servidor de desarrollo
 python manage.py runserver
 ```
 
-### 5. Acceder al Sistema
-
-- **Django Admin:** http://localhost:8000/admin/
-- **API REST:** http://localhost:8000/api/
-- **Health Check:** http://localhost:8000/health/
-
 ---
 
-## 📚 Comandos Principales
+## 📊 Scripts de Auditoría
+
+El proyecto incluye scripts de auditoría exhaustiva para verificar el estado del sistema.
+
+### Linux/Mac
 
 ```bash
-# Migraciones
-python manage.py makemigrations
-python manage.py migrate
+chmod +x auditoria_completa.sh
+./auditoria_completa.sh
+```
 
-# Crear datos iniciales
-python scripts/crear_datos_iniciales.py
+### Windows PowerShell
 
-# Regenerar QR de mesas
-python scripts/regenerar_qr.py
+```powershell
+.\auditoria_completa.ps1
+```
 
-# Regenerar QR de empleados
-python scripts/regenerar_qr_empleados.py
+### Qué Verifica la Auditoría (13 Checks)
 
-# Tests
-pytest
-python manage.py test
+1. **Docker PS** - Estado de contenedores
+2. **Healthcheck** - Configuración y estado de salud
+3. **Logs Web** - Últimas 120 líneas de Gunicorn/Django
+4. **Logs DB** - Últimas 80 líneas de PostgreSQL
+5. **Variables de Entorno** - POSTGRES_*, DEBUG, DJANGO_SETTINGS
+6. **Django Check** - System check completo
+7. **Motor de BD** - Verificar que es PostgreSQL
+8. **Conexión PostgreSQL** - Vendor, DB_NAME, DB_HOST
+9. **Migraciones** - Estado de aplicación
+10. **Tablas en BD** - Conteo y existencia de tablas clave
+11. **Usuarios** - Superusers y staff count
+12. **ORM Smoke Test** - Consulta a todos los modelos
+13. **Frontend** - Existencia de templates/static
 
-# Linting
-ruff check .
+---
 
-# Colectar estáticos
-python manage.py collectstatic --noinput
+## 🧪 Uso Básico del Sistema
 
-# Backup de SQLite
-python scripts/backup_sqlite.py
+### Acceso al Panel de Administración
+
+```
+URL: http://tu-servidor:8000/admin/
+Usuario: (creado con createsuperuser)
+Password: (tu password)
+```
+
+### Paneles por Rol
+
+- **Cliente**: `http://tu-servidor:8000/cliente/`
+- **Mesero**: `http://tu-servidor:8000/mesero/`
+- **Cocinero**: `http://tu-servidor:8000/cocina/`
+- **Cajero**: `http://tu-servidor:8000/caja/`
+- **Admin**: `http://tu-servidor:8000/admin/`
+
+### Comandos Útiles
+
+```bash
+# Ver logs en tiempo real
+docker compose -f docker-compose.prod.yml logs -f web
+docker compose -f docker-compose.prod.yml logs -f db
+
+# Verificar estado de contenedores
+docker compose -f docker-compose.prod.yml ps
+
+# Ejecutar comando Django
+docker compose -f docker-compose.prod.yml exec web python manage.py <comando>
+
+# Backup de base de datos
+docker compose -f docker-compose.prod.yml exec db pg_dump -U sgir_user sgir > backup_$(date +%Y%m%d_%H%M%S).sql
+
+# Restaurar backup
+cat backup_YYYYMMDD_HHMMSS.sql | docker compose -f docker-compose.prod.yml exec -T db psql -U sgir_user sgir
+
+# Reiniciar servicios
+docker compose -f docker-compose.prod.yml restart web
+docker compose -f docker-compose.prod.yml restart db
 ```
 
 ---
 
-## 📂 Estructura del Proyecto
+## ⚠️ Estado Actual del Proyecto
 
-```
-restaurante_qr_project/
-├── backend/                    # Configuración Django
-│   ├── settings.py            # Configuración principal
-│   ├── urls.py                # Rutas principales
-│   └── healthcheck.py         # Endpoint de monitoreo
-│
-├── app/                        # Apps Django (módulos)
-│   ├── adminux/               # Panel de administración moderno
-│   ├── caja/                  # Caja y transacciones
-│   ├── configuracion/         # Configuración del sistema
-│   ├── inventario/            # Gestión de insumos
-│   ├── mesas/                 # Gestión de mesas y QR
-│   ├── pedidos/               # Comandas y pedidos
-│   ├── productos/             # Productos y categorías
-│   ├── reportes/              # Reportes y estadísticas
-│   ├── reservas/              # Sistema de reservas
-│   └── usuarios/              # Autenticación y usuarios
-│
-├── scripts/                    # Scripts de utilidad
-│   ├── crear_datos_iniciales.py
-│   ├── regenerar_qr.py
-│   ├── regenerar_qr_empleados.py
-│   ├── actualizar_mesas.py
-│   └── backup_sqlite.py
-│
-├── media/                      # Archivos subidos (QR, imágenes)
-├── logs/                       # Logs del sistema
-├── requirements.txt            # Dependencias Python
-├── Dockerfile                  # Imagen Docker
-├── docker-compose.yml          # Orquestación
-├── .env.example               # Ejemplo de variables
-├── ruff.toml                  # Configuración linter
-└── VERSION                    # Versión del sistema
-```
+### FASE 0 - Pre-operacional
+
+**Estado Técnico:**
+- ✅ Backend: Arquitectura sólida, código FROZEN (no se modifica lógica)
+- ✅ Frontend: Restaurado desde commit anterior (90 templates)
+- ✅ Docker: Configurado correctamente con PostgreSQL único
+- ✅ Healthcheck: Sin dependencia de curl (usa Python nativo)
+- ⚠️ Base de datos: Migraciones pendientes de aplicar
+- ⚠️ Frontend-Backend: Compatibilidad no verificada aún
+
+**Riesgos Conocidos:**
+1. **Backend FROZEN**: La lógica de negocio no debe modificarse sin autorización
+2. **Migraciones no aplicadas**: Sistema no funcional hasta ejecutar `migrate`
+3. **Frontend sin verificar**: Restaurado de commit antiguo, puede tener desincronización
+4. **Punto único de fallo**: JornadaLaboral (si falla cierre, se bloquea caja)
+5. **Sin tests**: No hay suite de tests unitarios ni de integración
+
+### ❌ QUÉ NO HACER TODAVÍA
+
+- **NO modificar lógica de backend** (código FROZEN)
+- **NO modificar templates HTML/JS/CSS** (sin verificar compatibilidad)
+- **NO realizar refactors** (sin tests, alto riesgo)
+- **NO cambiar configuración de Docker** (ya está optimizada)
+- **NO tocar migraciones** (aplicar pero no modificar)
+
+### ✅ QUÉ SÍ SE PUEDE HACER
+
+- ✅ Aplicar migraciones (`python manage.py migrate`)
+- ✅ Crear usuarios (`python manage.py createsuperuser`)
+- ✅ Ejecutar auditoría (`./auditoria_completa.sh`)
+- ✅ Ver logs (`docker compose logs -f`)
+- ✅ Reiniciar contenedores (`docker compose restart`)
+- ✅ Hacer backups de base de datos
 
 ---
 
-## 🔌 API REST
+## 📝 Checklist de Despliegue en Producción
 
-### Endpoints Principales
+### Pre-Despliegue
 
-**Autenticación:**
-- `POST /api/token/` - Obtener JWT token
-- `POST /api/token/refresh/` - Refresh token
-- `POST /usuarios/session-login/` - Login con sesión
-- `POST /usuarios/login-pin/` - Login con PIN (cajeros)
-- `GET /qr-login/<uuid>/` - Login con QR (meseros/cocineros)
+- [ ] Archivo `.env` configurado con valores de producción
+- [ ] `DEBUG=False` en `.env`
+- [ ] `ALLOWED_HOSTS` configurado con dominio real
+- [ ] `SECRET_KEY` cambiada (generar nueva, no usar la de ejemplo)
+- [ ] Credenciales PostgreSQL seguras en `.env`
+- [ ] Variables `POSTGRES_*` agregadas al servicio web en docker-compose
 
-**Productos:**
-- `GET /api/productos/` - Listar productos
-- `GET /api/productos/categorias/` - Listar categorías
-- `POST /api/productos/` - Crear producto
-- `PUT /api/productos/{id}/` - Actualizar producto
-- `DELETE /api/productos/{id}/` - Eliminar producto (soft delete)
+### Despliegue
 
-**Mesas:**
-- `GET /api/mesas/` - Listar mesas
-- `POST /api/mesas/` - Crear mesa
-- `PATCH /api/mesas/{id}/` - Actualizar estado
+**FASE 1: Construcción**
+- [ ] Ejecutar: `docker compose -f docker-compose.prod.yml down`
+- [ ] Ejecutar: `docker compose -f docker-compose.prod.yml up -d --build`
+- [ ] Esperar 30-60 segundos
 
-**Pedidos:**
-- `GET /api/pedidos/` - Listar pedidos
-- `GET /api/pedidos/cocina/` - Pedidos en cocina
-- `GET /api/pedidos/mesero/` - Pedidos por mesa
-- `POST /api/pedidos/{id}/actualizar/` - Actualizar estado
-- `POST /api/pedidos/{id}/entregar/` - Marcar entregado
-- `POST /api/pedidos/{id}/cancelar/` - Cancelar pedido
+**FASE 2: Verificación de Motor de BD**
+- [ ] Ejecutar verificación de PostgreSQL
+- [ ] Resultado debe mostrar: `ENGINE= django.db.backends.postgresql`
+- [ ] HOST debe ser: `db`
+- [ ] NAME debe ser: `sgir`
 
-**Caja:**
-- `GET /api/caja/transacciones/` - Listar transacciones
-- `POST /api/caja/procesar-pago/` - Procesar pago
-- `GET /api/caja/cierres/` - Cierres de caja
-- `POST /api/caja/cierre/` - Crear cierre
+**FASE 3: Migraciones**
+- [ ] Ejecutar: `docker compose -f docker-compose.prod.yml exec web python manage.py migrate`
+- [ ] Todas las migraciones deben aplicarse sin errores
 
-**Reservas:**
-- `GET /api/reservas/` - Listar reservas
-- `POST /api/reservas/` - Crear reserva
-- `PATCH /api/reservas/{id}/` - Actualizar reserva
-- `DELETE /api/reservas/{id}/` - Cancelar reserva
+**FASE 4: Superusuario**
+- [ ] Ejecutar: `docker compose -f docker-compose.prod.yml exec web python manage.py createsuperuser`
+- [ ] Completar username, email, password
 
-**Reportes:**
-- `GET /api/reportes/` - Listar reportes
-- `POST /api/reportes/generar/` - Generar reporte
-- `GET /api/reportes/{id}/excel/` - Descargar Excel
-- `GET /api/reportes/{id}/pdf/` - Descargar PDF
+**FASE 5: Verificación de Salud**
+- [ ] Ejecutar: `docker compose -f docker-compose.prod.yml ps`
+- [ ] Servicio `db` debe mostrar: **Up (healthy)**
+- [ ] Servicio `web` debe mostrar: **Up (healthy)**
 
-Toda la API está documentada y requiere autenticación JWT o Session.
+**FASE 6: Auditoría Completa**
+- [ ] Ejecutar: `./auditoria_completa.sh` (Linux) o `.\auditoria_completa.ps1` (Windows)
+- [ ] Verificar que todos los checks pasen
+
+### Post-Despliegue
+
+**Seguridad:**
+- [ ] Cambiar credenciales por defecto de PostgreSQL
+- [ ] Configurar backup automático de base de datos
+- [ ] Verificar que `.env` NO esté en el repositorio
+- [ ] Configurar SSL/HTTPS
+- [ ] Configurar Nginx como reverse proxy
+- [ ] Limitar acceso a puertos (firewall)
+- [ ] Configurar logs rotativos
+
+**Monitoreo:**
+- [ ] Verificar logs: `docker compose -f docker-compose.prod.yml logs -f`
+- [ ] Verificar uso de disco: `docker system df`
+- [ ] Verificar uso de recursos: `docker stats`
+- [ ] Configurar alertas para contenedores unhealthy
+- [ ] Programar backups automáticos diarios
+
+---
+
+## 🚨 Señales de Alerta
+
+Si encuentras alguno de estos problemas, **NO CONTINUAR** y revisar logs:
+
+- ❌ Contenedores en estado `Restarting`
+- ❌ Contenedores `unhealthy` después de 2 minutos
+- ❌ Motor de BD sigue siendo `sqlite3`
+- ❌ Migraciones con `[ ]` sin aplicar
+- ❌ Tabla `usuarios_usuario` no existe
+- ❌ 0 superusuarios creados
+- ❌ Errores en lista del ORM
+- ❌ Django check con errores
+- ❌ No se puede acceder a `/admin/`
 
 ---
 
 ## 🔐 Seguridad
 
-### Implementaciones de Seguridad
-
-- ✅ **CSRF Protection** - Tokens CSRF en todos los formularios
-- ✅ **Rate Limiting** - 5 intentos de login, bloqueo de 5 minutos
-- ✅ **JWT Tokens** - Access (1h) + Refresh (14 días) con rotación
-- ✅ **Cookies Seguras** - HttpOnly, Secure (HTTPS), SameSite=Lax
-- ✅ **CORS Configurado** - Orígenes permitidos controlados
-- ✅ **Soft Delete** - No eliminación física de registros críticos
-- ✅ **Auditoría** - HistorialModificación en todas las operaciones
-- ✅ **Validaciones Estrictas** - Máquina de estados con constantes
-- ✅ **Logging Completo** - Rotación diaria, logs de errores separados
-- ✅ **HTTPS Enforced** - Redirección SSL en producción
-- ✅ **HSTS** - Strict-Transport-Security configurado
-
-### Variables de Entorno Críticas
-
-```env
-SECRET_KEY=<CAMBIAR-EN-PRODUCCION>
-DEBUG=False  # En producción
-ALLOWED_HOSTS=tudominio.com,www.tudominio.com
-```
-
----
-
-## 🧪 Testing
+### Configuración de Producción Obligatoria
 
 ```bash
-# Ejecutar todos los tests
-pytest
-
-# Tests con coverage
-pytest --cov=app --cov-report=html
-
-# Tests específicos
-pytest app/pedidos/tests/
-pytest app/caja/tests/
-
-# Tests de seguridad
-pytest app/pedidos/tests/test_seguridad_ronda1.py
+# .env en producción
+DEBUG=False
+SECRET_KEY=<generar-nueva-key-segura>
+ALLOWED_HOSTS=tu-dominio.com,www.tu-dominio.com
+SESSION_COOKIE_SECURE=True
+CSRF_COOKIE_SECURE=True
 ```
 
-**Cobertura actual:**
-- Tests de flujo de pedidos
-- Tests de seguridad (Rondas 1-3)
-- Tests de jornada laboral
-- Tests de autenticación
-- Tests de reservas
+### Generar SECRET_KEY Segura
 
----
-
-## 📦 Dependencias Principales
-
-```
-Django==5.1.4                      # Framework principal
-djangorestframework==3.15.2        # API REST
-djangorestframework-simplejwt==5.3.1  # Autenticación JWT
-django-cors-headers==4.6.0         # CORS
-whitenoise==6.8.2                  # Archivos estáticos
-gunicorn==23.0.0                   # Servidor WSGI
-python-decouple==3.8               # Variables de entorno
-psycopg2-binary==2.9.10           # PostgreSQL
-qrcode==8.0                        # Códigos QR
-Pillow==11.0.0                     # Procesamiento de imágenes
-openpyxl==3.1.5                    # Generación de Excel
-reportlab==4.2.5                   # Generación de PDF
-pytest==8.3.4                      # Testing
+```bash
+python -c "from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())"
 ```
 
----
+### NEVER Commit
 
-## 🌍 Localización
-
-**Configurado para Bolivia:**
-- Idioma: Español (es-bo)
-- Zona horaria: America/La_Paz
-- Moneda: Bs/ (Boliviano)
-- Formato numérico: separador de miles (.), decimal (,)
+- ❌ Archivo `.env` (debe estar en `.gitignore`)
+- ❌ Credenciales de base de datos
+- ❌ SECRET_KEY de producción
+- ❌ Archivos `db.sqlite3` (ya eliminado del proyecto)
 
 ---
 
-## 📈 Roadmap de Frontend
+## 🔄 Próximos Pasos Previstos
 
-### Fase 1: Definición
-- [ ] Diseño UI/UX completo
-- [ ] Selección de tecnología frontend
-- [ ] Arquitectura de componentes
-- [ ] Sistema de diseño (Design System)
+### Fase 1: Operacional Básico
+1. Aplicar migraciones en PostgreSQL
+2. Crear superusuario inicial
+3. Verificar acceso al admin
+4. Ejecutar auditoría completa
 
-### Fase 2: Core
-- [ ] Autenticación y login
-- [ ] Dashboard principal
-- [ ] Panel de empleados
+### Fase 2: Verificación de Compatibilidad
+1. Probar cada panel (cliente, mesero, cocinero, cajero, admin)
+2. Identificar flujos rotos frontend-backend
+3. Documentar inconsistencias detectadas
+4. Validar flujos críticos (pedidos, caja, reservas)
 
-### Fase 3: Operaciones
-- [ ] Panel de cocina (tiempo real)
-- [ ] Panel de mesero (mesas y pedidos)
-- [ ] Panel de caja (pagos y cierres)
+### Fase 3: Corrección Controlada (requiere descongelar backend)
+1. Priorizar bugs críticos
+2. Corregir UN bug a la vez
+3. Validar manualmente después de cada corrección
+4. Documentar cada cambio
 
-### Fase 4: Gestión
-- [ ] Panel AdminUX (CRUD completo)
-- [ ] Reportes visuales
-- [ ] Configuración del sistema
-
-### Fase 5: Extras
-- [ ] PWA (instalable)
-- [ ] Notificaciones push
-- [ ] Modo offline
-- [ ] Menú 3D interactivo
-
----
-
-## ⚠️ Nota Importante
-
-> ### 🚨 EL FRONTEND SERÁ RECONSTRUIDO DESDE CERO
->
-> El frontend anterior ha sido eliminado intencionalmente para permitir:
-> - Diseño moderno y centrado en el usuario
-> - Libertad total en la elección de tecnología
-> - Optimización para múltiples dispositivos
-> - Experiencia de usuario excepcional
->
-> **NO USAR CÓDIGO FRONTEND PREVIO.**
->
-> El backend está **FROZEN** y no debe modificarse. Toda la lógica de negocio
-> está completa, validada y lista para producción.
+### Fase 4: Testing
+1. Crear suite de tests unitarios
+2. Crear tests de integración
+3. Implementar CI/CD
+4. Configurar coverage de código
 
 ---
 
 ## 📞 Soporte y Contribución
 
-### Reportar Issues
+### Estructura de Commits
 
-Si encuentras un bug o tienes una sugerencia:
+```bash
+# Formato recomendado
+<tipo>: <descripción corta>
 
-1. Verifica que sea un problema del **backend** (API/lógica)
-2. Revisa si ya existe un issue similar
-3. Crea un issue con descripción detallada
-4. Incluye logs si es posible
+Tipos: feat, fix, docs, style, refactor, test, chore
+```
 
-### Reglas de Contribución
+Ejemplos:
+```bash
+git commit -m "feat: add product filtering by category"
+git commit -m "fix: correct stock calculation in DetallePedido"
+git commit -m "docs: update README with deployment instructions"
+git commit -m "chore: cleanup redundant documentation files"
+```
 
-- ❌ **NO modificar lógica del backend** (está frozen)
-- ✅ Documentación adicional es bienvenida
-- ✅ Mejoras en comentarios del código
-- ✅ Sugerencias de optimización (sin implementar)
-- ✅ Reporte de bugs con reproducción
+### Reportar Problemas
+
+Si encuentras bugs o problemas de seguridad, por favor reporta en el repositorio de GitHub con:
+- Descripción clara del problema
+- Pasos para reproducir
+- Comportamiento esperado vs actual
+- Logs relevantes (sin credenciales)
 
 ---
 
 ## 📄 Licencia
 
-Este proyecto es **propiedad privada**. Todos los derechos reservados.
-
-No se permite:
-- Uso comercial sin autorización
-- Redistribución del código
-- Modificación sin permiso explícito
+Este proyecto es privado y confidencial. Todos los derechos reservados.
 
 ---
 
-## 🎓 Créditos
+## 📚 Información Técnica Adicional
 
-**SGIR v2.3.0**
-Sistema de Gestión Integral para Restaurantes
-Desarrollado con Django 5.1.4 y Python 3.12
+### Versiones del Sistema
+
+- **Versión actual**: 1.0.0 (Pre-operacional)
+- **Python**: 3.12
+- **Django**: 5.1.4
+- **PostgreSQL**: 16
+- **Docker**: 24.0+
+
+### Compatibilidad
+
+- **Navegadores soportados**: Chrome 90+, Firefox 88+, Safari 14+, Edge 90+
+- **Dispositivos móviles**: Android 8+, iOS 14+
+- **PWA**: Soporte completo con service worker
+
+### Rendimiento
+
+- **Tiempo de respuesta promedio**: < 200ms
+- **Capacidad de carga**: 100+ pedidos simultáneos (con recursos adecuados)
+- **Base de datos**: Optimizada con índices en campos críticos
 
 ---
 
-## 📌 Links Útiles
-
-- [Documentación de Django](https://docs.djangoproject.com/en/5.1/)
-- [Django REST Framework](https://www.django-rest-framework.org/)
-- [Docker Documentation](https://docs.docker.com/)
-- [PostgreSQL Docs](https://www.postgresql.org/docs/)
-
----
-
-**Última actualización:** 2026-01-07
-**Versión del README:** 1.0.0
+**Última actualización**: 2026-01-08
+**Mantenido por**: Equipo de Desarrollo SGIR

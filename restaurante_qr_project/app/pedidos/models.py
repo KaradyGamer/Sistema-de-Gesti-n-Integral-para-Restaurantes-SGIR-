@@ -11,8 +11,9 @@ Este módulo gestiona el ciclo completo de vida de los pedidos en el restaurante
 
 IMPORTANTE: La máquina de estados es ESTRICTA. No modificar transiciones sin validación.
 """
-from django.db import models
+from django.db import models, transaction
 from django.utils import timezone
+from django.core.exceptions import ValidationError
 
 class Pedido(models.Model):
     """
@@ -181,6 +182,209 @@ class Pedido(models.Model):
             for detalle in self.detalles.all()
             if detalle.cantidad_pendiente > 0
         ]
+
+    # ========== MÁQUINA DE ESTADOS ESTRICTA ==========
+
+    TRANSICIONES_VALIDAS = {
+        ESTADO_CREADO: [ESTADO_CONFIRMADO, ESTADO_CANCELADO],
+        ESTADO_CONFIRMADO: [ESTADO_EN_PREPARACION, ESTADO_CANCELADO],
+        ESTADO_EN_PREPARACION: [ESTADO_LISTO, ESTADO_CANCELADO],
+        ESTADO_LISTO: [ESTADO_ENTREGADO],
+        ESTADO_ENTREGADO: [ESTADO_CERRADO],
+        ESTADO_CANCELADO: [],  # Estado terminal
+        ESTADO_CERRADO: [],  # Estado terminal
+    }
+
+    def puede_cambiar_a_estado(self, nuevo_estado):
+        """
+        Valida si el pedido puede cambiar al nuevo estado según la máquina de estados.
+
+        Args:
+            nuevo_estado (str): Estado destino
+
+        Returns:
+            bool: True si la transición es válida
+        """
+        if self.estado not in self.TRANSICIONES_VALIDAS:
+            return False
+        return nuevo_estado in self.TRANSICIONES_VALIDAS[self.estado]
+
+    @transaction.atomic
+    def cambiar_estado(self, nuevo_estado, usuario=None, motivo=None):
+        """
+        Cambia el estado del pedido validando la máquina de estados.
+
+        Args:
+            nuevo_estado (str): Estado destino
+            usuario (Usuario, optional): Usuario que ejecuta el cambio
+            motivo (str, optional): Motivo del cambio (obligatorio para cancelación)
+
+        Raises:
+            ValidationError: Si la transición no es válida
+        """
+        if not self.puede_cambiar_a_estado(nuevo_estado):
+            raise ValidationError(
+                f"No se puede cambiar de '{self.get_estado_display()}' a '{dict(self.ESTADO_CHOICES)[nuevo_estado]}'. "
+                f"Transiciones válidas: {[dict(self.ESTADO_CHOICES)[e] for e in self.TRANSICIONES_VALIDAS[self.estado]]}"
+            )
+
+        # Validación específica para cancelación
+        if nuevo_estado == self.ESTADO_CANCELADO:
+            if not motivo:
+                raise ValidationError("La cancelación requiere un motivo")
+            self.motivo_cancelacion = motivo
+            # Devolver stock si ya fue descontado
+            if self.descuento_stock:
+                self._devolver_stock()
+
+        self.estado = nuevo_estado
+        self.save()
+
+    @transaction.atomic
+    def confirmar(self, usuario=None):
+        """
+        Confirma el pedido y descuenta stock de inventario.
+
+        Args:
+            usuario (Usuario, optional): Usuario que confirma
+
+        Raises:
+            ValidationError: Si no se puede confirmar o no hay stock suficiente
+        """
+        self.cambiar_estado(self.ESTADO_CONFIRMADO, usuario)
+
+        if not self.descuento_stock:
+            self._descontar_stock()
+            self.descuento_stock = True
+            self.save()
+
+    def _descontar_stock(self):
+        """
+        Descuenta stock de inventario para todos los detalles del pedido.
+
+        CRÍTICO: Este método debe llamarse dentro de transaction.atomic
+
+        Raises:
+            ValidationError: Si no hay stock suficiente
+        """
+        from app.inventario.models import Insumo, MovimientoInventario
+
+        for detalle in self.detalles.all():
+            producto = detalle.producto
+
+            # Verificar si el producto tiene receta (insumos)
+            if hasattr(producto, 'receta') and producto.receta:
+                for ingrediente in producto.receta.ingredientes.all():
+                    insumo = ingrediente.insumo
+                    cantidad_necesaria = ingrediente.cantidad * detalle.cantidad
+
+                    if insumo.stock_actual < cantidad_necesaria:
+                        raise ValidationError(
+                            f"Stock insuficiente para '{insumo.nombre}'. "
+                            f"Necesario: {cantidad_necesaria}, Disponible: {insumo.stock_actual}"
+                        )
+
+                    # Descontar stock
+                    insumo.stock_actual -= cantidad_necesaria
+                    insumo.save()
+
+                    # Registrar movimiento
+                    MovimientoInventario.objects.create(
+                        insumo=insumo,
+                        tipo='salida',
+                        cantidad=cantidad_necesaria,
+                        motivo=f'Pedido #{self.id}',
+                        usuario=self.mesero_comanda
+                    )
+
+    def _devolver_stock(self):
+        """
+        Devuelve stock al inventario cuando se cancela un pedido.
+
+        CRÍTICO: Este método debe llamarse dentro de transaction.atomic
+        """
+        from app.inventario.models import Insumo, MovimientoInventario
+
+        for detalle in self.detalles.all():
+            producto = detalle.producto
+
+            if hasattr(producto, 'receta') and producto.receta:
+                for ingrediente in producto.receta.ingredientes.all():
+                    insumo = ingrediente.insumo
+                    cantidad_devolver = ingrediente.cantidad * detalle.cantidad
+
+                    # Devolver stock
+                    insumo.stock_actual += cantidad_devolver
+                    insumo.save()
+
+                    # Registrar movimiento
+                    MovimientoInventario.objects.create(
+                        insumo=insumo,
+                        tipo='entrada',
+                        cantidad=cantidad_devolver,
+                        motivo=f'Cancelación Pedido #{self.id}',
+                        usuario=self.cajero_responsable
+                    )
+
+    @transaction.atomic
+    def registrar_pago(self, monto, forma_pago='efectivo', cajero=None):
+        """
+        Registra un pago (total o parcial) para el pedido.
+
+        Args:
+            monto (Decimal): Monto pagado
+            forma_pago (str): Método de pago
+            cajero (Usuario, optional): Cajero que recibe el pago
+
+        Raises:
+            ValidationError: Si el pedido no está en estado válido para pagar
+        """
+        if self.estado not in [self.ESTADO_ENTREGADO, self.ESTADO_CONFIRMADO, self.ESTADO_EN_PREPARACION, self.ESTADO_LISTO]:
+            raise ValidationError("Solo se pueden registrar pagos en pedidos entregados o en proceso")
+
+        if self.estado_pago == 'pagado':
+            raise ValidationError("Este pedido ya está completamente pagado")
+
+        if monto <= 0:
+            raise ValidationError("El monto debe ser mayor a cero")
+
+        if monto < self.total_final * 0.01:  # Validar monto mínimo del 1%
+            raise ValidationError(f"El pago parcial debe ser al menos el 1% del total (${self.total_final * 0.01:.2f})")
+
+        self.monto_pagado += monto
+        self.total_pagado += monto
+        self.forma_pago = forma_pago
+        self.cajero_responsable = cajero
+        self.fecha_pago = timezone.now()
+
+        # Actualizar estado de pago
+        if self.monto_pagado >= self.total_final:
+            self.estado_pago = 'pagado'
+        elif self.monto_pagado > 0:
+            self.estado_pago = 'parcial'
+
+        self.save()
+
+    @transaction.atomic
+    def cerrar_pedido(self, cajero=None):
+        """
+        Cierra el pedido después de validar pago completo.
+
+        Args:
+            cajero (Usuario, optional): Cajero que cierra
+
+        Raises:
+            ValidationError: Si el pedido no está pagado completamente
+        """
+        if self.estado_pago != 'pagado':
+            raise ValidationError("No se puede cerrar un pedido sin pago completo")
+
+        if self.estado != self.ESTADO_ENTREGADO:
+            raise ValidationError("Solo se pueden cerrar pedidos entregados")
+
+        self.cambiar_estado(self.ESTADO_CERRADO, cajero)
+        self.cajero_responsable = cajero
+        self.save()
 
 
 class DetallePedido(models.Model):

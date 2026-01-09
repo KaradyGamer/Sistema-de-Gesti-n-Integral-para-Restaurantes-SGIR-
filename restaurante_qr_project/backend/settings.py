@@ -1,12 +1,46 @@
+"""
+Configuración de Django para el proyecto SGIR (Sistema de Gestión Integral para Restaurantes).
+
+IMPORTANTE - Encoding en Windows:
+- Este proyecto usa PostgreSQL con encoding UTF-8
+- En Windows con locale es_ES (cp1252), puede haber conflictos de encoding
+- SOLUCIÓN: Ejecutar Django através de Docker para garantizar UTF-8 consistente
+- Ver README.md para instrucciones de uso con Docker
+
+IMPORTANTE - Variables de entorno:
+- Todas las configuraciones sensibles se leen desde .env (python-decouple)
+- NUNCA commitear .env al repositorio
+- Usar config() en lugar de os.getenv() para leer variables
+
+IMPORTANTE - Base de datos:
+- PostgreSQL EXCLUSIVO (sin fallback a SQLite)
+- Requiere container Docker o instalación local de PostgreSQL
+"""
 from pathlib import Path
 import os
 from datetime import timedelta
 from decouple import config
+import sys
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = config('SECRET_KEY')
+# ✅ SEGURIDAD CRÍTICA: Validar SECRET_KEY obligatoria
+try:
+    SECRET_KEY = config('SECRET_KEY')
+except Exception:
+    print("ERROR CRÍTICO: SECRET_KEY no configurada en .env", file=sys.stderr)
+    print("Genera una nueva con: python -c \"from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())\"", file=sys.stderr)
+    sys.exit(1)
+
 DEBUG = config('DEBUG', default=False, cast=bool)
+
+# Validar que SECRET_KEY no sea la de ejemplo/desarrollo
+if 'django-insecure' in SECRET_KEY or 'CAMBIAR_ESTO' in SECRET_KEY:
+    if not DEBUG:
+        print("ERROR CRÍTICO: SECRET_KEY de desarrollo detectada en producción", file=sys.stderr)
+        sys.exit(1)
+    else:
+        print("ADVERTENCIA: Usando SECRET_KEY de desarrollo. Cambiar antes de producción.", file=sys.stderr)
 
 # ✅ SEGURIDAD: Leer ALLOWED_HOSTS desde .env siempre
 # En desarrollo puedes agregar '*' al .env si necesitas acceso desde cualquier IP
@@ -111,11 +145,14 @@ WSGI_APPLICATION = 'backend.wsgi.application'
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql",
-        "NAME": os.getenv("POSTGRES_DB"),
-        "USER": os.getenv("POSTGRES_USER"),
-        "PASSWORD": os.getenv("POSTGRES_PASSWORD"),
-        "HOST": os.getenv("POSTGRES_HOST", "db"),
-        "PORT": os.getenv("POSTGRES_PORT", "5432"),
+        "NAME": config("POSTGRES_DB"),
+        "USER": config("POSTGRES_USER"),
+        "PASSWORD": config("POSTGRES_PASSWORD"),
+        "HOST": config("POSTGRES_HOST", default="db"),
+        "PORT": config("POSTGRES_PORT", default="5432"),
+        "OPTIONS": {
+            "client_encoding": "UTF8",
+        },
     }
 }
 

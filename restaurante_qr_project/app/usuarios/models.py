@@ -1,3 +1,16 @@
+"""
+Modelos del módulo de Usuarios.
+
+Gestiona la autenticación y roles del sistema:
+- Roles: cliente, mesero, cocinero, cajero, gerente, admin
+- Autenticación QR para empleados (sin password, más seguro)
+- Autenticación tradicional para admin/gerente
+- PIN de 4 dígitos para operaciones rápidas de cajero/mesero
+- Soft delete (activo/inactivo)
+
+IMPORTANTE: Los empleados pueden autenticarse escaneando su QR personal
+(generado automáticamente) en lugar de usar contraseña.
+"""
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 from django.core.validators import MinLengthValidator, RegexValidator

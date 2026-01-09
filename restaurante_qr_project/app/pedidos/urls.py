@@ -13,7 +13,8 @@ urlpatterns = [
     # 👨🍳 APIs para Cocinero
     path('cocina/', views.pedidos_en_cocina_api, name='pedidos_cocina'),
     path('<int:pedido_id>/actualizar/', views.actualizar_estado_pedido, name='actualizar_estado'),
-    
+    path('<int:pedido_id>/actualizar-estado/', views.actualizar_estado_pedido, name='actualizar_estado_pedido'),  # Alias para tests
+
     # 🧾 APIs para Mesero (ORIGINALES)
     path('mesero/', views.pedidos_por_mesa, name='pedidos_mesero'),
     path('<int:pedido_id>/entregar/', views.marcar_entregado, name='marcar_entregado'),

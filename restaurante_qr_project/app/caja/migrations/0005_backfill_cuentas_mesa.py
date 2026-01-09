@@ -16,6 +16,12 @@ def backfill_cuentas_mesa(apps, schema_editor):
     Transaccion = apps.get_model('caja', 'Transaccion')
     Usuario = apps.get_model('usuarios', 'Usuario')
 
+    # Verificar si el campo 'cuenta' existe antes de intentar usarlo
+    # (puede haber sido eliminado en migraciones posteriores)
+    if not hasattr(Pedido, '_meta') or 'cuenta' not in [f.name for f in Pedido._meta.get_fields()]:
+        print("\n[SKIP] Campo 'cuenta' no existe en Pedido - migracion ya no aplicable")
+        return
+
     # Obtener un usuario por defecto para cuentas sin mesero
     usuario_sistema = Usuario.objects.filter(is_superuser=True).first()
 
@@ -119,6 +125,11 @@ def backfill_cuentas_mesa(apps, schema_editor):
     print(f"   - {pedidos_migrados} pedidos migrados")
 
     # Procesar transacciones sin cuenta
+    # Verificar si el campo 'cuenta' existe en Transaccion
+    if 'cuenta' not in [f.name for f in Transaccion._meta.get_fields()]:
+        print("\n[SKIP] Campo 'cuenta' no existe en Transaccion - saltando migracion de transacciones")
+        return
+
     transacciones_sin_cuenta = Transaccion.objects.filter(cuenta__isnull=True).select_related('pedido')
 
     print(f"\n[MIGRACION] Migrando {transacciones_sin_cuenta.count()} transacciones a CuentaMesa...")
