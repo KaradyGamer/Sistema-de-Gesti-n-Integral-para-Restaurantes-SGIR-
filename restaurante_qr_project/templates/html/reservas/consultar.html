@@ -1,0 +1,159 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Consultar Reserva - Restaurante</title>
+    <link rel="stylesheet" href="{% static 'css/reservas/consultar.css' %}?v=10.0">
+</head>
+<body>
+    <div class="container">
+        <!-- ✅ NAVEGACIÓN SIMPLIFICADA - SOLO NUEVA RESERVA -->
+        <div class="navigation-bar">
+            <a href="/reservas/" class="nav-btn">
+                🍽️ Nueva Reserva
+            </a>
+        </div>
+    
+        <div class="card">
+            <div class="header">
+                <h1>🔍 Consultar Reservas</h1>
+                <p>Ingresa tu número de carnet para consultar todas tus reservas</p>
+            </div>
+
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="alert-{{ message.tags }}">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+
+            <form method="post">
+                {% csrf_token %}
+                <div class="form-group">
+                    <label for="numero_carnet">📄 Número de Carnet/CI</label>
+                    <input type="text" name="numero_carnet" id="numero_carnet" class="form-control" 
+                           placeholder="Ingresa tu número de carnet" required 
+                           value="{{ carnet_buscado|default:'' }}">
+                </div>
+                <button type="submit" class="btn-primary">🔍 Buscar Reservas</button>
+            </form>
+
+            {% if reservas %}
+                <!-- ✅ CUANDO SÍ HAY RESERVAS -->
+                <div class="reservas-container">
+                    <div class="resumen-reservas">
+                        <h3>📋 Reservas Encontradas</h3>
+                        <p>Se encontraron <strong>{{ reservas|length }}</strong> reserva{{ reservas|length|pluralize }} para el carnet <strong>{{ carnet_buscado }}</strong></p>
+                    </div>
+
+                    {% for reserva in reservas %}
+                    <div class="reserva-card {% if reserva.estado == 'cancelada' %}cancelada{% else %}activa{% endif %}">
+                        <div class="reserva-header">
+                            <div class="reserva-titulo">
+                                🍽️ Reserva #{{ reserva.id }}
+                            </div>
+                            <div>
+                                <span class="estado-badge estado-{{ reserva.estado }}">
+                                    {{ reserva.get_estado_display }}
+                                </span>
+                            </div>
+                        </div>
+                        
+                        <div class="reserva-detalle">
+                            <span class="detalle-label">👤 Nombre:</span>
+                            <span class="detalle-valor">{{ reserva.nombre_completo }}</span>
+                        </div>
+                        
+                        <div class="reserva-detalle">
+                            <span class="detalle-label">📅 Fecha:</span>
+                            <span class="detalle-valor">{{ reserva.fecha_reserva|date:"d/m/Y" }}</span>
+                        </div>
+                        
+                        <div class="reserva-detalle">
+                            <span class="detalle-label">🕐 Hora:</span>
+                            <span class="detalle-valor">{{ reserva.hora_reserva|time:"H:i" }}</span>
+                        </div>
+                        
+                        <div class="reserva-detalle">
+                            <span class="detalle-label">👥 Personas:</span>
+                            <span class="detalle-valor">{{ reserva.numero_personas }}</span>
+                        </div>
+                        
+                        {% if reserva.telefono %}
+                        <div class="reserva-detalle">
+                            <span class="detalle-label">📱 Teléfono:</span>
+                            <span class="detalle-valor">{{ reserva.telefono }}</span>
+                        </div>
+                        {% endif %}
+                        
+                        {% if reserva.mesa %}
+                        <div class="reserva-detalle">
+                            <span class="detalle-label">🍽️ Mesa:</span>
+                            <span class="detalle-valor">Mesa {{ reserva.mesa.numero }} ({{ reserva.mesa.capacidad }} personas)</span>
+                        </div>
+                        {% endif %}
+                        
+                        {% if reserva.observaciones %}
+                        <div class="reserva-detalle">
+                            <span class="detalle-label">📝 Observaciones:</span>
+                            <span class="detalle-valor">{{ reserva.observaciones }}</span>
+                        </div>
+                        {% endif %}
+                        
+                        <div class="reserva-detalle">
+                            <span class="detalle-label">📅 Creada:</span>
+                            <span class="detalle-valor">{{ reserva.fecha_creacion|date:"d/m/Y H:i" }}</span>
+                        </div>
+
+                        <!-- ACCIONES PARA CADA RESERVA -->
+                        <div class="acciones">
+                            {% if reserva.estado == 'pendiente' or reserva.estado == 'confirmada' %}
+                                {% if reserva.puede_cancelar %}
+                                    <a href="/reservas/editar/{{ reserva.id }}/" class="btn-edit">
+                                        ✏️ Editar
+                                    </a>
+                                    <button onclick="cancelarReserva({{ reserva.id }})" class="btn-cancel">
+                                        ❌ Cancelar
+                                    </button>
+                                {% else %}
+                                    <div class="nota-importante">
+                                        ⏰ Esta reserva ya no puede ser editada (muy cerca de la fecha).
+                                    </div>
+                                {% endif %}
+                            {% elif reserva.estado == 'cancelada' %}
+                                <div class="nota-importante">
+                                    ❌ Reserva cancelada
+                                </div>
+                            {% elif reserva.estado == 'completada' %}
+                                <div class="nota-importante">
+                                    ✅ Reserva completada
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            {% elif carnet_buscado %}
+                <!-- ✅ CUANDO NO HAY RESERVAS - SOLO BOTÓN NUEVA RESERVA -->
+                <div class="no-reservas">
+                    <div class="no-reservas-icon">🔍</div>
+                    <h3>No se encontraron reservas</h3>
+                    <p>
+                        No hay reservas activas para el carnet <strong>{{ carnet_buscado }}</strong>.<br>
+                        ¿Te gustaría hacer una nueva reserva?
+                    </p>
+                    
+                    <div class="action-buttons">
+                        <a href="/reservas/" class="action-btn">
+                            ✨ Hacer Nueva Reserva
+                        </a>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <script src="{% static 'js/reservas/consultar.js' %}"></script>
+</body>
+</html>

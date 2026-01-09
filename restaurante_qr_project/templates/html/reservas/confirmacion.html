@@ -1,0 +1,71 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reserva Confirmada - Restaurante</title>
+    <link rel="stylesheet" href="{% static 'css/reservas/confirmacion.css' %}?v=10.0">
+</head>
+<body>
+    <div class="container">
+        <div class="card">
+            <div class="success-icon">✅</div>
+            <div class="header">
+                <h1>¡Reserva Confirmada!</h1>
+                <p>Tu mesa ha sido reservada exitosamente</p>
+            </div>
+
+            <div class="details">
+                <h3>📋 Detalles de tu Reserva</h3>
+                <div class="detail-item">
+                    <span class="detail-label">📄 Número de Carnet:</span>
+                    <span class="detail-value">{{ reserva.numero_carnet }}</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">👤 Nombre:</span>
+                    <span class="detail-value">{{ reserva.nombre_completo }}</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">📅 Fecha:</span>
+                    <span class="detail-value">{{ reserva.fecha_reserva|date:"d/m/Y" }}</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">🕐 Hora:</span>
+                    <span class="detail-value">{{ reserva.hora_reserva|time:"H:i" }}</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">👥 Personas:</span>
+                    <span class="detail-value">{{ reserva.numero_personas }}</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">📊 Estado:</span>
+                    <span class="detail-value" style="color: #28a745; font-weight: bold;">{{ reserva.get_estado_display }}</span>
+                </div>
+                {% if reserva.telefono %}
+                <div class="detail-item">
+                    <span class="detail-label">📱 Teléfono:</span>
+                    <span class="detail-value">{{ reserva.telefono }}</span>
+                </div>
+                {% endif %}
+                {% if reserva.observaciones %}
+                <div class="detail-item">
+                    <span class="detail-label">📝 Observaciones:</span>
+                    <span class="detail-value">{{ reserva.observaciones }}</span>
+                </div>
+                {% endif %}
+            </div>
+
+            <div class="note">
+                <strong>📌 Importante:</strong> Por favor, llegue 10 minutos antes de su hora de reserva. 
+                Su mesa será mantenida por 15 minutos pasada la hora reservada.
+            </div>
+
+            <div style="margin-top: 30px;">
+                <a href="/reservas/" class="btn-primary">🍽️ Nueva Reserva</a>
+                <a href="/reservas/consultar/" class="btn-secondary">🔍 Consultar Reserva</a>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

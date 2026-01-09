@@ -1,0 +1,144 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>AdminUX - SGIR</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+  <link rel="stylesheet" href="{% static 'css/adminux/main.css' %}" />
+  <style>
+    /* Loader overlay */
+    .loader-overlay {
+      position: fixed;
+      inset: 0;
+      background: var(--bg-main);
+      z-index: 9999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 1;
+      transition: opacity 0.3s ease;
+    }
+
+    .loader-overlay.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    /* Loader spinner */
+    .loader {
+      width: 48px;
+      height: 48px;
+      border: 3px solid var(--border-subtle);
+      border-bottom-color: var(--accent);
+      border-radius: 50%;
+      display: inline-block;
+      box-sizing: border-box;
+      animation: rotation 1s linear infinite;
+    }
+
+    @keyframes rotation {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    /* Page sections - solo una visible a la vez */
+    .page-section {
+      display: none;
+      animation: fadeIn 0.3s ease;
+    }
+
+    .page-section.active {
+      display: block;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+<body class="dark-theme">
+  <!-- Loader -->
+  <div id="loader" class="loader-overlay">
+    <div class="loader"></div>
+  </div>
+
+  <div class="app-layout">
+    <!-- ========== SIDEBAR ========== -->
+    {% include 'html/adminux/components/sidebar.html' %}
+
+    <!-- ========== MAIN ========== -->
+    <main class="adminux-main">
+      <!-- ========== TOPBAR ========== -->
+      {% include 'html/adminux/components/topbar.html' %}
+
+      <!-- 🔔 NOTIFICACIONES GLOBALES -->
+      <div class="notif-wrapper">
+        <button id="notifBell" class="notif-bell" type="button" aria-label="Notificaciones">
+          <i class='bx bx-bell'></i>
+          <span id="notifBadge" class="notif-badge hidden">0</span>
+        </button>
+
+        <div id="notifDropdown" class="notif-dropdown hidden">
+          <div class="notif-header">
+            <span class="notif-title">Notificaciones</span>
+            <button id="notifClear" type="button" class="notif-clear">Limpiar</button>
+          </div>
+          <ul id="notifList" class="notif-list">
+            <!-- Se llena por JS -->
+          </ul>
+        </div>
+      </div>
+
+      <div class="adminux-main-inner">
+        <!-- ===== DASHBOARD ===== -->
+        <section class="page-section active" data-section="dashboard">
+          {% include 'html/adminux/sections/dashboard.html' %}
+        </section>
+
+        <!-- ===== MESAS ===== -->
+        <section class="page-section" data-section="mesas">
+          {% include 'html/adminux/sections/mesas.html' %}
+        </section>
+
+        <!-- ===== PRODUCTOS ===== -->
+        <section class="page-section" data-section="productos">
+          {% include 'html/adminux/sections/productos.html' %}
+        </section>
+
+        <!-- ===== INVENTARIO ===== -->
+        <section class="page-section" data-section="inventario">
+          {% include 'html/adminux/sections/inventario.html' %}
+        </section>
+
+        <!-- ===== RESERVAS ===== -->
+        <section class="page-section" data-section="reservas">
+          {% include 'html/adminux/sections/reservas.html' %}
+        </section>
+
+        <!-- ===== USUARIOS ===== -->
+        <section class="page-section" data-section="usuarios">
+          {% include 'html/adminux/sections/usuarios.html' %}
+        </section>
+
+        <!-- ===== REPORTES ===== -->
+        <section class="page-section" data-section="reportes">
+          {% include 'html/adminux/sections/reportes.html' %}
+        </section>
+
+        <!-- ===== CONFIGURACIÓN ===== -->
+        <section class="page-section" data-section="configuracion">
+          {% include 'html/adminux/sections/configuracion.html' %}
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <!-- Scripts -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="{% static 'js/adminux/main.js' %}"></script>
+  <script src="{% static 'js/adminux/spa.js' %}"></script>
+</body>
+</html>

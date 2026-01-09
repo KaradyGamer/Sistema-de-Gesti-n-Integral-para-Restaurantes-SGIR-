@@ -1,0 +1,117 @@
+/* ============================================
+   DISEÑO NEGRO DOMINANTE - Tema Oscuro
+   Aplicado automáticamente
+   ============================================ */
+
+/* PANEL DE COCINA - DISEÑO MINIMALISTA */
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: #2d2d2d;
+    color: #ffffff;
+}
+
+.header {
+    background: #000000;
+    color: #ffffff;
+    padding: 25px;
+    text-align: center;
+}
+
+.header h1 {
+    font-size: 2em;
+    font-weight: 300;
+}
+
+.container {
+    max-width: 1600px;
+    margin: 0 auto;
+    padding: 30px 20px;
+}
+
+.pedidos-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+    gap: 20px;
+}
+
+.pedido-card {
+    background: #2d2d2d;
+    border: 2px solid #404040;
+    border-radius: 8px;
+    padding: 25px;
+    transition: all 0.3s;
+}
+
+.pedido-card.urgente {
+    border-color: #ffffff;
+    border-width: 3px;
+}
+
+.pedido-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.mesa-number {
+    font-size: 2em;
+    font-weight: 300;
+    color: #ffffff;
+}
+
+.tiempo {
+    font-size: 1.2em;
+    color: #b0b0b0;
+}
+
+.productos-list {
+    margin: 20px 0;
+}
+
+.producto-item {
+    padding: 12px 0;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.producto-item:last-child {
+    border-bottom: none;
+}
+
+.cantidad {
+    display: inline-block;
+    background: #000000;
+    color: #ffffff;
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-weight: 500;
+    margin-right: 10px;
+}
+
+.btn-action {
+    width: 100%;
+    background: #000000;
+    color: #ffffff;
+    border: none;
+    padding: 15px;
+    border-radius: 6px;
+    font-size: 1em;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.btn-action:hover {
+    background: #333333;
+}
+
+@media (max-width: 768px) {
+    .pedidos-grid { grid-template-columns: 1fr; }
+    .container { padding: 15px; }
+}

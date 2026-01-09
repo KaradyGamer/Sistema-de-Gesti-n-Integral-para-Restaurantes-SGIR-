@@ -1,0 +1,55 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel Cocina - Paprika</title>
+    <link rel="stylesheet" href="{% static 'css/cocinero/panel_cocina.css' %}?v=10.0">
+</head>
+<body>
+    {% csrf_token %}
+    <div class="header">
+        <div class="logo">
+            <h1>👨‍🍳 PAPRIKA - PANEL COCINA</h1>
+        </div>
+        <div class="user-info">
+            <div class="status-indicator">
+                <div class="status-dot"></div>
+                Auto-actualización activa
+            </div>
+            <span>Bienvenido, <strong>{{ nombre_usuario|default:"Cocinero" }}</strong></span>
+            <a href="/login/" style="color: #dc3545; text-decoration: none;">🚪 Salir</a>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="main-content">
+            <div class="section-header">
+                <div class="section-title">
+                    🍳 Pedidos en Cocina
+                    <span class="counter-badge" id="pedidos-count">0</span>
+                </div>
+                <button onclick="actualizarPedidos()" class="btn btn-primary">
+                    🔄 Actualizar
+                </button>
+            </div>
+
+            <div id="pedidos-container">
+                <div class="loading">
+                    <div style="font-size: 3em;">⏳</div>
+                    <h3>Cargando pedidos...</h3>
+                    <p>Obteniendo los pedidos de la cocina</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- NOTIFICACIÓN -->
+    <div id="notification" class="notification">
+        <span id="notification-text">Actualizando datos...</span>
+    </div>
+
+    <script src="{% static 'js/cocinero/panel_cocina.js' %}"></script>
+</body>
+</html>

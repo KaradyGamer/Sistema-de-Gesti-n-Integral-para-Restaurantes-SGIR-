@@ -1,0 +1,143 @@
+{% extends 'html/adminux/base_list.html' %}
+
+{% block page_title %}Reservas{% endblock %}
+{% block page_heading %}Gestión de Reservas{% endblock %}
+{% block page_description %}Lista de todas las reservas{% endblock %}
+
+{% block header_actions %}
+<a href="{% url 'adminux:reserva_crear' %}" class="btn btn-primary">
+    <i class='bx bx-plus'></i> Nuevo
+</a>
+{% endblock %}
+
+{% block filters %}
+<select class="form-select" id="estadoFilter" onchange="filtrarPorEstado()">
+    <option value="">Todos los estados</option>
+    <option value="pendiente">Pendientes</option>
+    <option value="confirmada">Confirmadas</option>
+    <option value="completada">Completadas</option>
+    <option value="cancelada">Canceladas</option>
+</select>
+<input type="date" class="form-control" id="fechaFilter" onchange="filtrarPorFecha()" style="max-width: 200px;">
+{% endblock %}
+
+{% block page_content %}
+<div class="table-responsive">
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Cliente</th>
+                <th>Mesa</th>
+                <th>Fecha/Hora</th>
+                <th>Personas</th>
+                <th>Teléfono</th>
+                <th>Estado</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for reserva in reservas %}
+            <tr data-estado="{{ reserva.estado }}" data-fecha="{{ reserva.fecha_reserva|date:'Y-m-d' }}">
+                <td><strong>#{{ reserva.id }}</strong></td>
+                <td>{{ reserva.nombre_cliente }}</td>
+                <td>
+                    <span class="badge badge-info">Mesa {{ reserva.mesa.numero }}</span>
+                </td>
+                <td>{{ reserva.fecha_reserva|date:"d/m/Y" }} {{ reserva.hora_reserva|date:"H:i" }}</td>
+                <td>
+                    <i class='bx bx-user'></i> {{ reserva.numero_personas }} persona{{ reserva.numero_personas|pluralize }}
+                </td>
+                <td>{{ reserva.telefono|default:"No especificado" }}</td>
+                <td>
+                    {% if reserva.estado == 'pendiente' %}
+                        <span class="badge badge-warning">Pendiente</span>
+                    {% elif reserva.estado == 'confirmada' %}
+                        <span class="badge badge-success">Confirmada</span>
+                    {% elif reserva.estado == 'completada' %}
+                        <span class="badge badge-primary">Completada</span>
+                    {% elif reserva.estado == 'cancelada' %}
+                        <span class="badge badge-danger">Cancelada</span>
+                    {% else %}
+                        <span class="badge badge-secondary">{{ reserva.estado }}</span>
+                    {% endif %}
+                </td>
+                <td>
+                    <div class="action-buttons">
+                        <a href="{% url 'adminux:reserva_editar' reserva.id %}" class="btn-icon" title="Editar">
+                            <i class='bx bx-edit'></i>
+                        </a>
+                        {% if reserva.estado == 'pendiente' %}
+                        <button class="btn-icon btn-success" onclick="confirmarReserva({{ reserva.id }})" title="Confirmar">
+                            <i class='bx bx-check'></i>
+                        </button>
+                        {% endif %}
+                        <a href="{% url 'adminux:reserva_eliminar' reserva.id %}" class="btn-icon btn-danger" title="Eliminar" onclick="return confirm('¿Eliminar esta reserva?')">
+                            <i class='bx bx-trash'></i>
+                        </a>
+                    </div>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="8" class="text-center text-muted">No hay reservas registradas</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock page_content %}
+
+{% block extra_js %}
+<script>
+const searchInput = document.getElementById('searchInput');
+const table = document.querySelector('.data-table tbody');
+
+searchInput.addEventListener('input', (e) => {
+    const query = e.target.value.toLowerCase();
+    const rows = table.querySelectorAll('tr');
+
+    rows.forEach(row => {
+        const text = row.textContent.toLowerCase();
+        row.style.display = text.includes(query) ? '' : 'none';
+    });
+});
+
+function filtrarPorEstado() {
+    const estado = document.getElementById('estadoFilter').value;
+    const rows = table.querySelectorAll('tr[data-estado]');
+
+    rows.forEach(row => {
+        if (!estado || row.dataset.estado === estado) {
+            row.style.display = '';
+        } else {
+            row.style.display = 'none';
+        }
+    });
+}
+
+function filtrarPorFecha() {
+    const fecha = document.getElementById('fechaFilter').value;
+    const rows = table.querySelectorAll('tr[data-fecha]');
+
+    rows.forEach(row => {
+        if (!fecha || row.dataset.fecha === fecha) {
+            row.style.display = '';
+        } else {
+            row.style.display = 'none';
+        }
+    });
+}
+
+function confirmarReserva(reservaId) {
+    if (confirm('¿Confirmar esta reserva?')) {
+        window.adminUX.mostrarNotificacion('Confirmando reserva...', 'info');
+        // Aquí iría la lógica para confirmar la reserva
+        setTimeout(() => {
+            window.adminUX.mostrarNotificacion('Reserva confirmada exitosamente', 'success');
+            location.reload();
+        }, 1000);
+    }
+}
+</script>
+{% endblock %}

@@ -1,0 +1,128 @@
+{% extends 'html/adminux/base_form.html' %}
+
+{% block title %}{% if reserva %}Editar Reserva{% else %}Nueva Reserva{% endif %}{% endblock %}
+{% block page_title %}{% if reserva %}Editar Reserva{% else %}Crear Nueva Reserva{% endif %}{% endblock %}
+{% block page_description %}{% if reserva %}Modifique los datos de la reserva{% else %}Complete el formulario para crear una nueva reserva{% endif %}{% endblock %}
+
+{% block breadcrumb %}
+<span>Reservas</span>
+<span>/</span>
+<span>{% if reserva %}Editar{% else %}Nueva{% endif %}</span>
+{% endblock %}
+
+{% block back_url %}{% url 'adminux:reservas' %}{% endblock %}
+{% block cancel_url %}{% url 'adminux:reservas' %}{% endblock %}
+
+{% block form_content %}
+<div class="form-grid">
+    <div class="form-group">
+        <label for="nombre_cliente" class="required">Nombre del Cliente</label>
+        <input type="text" id="nombre_cliente" name="nombre_cliente" class="form-control"
+               value="{{ reserva.nombre_cliente|default:'' }}" required>
+    </div>
+
+    <div class="form-group">
+        <label for="telefono" class="required">Teléfono</label>
+        <input type="tel" id="telefono" name="telefono" class="form-control"
+               value="{{ reserva.telefono|default:'' }}" required>
+    </div>
+
+    <div class="form-group">
+        <label for="email">Email</label>
+        <input type="email" id="email" name="email" class="form-control"
+               value="{{ reserva.email|default:'' }}">
+    </div>
+
+    <div class="form-group">
+        <label for="numero_personas" class="required">Número de Personas</label>
+        <input type="number" id="numero_personas" name="numero_personas" class="form-control"
+               value="{{ reserva.numero_personas|default:'2' }}" min="1" max="20" required>
+    </div>
+
+    <div class="form-group">
+        <label for="fecha_reserva" class="required">Fecha de Reserva</label>
+        <input type="date" id="fecha_reserva" name="fecha_reserva" class="form-control"
+               value="{{ reserva.fecha_reserva|date:'Y-m-d'|default:'' }}" required>
+    </div>
+
+    <div class="form-group">
+        <label for="hora_reserva" class="required">Hora de Reserva</label>
+        <input type="time" id="hora_reserva" name="hora_reserva" class="form-control"
+               value="{{ reserva.hora_reserva|date:'H:i'|default:'12:00' }}" required>
+    </div>
+
+    <div class="form-group">
+        <label for="mesa" class="required">Mesa</label>
+        <select id="mesa" name="mesa" class="form-select" required>
+            <option value="">Seleccione una mesa</option>
+            {% for mesa in mesas %}
+            <option value="{{ mesa.id }}"
+                    data-capacidad="{{ mesa.capacidad }}"
+                    {% if reserva.mesa_id == mesa.id %}selected{% endif %}>
+                Mesa {{ mesa.numero }} (Capacidad: {{ mesa.capacidad }} personas)
+            </option>
+            {% endfor %}
+        </select>
+        <small class="form-text" id="mesa-warning" style="display:none; color: #ff6b6b;">
+            La capacidad de la mesa es menor al número de personas
+        </small>
+    </div>
+
+    <div class="form-group">
+        <label for="estado" class="required">Estado</label>
+        <select id="estado" name="estado" class="form-select" required>
+            <option value="pendiente" {% if reserva.estado == 'pendiente' or not reserva %}selected{% endif %}>Pendiente</option>
+            <option value="confirmada" {% if reserva.estado == 'confirmada' %}selected{% endif %}>Confirmada</option>
+            <option value="completada" {% if reserva.estado == 'completada' %}selected{% endif %}>Completada</option>
+            <option value="cancelada" {% if reserva.estado == 'cancelada' %}selected{% endif %}>Cancelada</option>
+        </select>
+    </div>
+
+    <div class="form-group col-span-2">
+        <label for="observaciones">Observaciones</label>
+        <textarea id="observaciones" name="observaciones" class="form-control" rows="3">{{ reserva.observaciones|default:'' }}</textarea>
+        <small class="form-text">Comentarios adicionales o peticiones especiales</small>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const mesaSelect = document.getElementById('mesa');
+const numeroPersonas = document.getElementById('numero_personas');
+const mesaWarning = document.getElementById('mesa-warning');
+
+function validarCapacidad() {
+    const mesaOption = mesaSelect.options[mesaSelect.selectedIndex];
+    if (mesaOption && mesaOption.dataset.capacidad) {
+        const capacidad = parseInt(mesaOption.dataset.capacidad);
+        const personas = parseInt(numeroPersonas.value);
+
+        if (personas > capacidad) {
+            mesaWarning.style.display = 'block';
+        } else {
+            mesaWarning.style.display = 'none';
+        }
+    }
+}
+
+mesaSelect.addEventListener('change', validarCapacidad);
+numeroPersonas.addEventListener('input', validarCapacidad);
+
+// Validar que la fecha no sea pasada
+const fechaInput = document.getElementById('fecha_reserva');
+fechaInput.addEventListener('change', (e) => {
+    const fechaSeleccionada = new Date(e.target.value);
+    const hoy = new Date();
+    hoy.setHours(0, 0, 0, 0);
+
+    if (fechaSeleccionada < hoy) {
+        window.adminUX.mostrarNotificacion('La fecha de reserva no puede ser anterior a hoy', 'error');
+        e.target.value = '';
+    }
+});
+
+// Validación inicial
+validarCapacidad();
+</script>
+{% endblock %}

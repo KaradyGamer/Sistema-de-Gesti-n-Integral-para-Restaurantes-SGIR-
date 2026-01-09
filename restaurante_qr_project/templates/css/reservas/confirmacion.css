@@ -1,0 +1,38 @@
+/* ============================================
+   DISEÑO NEGRO DOMINANTE - Tema Oscuro
+   Aplicado automáticamente
+   ============================================ */
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            background: #2d2d2d; 
+            min-height: 100vh; 
+            padding: 20px;
+        }
+        .container { max-width: 600px; margin: 0 auto; }
+        .card { 
+            background: #2d2d2d; 
+            border-radius: 8px; 
+            box-shadow: 0 15px 35px rgba(0,0,0,0.1); 
+            padding: 30px; 
+            margin-top: 20px; 
+            text-align: center;
+        }
+        .success-icon { font-size: 4em; color: #ffffff; margin-bottom: 20px; }
+        .header h1 { color: #e0e0e0; font-size: 2.2em; margin-bottom: 10px; }
+        .details { background: #2d2d2d; padding: 20px; border-radius: 10px; margin: 20px 0; text-align: left; }
+        .details h3 { color: #e0e0e0; margin-bottom: 15px; }
+        .detail-item { margin-bottom: 10px; display: flex; justify-content: space-between; }
+        .detail-label { font-weight: 600; color: #555; }
+        .detail-value { color: #e0e0e0; }
+        .btn-primary { 
+            background: #2d2d2d; 
+            color: white; padding: 15px 30px; border: none; border-radius: 8px; 
+            font-size: 16px; text-decoration: none; display: inline-block; margin: 10px;
+        }
+        .btn-secondary { 
+            background: #6c757d; color: white; padding: 15px 30px; border: none; 
+            border-radius: 8px; font-size: 16px; text-decoration: none; display: inline-block; margin: 10px;
+        }
+        .note { background: #fff3cd; color: #856404; padding: 15px; border-radius: 8px; margin-top: 20px; }

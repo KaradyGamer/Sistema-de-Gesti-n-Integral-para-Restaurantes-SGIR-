@@ -9,8 +9,6 @@
 # 4. Asegurar que DEBUG=False en .env
 # ============================================
 
-version: '3.8'
-
 services:
   # ===== POSTGRESQL (Base de Datos) =====
   db:
@@ -45,11 +43,12 @@ services:
 
     # Healthcheck robusto
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
-      interval: 30s
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health/').read()\" || exit 1"]
+      interval: 60s
       timeout: 10s
-      retries: 5
-      start_period: 40s
+      retries: 3
+      start_period: 60s
+
 
     # Recursos limitados (ajustar según servidor)
     deploy:
@@ -88,6 +87,13 @@ services:
       DJANGO_SETTINGS_MODULE: backend.settings
       PYTHONUNBUFFERED: "1"
       PYTHONDONTWRITEBYTECODE: "1"
+
+      # PostgreSQL (forzar valores para Django)
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_HOST: db
+      POSTGRES_PORT: "5432"
 
       # Gunicorn
       GUNICORN_WORKERS: ${GUNICORN_WORKERS:-4}
@@ -148,7 +154,7 @@ services:
 
     # Healthcheck del backend
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8000/health/ || exit 1"]
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health/').read()\" || exit 1"]
       interval: 60s
       timeout: 10s
       retries: 3
@@ -240,11 +246,6 @@ volumes:
 networks:
   sgir_network_prod:
     driver: bridge
-    ipam:
-      config:
-        - subnet: 172.25.0.0/16
-    driver_opts:
-      com.docker.network.bridge.name: sgir_prod_bridge
 
 # ============================================
 # NOTAS DE USO:

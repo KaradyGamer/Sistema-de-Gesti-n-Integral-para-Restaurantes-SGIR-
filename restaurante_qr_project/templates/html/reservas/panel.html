@@ -1,0 +1,135 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel de Reservas - SGIR</title>
+    <link rel="stylesheet" href="{% static 'css/reservas/panel.css' %}?v=10.0">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Panel de Reservas</h1>
+            <div class="header-actions">
+                <span class="fecha-actual">{{ fecha_hoy|date:"d/m/Y" }}</span>
+                <a href="{% url 'panel_empleado' %}" class="btn-back">Volver al Panel</a>
+            </div>
+        </header>
+
+        <!-- Sección: Reservas de Hoy -->
+        <section class="reservas-seccion">
+            <h2>Reservas de Hoy ({{ reservas_hoy.count }})</h2>
+            {% if reservas_hoy %}
+                <div class="reservas-grid">
+                    {% for reserva in reservas_hoy %}
+                    <div class="reserva-card estado-{{ reserva.estado }}">
+                        <div class="reserva-header">
+                            <span class="reserva-hora">{{ reserva.hora_reserva|time:"H:i" }}</span>
+                            <span class="reserva-estado">{{ reserva.get_estado_display }}</span>
+                        </div>
+                        <div class="reserva-body">
+                            <p class="reserva-nombre"><strong>{{ reserva.nombre_completo }}</strong></p>
+                            <p class="reserva-info">Mesa: {{ reserva.mesa.numero }}</p>
+                            <p class="reserva-info">Personas: {{ reserva.numero_personas }}</p>
+                            <p class="reserva-info">Teléfono: {{ reserva.telefono }}</p>
+                        </div>
+                        <div class="reserva-actions">
+                            {% if reserva.estado == 'pendiente' %}
+                            <button class="btn btn-confirmar" onclick="cambiarEstado({{ reserva.id }}, 'confirmada')">
+                                Confirmar
+                            </button>
+                            {% elif reserva.estado == 'confirmada' %}
+                            <button class="btn btn-iniciar" onclick="cambiarEstado({{ reserva.id }}, 'en_uso')">
+                                Iniciar
+                            </button>
+                            {% elif reserva.estado == 'en_uso' %}
+                            <button class="btn btn-completar" onclick="cambiarEstado({{ reserva.id }}, 'completada')">
+                                Completar
+                            </button>
+                            {% endif %}
+                            <button class="btn btn-cancelar" onclick="cambiarEstado({{ reserva.id }}, 'cancelada')">
+                                Cancelar
+                            </button>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <p class="sin-datos">No hay reservas para hoy</p>
+            {% endif %}
+        </section>
+
+        <!-- Sección: Reservas Futuras -->
+        <section class="reservas-seccion">
+            <h2>Reservas Futuras ({{ reservas_futuras.count }})</h2>
+            {% if reservas_futuras %}
+                <div class="reservas-grid">
+                    {% for reserva in reservas_futuras %}
+                    <div class="reserva-card estado-{{ reserva.estado }}">
+                        <div class="reserva-header">
+                            <span class="reserva-fecha">{{ reserva.fecha_reserva|date:"d/m/Y" }}</span>
+                            <span class="reserva-hora">{{ reserva.hora_reserva|time:"H:i" }}</span>
+                            <span class="reserva-estado">{{ reserva.get_estado_display }}</span>
+                        </div>
+                        <div class="reserva-body">
+                            <p class="reserva-nombre"><strong>{{ reserva.nombre_completo }}</strong></p>
+                            <p class="reserva-info">Mesa: {{ reserva.mesa.numero }}</p>
+                            <p class="reserva-info">Personas: {{ reserva.numero_personas }}</p>
+                            <p class="reserva-info">Teléfono: {{ reserva.telefono }}</p>
+                        </div>
+                        <div class="reserva-actions">
+                            {% if reserva.estado == 'pendiente' %}
+                            <button class="btn btn-confirmar" onclick="cambiarEstado({{ reserva.id }}, 'confirmada')">
+                                Confirmar
+                            </button>
+                            {% endif %}
+                            <button class="btn btn-cancelar" onclick="cambiarEstado({{ reserva.id }}, 'cancelada')">
+                                Cancelar
+                            </button>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <p class="sin-datos">No hay reservas futuras</p>
+            {% endif %}
+        </section>
+    </div>
+
+    <script>
+        function cambiarEstado(reservaId, nuevoEstado) {
+            if (!confirm(`¿Está seguro de cambiar el estado de esta reserva?`)) {
+                return;
+            }
+
+            fetch(`/api/reservas/${reservaId}/cambiar-estado/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: JSON.stringify({ estado: nuevoEstado })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.message) {
+                    alert('Estado actualizado correctamente');
+                    location.reload();
+                } else if (data.error) {
+                    alert('Error: ' + data.error);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error al actualizar el estado');
+            });
+        }
+
+        // Auto-actualizar cada 30 segundos
+        setInterval(() => {
+            location.reload();
+        }, 30000);
+    </script>
+</body>
+</html>

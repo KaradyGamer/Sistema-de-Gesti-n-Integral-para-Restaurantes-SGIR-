@@ -1,0 +1,578 @@
+{% extends "html/adminux/base_adminux.html" %}
+{% load static %}
+
+{% block title %}Dashboard - AdminUX{% endblock %}
+
+{% block extra_head %}
+<style>
+/* Dashboard específico del prototipo */
+.adminux-main-inner {
+    padding: 0 !important;
+}
+
+/* HERO / RELOJ */
+.hero {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 2.5rem 2rem;
+    background: radial-gradient(circle at top right, #20262e, #050608 70%);
+    border-radius: 16px;
+    border: 1px solid var(--border-subtle);
+    margin: 1.5rem;
+    box-shadow: 0 12px 32px rgba(0,0,0,0.4);
+}
+
+.hero-clock {
+    flex: 1;
+}
+
+.clock-time {
+    font-size: 3rem;
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    color: var(--text-main);
+    white-space: nowrap;
+}
+
+.clock-date {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    margin-top: 0.5rem;
+}
+
+.hero-controls {
+    display: flex;
+    gap: 0.75rem;
+}
+
+.radio-container {
+    display: inline-flex;
+    padding: 4px;
+    background: rgba(0,0,0,0.4);
+    border-radius: 999px;
+    gap: 0.25rem;
+    box-shadow: inset 0 2px 8px rgba(0,0,0,0.3);
+}
+
+.radio-pill {
+    padding: 0.5rem 1.5rem;
+    border: none;
+    border-radius: 999px;
+    background: transparent;
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-weight: 500;
+}
+
+.radio-pill.active {
+    background: var(--accent);
+    color: #000;
+    font-weight: 600;
+    box-shadow: 0 4px 12px rgba(132,176,103,0.3);
+}
+
+.radio-pill:hover:not(.active) {
+    color: var(--text-main);
+    background: rgba(255,255,255,0.05);
+}
+
+/* DASHBOARD GRID */
+.dashboard-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    grid-template-rows: auto auto;
+    gap: 1.5rem;
+    padding: 0 1.5rem 1.5rem;
+}
+
+.card--ventas {
+    grid-column: 1;
+    grid-row: 1 / 3;
+}
+
+.card--reservas {
+    grid-column: 2;
+    grid-row: 1;
+}
+
+.card--actividades {
+    grid-column: 2;
+    grid-row: 2;
+}
+
+.card--topproductos {
+    grid-column: 2;
+    grid-row: 2;
+}
+
+/* CARD HEADER */
+.card-header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 1rem;
+}
+
+.card-header-row h3 {
+    margin: 0;
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--text-main);
+}
+
+.card-subtitle {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    margin-top: 0.25rem;
+}
+
+.card-header-right {
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+}
+
+/* ESTADO CAJA */
+.estado-caja {
+    padding: 0.4rem 0.9rem;
+    border-radius: 8px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    border: none;
+    cursor: default;
+}
+
+.estado-caja--online {
+    background: rgba(16,185,129,0.15);
+    color: var(--success);
+}
+
+.estado-caja--offline {
+    background: rgba(239,68,68,0.15);
+    color: var(--danger);
+}
+
+/* CHART WRAPPER */
+.card-chart-wrapper {
+    position: relative;
+    height: 400px;
+    width: 100%;
+}
+
+.card-chart-wrapper canvas {
+    position: absolute !important;
+    inset: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+}
+
+/* RESERVAS LIST */
+.reservas-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.reservas-list li {
+    padding: 0.75rem;
+    background: var(--bg-elevated-soft);
+    border-radius: 8px;
+    border: 1px solid var(--border-subtle);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.reserva-info {
+    flex: 1;
+}
+
+.reserva-cliente {
+    font-weight: 600;
+    color: var(--text-main);
+    font-size: 0.9rem;
+}
+
+.reserva-meta {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin-top: 0.25rem;
+}
+
+/* ACTIVITY LIST */
+.activity-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.activity-item {
+    padding: 0.65rem;
+    background: var(--bg-elevated-soft);
+    border-radius: 6px;
+    border: 1px solid var(--border-subtle);
+    font-size: 0.8rem;
+}
+
+.activity-item-title {
+    font-weight: 600;
+    color: var(--text-main);
+    display: block;
+    margin-bottom: 0.2rem;
+}
+
+.activity-item-meta {
+    color: var(--text-muted);
+    font-size: 0.7rem;
+}
+
+.activity-item-tag {
+    display: inline-block;
+    padding: 0.15rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.65rem;
+    margin-left: 0.5rem;
+    font-weight: 600;
+}
+
+.activity-item-tag.tag-caja {
+    background: rgba(16,185,129,0.15);
+    color: var(--success);
+}
+
+.activity-item-tag.tag-reservas {
+    background: rgba(59,130,246,0.15);
+    color: #60a5fa;
+}
+
+.activity-item-tag.tag-comandas {
+    background: rgba(245,158,11,0.15);
+    color: var(--warning);
+}
+
+.activity-item-tag.tag-usuarios {
+    background: rgba(168,85,247,0.15);
+    color: #c084fc;
+}
+
+/* TOP PRODUCTOS */
+.topproductos-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+}
+
+.topproductos-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.65rem 0.75rem;
+    background: var(--bg-elevated-soft);
+    border-radius: 6px;
+    border: 1px solid var(--border-subtle);
+}
+
+.topproductos-item-numero {
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: var(--accent);
+    min-width: 28px;
+}
+
+.topproductos-item-nombre {
+    flex: 1;
+    font-size: 0.85rem;
+    color: var(--text-main);
+    margin: 0 0.75rem;
+}
+
+.topproductos-item-ventas {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    font-weight: 600;
+}
+
+/* Responsive */
+@media (max-width: 1200px) {
+    .dashboard-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .card--ventas,
+    .card--reservas,
+    .card--actividades,
+    .card--topproductos {
+        grid-column: 1;
+        grid-row: auto;
+    }
+}
+
+@media (max-width: 768px) {
+    .hero {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1.5rem;
+    }
+
+    .clock-time {
+        font-size: 2rem;
+    }
+}
+</style>
+{% endblock %}
+
+{% block adminux_page %}
+<!-- RELOJ / HERO -->
+<div class="hero">
+    <div class="hero-clock">
+        <div id="clockTime" class="clock-time">00 : 00 : 00</div>
+        <div id="clockDate" class="clock-date">Cargando fecha...</div>
+    </div>
+    <div class="hero-controls">
+        <div class="radio-container" id="periodoControl">
+            <button class="radio-pill active" data-periodo="hoy">Hoy</button>
+            <button class="radio-pill" data-periodo="semana">Semana</button>
+            <button class="radio-pill" data-periodo="mes">Mes</button>
+        </div>
+    </div>
+</div>
+
+<!-- DASHBOARD GRID -->
+<div class="dashboard-grid">
+    <!-- VENTAS CHART -->
+    <article class="card card--ventas">
+        <div class="card-header-row">
+            <div>
+                <h3>Ventas</h3>
+                <p id="ventasSubtitle" class="card-subtitle">Rendimiento por hora (hoy).</p>
+            </div>
+            <div class="card-header-right">
+                <span class="chip chip-green" id="ventasPeriodoLabel">Hoy</span>
+                <button id="estadoCajaBtn" class="estado-caja estado-caja--offline">Caja cerrada</button>
+            </div>
+        </div>
+        <div class="card-chart-wrapper">
+            <canvas id="ventasChart"></canvas>
+        </div>
+    </article>
+
+    <!-- RESERVAS -->
+    <article class="card card--reservas">
+        <div class="card-header-row">
+            <div>
+                <h3>Reservas</h3>
+                <p class="card-subtitle">Reservas recientes registradas.</p>
+            </div>
+        </div>
+        <ul class="reservas-list" id="reservasList">
+            {% for reserva in reservas %}
+            <li>
+                <div class="reserva-info">
+                    <div class="reserva-cliente">{{ reserva.nombre_completo }}</div>
+                    <div class="reserva-meta">
+                        {{ reserva.fecha_reserva|date:"d/m/Y" }} · {{ reserva.hora_reserva }} · Mesa {{ reserva.mesa.numero }} · {{ reserva.numero_personas }} personas
+                    </div>
+                </div>
+                <span class="chip chip-amber">Reserva</span>
+            </li>
+            {% empty %}
+            <li style="text-align: center; color: var(--text-muted); padding: 1.5rem;">
+                No hay reservas recientes
+            </li>
+            {% endfor %}
+        </ul>
+    </article>
+
+    <!-- ACTIVIDADES DEL SISTEMA -->
+    <article class="card card--actividades">
+        <div class="card-header-row">
+            <div>
+                <h3>Actividades del sistema</h3>
+                <p class="card-subtitle">Inicio de sesión, caja, comandas, reservas...</p>
+            </div>
+        </div>
+        <ul class="activity-list" id="activityList">
+            {% for actividad in actividades %}
+            <li class="activity-item">
+                <span class="activity-item-title">{{ actividad.titulo }}</span>
+                <span class="activity-item-meta">{{ actividad.descripcion }}</span>
+                <span class="activity-item-tag tag-{{ actividad.tipo }}">{{ actividad.tipo|title }}</span>
+            </li>
+            {% empty %}
+            <li style="text-align: center; color: var(--text-muted); padding: 1.5rem;">
+                Sin actividades recientes
+            </li>
+            {% endfor %}
+        </ul>
+    </article>
+
+    <!-- TOP PRODUCTOS -->
+    <article class="card card--topproductos">
+        <div class="card-header-row">
+            <div>
+                <h3>Top productos</h3>
+                <p class="card-subtitle">Top 5 de productos más vendidos.</p>
+            </div>
+        </div>
+        <ol class="topproductos-list" id="topProductosList">
+            {% for producto in top_productos %}
+            <li class="topproductos-item">
+                <span class="topproductos-item-numero">{{ forloop.counter }}</span>
+                <span class="topproductos-item-nombre">{{ producto.nombre }}</span>
+                <span class="topproductos-item-ventas">{{ producto.total_vendido }} ventas</span>
+            </li>
+            {% empty %}
+            <li style="text-align: center; color: var(--text-muted); padding: 1.5rem;">
+                Sin datos de ventas
+            </li>
+            {% endfor %}
+        </ol>
+    </article>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+// ===== RELOJ EN TIEMPO REAL =====
+function updateClock() {
+    const now = new Date();
+    const clockTime = document.getElementById('clockTime');
+    const clockDate = document.getElementById('clockDate');
+
+    if (clockTime) {
+        clockTime.textContent = now
+            .toLocaleTimeString('es-BO', {
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+            })
+            .replace(/:/g, ' : ');
+    }
+
+    if (clockDate) {
+        clockDate.textContent = now.toLocaleDateString('es-BO', {
+            weekday: 'long',
+            day: '2-digit',
+            month: 'long',
+            year: 'numeric'
+        });
+    }
+}
+
+updateClock();
+setInterval(updateClock, 1000);
+
+// ===== GRÁFICA DE VENTAS =====
+const ventasData = {{ ventas_por_hora|safe }};
+const ventasLabels = ventasData.map(v => v.hora + ':00');
+const ventasValues = ventasData.map(v => v.total);
+
+const ventasCtx = document.getElementById('ventasChart');
+if (ventasCtx) {
+    new Chart(ventasCtx, {
+        type: 'bar',
+        data: {
+            labels: ventasLabels,
+            datasets: [{
+                label: 'Ventas (Bs)',
+                data: ventasValues,
+                backgroundColor: 'rgba(132, 176, 103, 0.8)',
+                borderColor: 'rgba(132, 176, 103, 1)',
+                borderWidth: 1,
+                borderRadius: 8
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                },
+                tooltip: {
+                    backgroundColor: 'rgba(0,0,0,0.8)',
+                    padding: 12,
+                    titleColor: '#fff',
+                    bodyColor: '#fff',
+                    borderColor: '#84b067',
+                    borderWidth: 1
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    grid: {
+                        color: 'rgba(255,255,255,0.05)'
+                    },
+                    ticks: {
+                        color: '#9ca3af'
+                    }
+                },
+                x: {
+                    grid: {
+                        display: false
+                    },
+                    ticks: {
+                        color: '#9ca3af'
+                    }
+                }
+            }
+        }
+    });
+}
+
+// ===== BOTONES DE PERIODO =====
+document.querySelectorAll('.radio-pill').forEach(btn => {
+    btn.addEventListener('click', function() {
+        document.querySelectorAll('.radio-pill').forEach(b => b.classList.remove('active'));
+        this.classList.add('active');
+
+        const periodo = this.dataset.periodo;
+        const labelEl = document.getElementById('ventasPeriodoLabel');
+        const subtitleEl = document.getElementById('ventasSubtitle');
+
+        if (labelEl) {
+            labelEl.textContent = periodo.charAt(0).toUpperCase() + periodo.slice(1);
+        }
+
+        if (subtitleEl) {
+            if (periodo === 'hoy') {
+                subtitleEl.textContent = 'Rendimiento por hora (hoy).';
+            } else if (periodo === 'semana') {
+                subtitleEl.textContent = 'Rendimiento por día (última semana).';
+            } else {
+                subtitleEl.textContent = 'Rendimiento por día (último mes).';
+            }
+        }
+
+        // Aquí puedes agregar lógica para recargar datos
+        console.log('Periodo seleccionado:', periodo);
+    });
+});
+
+// ===== ESTADO DE CAJA =====
+const estadoCajaBtn = document.getElementById('estadoCajaBtn');
+const cajaAbierta = {{ caja_abierta|yesno:"true,false" }};
+
+if (estadoCajaBtn && cajaAbierta) {
+    estadoCajaBtn.classList.remove('estado-caja--offline');
+    estadoCajaBtn.classList.add('estado-caja--online');
+    estadoCajaBtn.textContent = 'Caja abierta';
+}
+</script>
+{% endblock %}

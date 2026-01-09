@@ -1,0 +1,135 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Realiza tu Pedido - Restaurante QR</title>
+    <link rel="stylesheet" href="{% static 'css/cliente/formulario.css' %}?v=12.0">
+</head>
+<body>
+    <div class="container">
+        <!-- CSRF Token para Django -->
+        {% csrf_token %}<div class="header">
+            <h1>Menú</h1>
+            <p>Selecciona tus productos favoritos</p>
+        </div>
+
+        <!-- ✅ NUEVA: Barra de búsqueda global -->
+        <div class="search-container">
+            <div class="search-box">
+                <svg class="search-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <path d="m21 21-4.35-4.35"></path>
+                </svg>
+                <input
+                    type="text"
+                    id="globalSearch"
+                    class="search-input"
+                    placeholder="Buscar productos... (ej: maní, sopa, bebida)"
+                    autocomplete="off">
+                <button type="button" id="clearSearch" class="clear-search" style="display: none;">×</button>
+            </div>
+            <div id="searchResults" class="search-results" style="display: none;"></div>
+        </div>
+
+        <form id="orderForm" class="form-section">
+            <!-- ✅ NUEVO: Mesa oculta (predeterminada desde el mapa) -->
+            <input type="hidden" id="tableNumber" name="tableNumber" value="{{ mesa_numero }}">
+
+            <!-- ✅ NUEVO: Usuario oculto (mesero logueado) -->
+            {% if usuario_id %}
+            <input type="hidden" id="userId" name="userId" value="{{ usuario_id }}">
+            {% endif %}
+
+            <!-- ✅ NUEVO: Mostrar mesa seleccionada si viene del mapa -->
+            {% if mesa_numero %}
+            <div class="mesa-info-display">
+                <div class="mesa-badge">
+                    <span class="mesa-icon">🍽️</span>
+                    <span class="mesa-text">Mesa {{ mesa_numero }}</span>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- ✅ NUEVO: Campo número de personas (REQUERIDO) -->
+            <div class="form-group">
+                <label for="numberOfPeople">👥 Número de Personas:</label>
+                <input type="number" id="numberOfPeople" name="numberOfPeople" min="1" max="20" required
+                       placeholder="¿Cuántas personas?">
+                <small class="field-hint">Indica cuántas personas ocuparán la mesa</small>
+            </div>
+
+            <!-- ✅ NUEVA SECCIÓN DE PESTAÑAS -->
+            <div class="tabs-container" id="tabsContainer">
+                <div class="tabs-header" id="tabsHeader">
+                    <div class="loading">
+                        <div class="spinner"></div>
+                        <p>Cargando categorías...</p>
+                    </div>
+                </div>
+                
+                <div id="tabsContent">
+                    <div class="loading">
+                        <div class="spinner"></div>
+                        <p>Cargando productos...</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="total-section">
+                <div class="total-amount">Total: Bs/ <span id="totalAmount">0.00</span></div>
+                <div class="total-items">Productos seleccionados: <span id="totalItems">0</span></div>
+            </div>
+
+            <button type="submit" class="submit-btn" id="submitBtn" disabled>
+                📋 Confirmar Pedido
+            </button>
+        </form>
+    </div>
+
+    <!-- ✅ NUEVO: Modal de información del producto -->
+    <div id="productModal" class="modal">
+        <div class="modal-content">
+            <button class="modal-close" onclick="orderSystem.closeProductModal()">&times;</button>
+
+            <div class="modal-body">
+                <div class="modal-image-container">
+                    <img id="modalProductImage" src="" alt="Producto">
+                </div>
+
+                <div class="modal-info">
+                    <h2 id="modalProductName" class="modal-title"></h2>
+                    <p id="modalProductDescription" class="modal-description"></p>
+                    <div id="modalProductPrice" class="modal-price"></div>
+
+                    <!-- ✅ FUTURO: Aquí irán los modificadores en FASE 3 -->
+                    <div id="modalModifiers" class="modal-modifiers">
+                        <!-- Los modificadores se insertarán aquí dinámicamente -->
+                    </div>
+
+                    <div class="modal-quantity-section">
+                        <label>Cantidad:</label>
+                        <div class="modal-quantity-control">
+                            <button type="button" class="quantity-btn" onclick="orderSystem.decreaseModalQuantity()">−</button>
+                            <span id="modalQuantity" class="quantity-display">1</span>
+                            <button type="button" class="quantity-btn" onclick="orderSystem.increaseModalQuantity()">+</button>
+                        </div>
+                    </div>
+
+                    <div class="modal-total">
+                        <span>Subtotal:</span>
+                        <span id="modalSubtotal" class="modal-subtotal-amount">Bs/ 0.00</span>
+                    </div>
+
+                    <button type="button" class="modal-add-btn" onclick="orderSystem.addFromModal()">
+                        ✓ Agregar al Pedido
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="{% static 'js/cliente/formulario.js' %}?v=3.0"></script>
+</body>
+</html>
